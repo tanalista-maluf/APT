@@ -99,7 +99,57 @@ docker run -p 8080:8080 --env-file backend/.env -v autopost_data:/data autopost
 |---|---|---|
 | `CLAUDE_API_KEY` | Chave da API (legendas com IA) | Sim |
 | `APP_PASSWORD` | Senha de acesso ao app | Sim na internet |
+| `PUBLIC_BASE_URL` | Endereço público HTTPS do app (o Instagram busca a foto aí) | Sim p/ publicar no IG |
 | `COOKIE_SECURE` | `1` quando o site roda em HTTPS | Recomendado |
 | `CLAUDE_MODEL` | Modelo de IA (padrão `claude-opus-4-8`) | Não |
+| `META_APP_ID` / `META_APP_SECRET` | App da Meta (troca token curto por longo) | Não |
+| `ENABLE_SCHEDULER` | Liga o agendador que publica sozinho (padrão `1`) | Não |
 | `SECRET_KEY` | Assinatura do cookie de login (gerada sozinha se faltar) | Não |
 | `PORT` | Porta do servidor (a plataforma define sozinha) | Não |
+
+---
+
+## 📸 Publicação automática no Instagram (depois do deploy)
+
+A publicação real só funciona **com o app já publicado na internet** (o
+Instagram precisa alcançar a foto num link público). Ordem:
+
+1. **Deploy primeiro** (passos acima). Anote o domínio gerado, ex:
+   `https://autopost-tabajara.up.railway.app`.
+
+2. **Defina `PUBLIC_BASE_URL`** nas variáveis do Railway com esse domínio
+   exato (com `https://`, sem barra no final). Sem isso, o app conecta a
+   conta mas não consegue publicar.
+
+3. **Requisitos da conta** (exigência do Instagram, não do app):
+   - Conta **Profissional** (Comercial ou Criador) — você já tem ✅
+   - Vinculada a uma **Página do Facebook** — você já tem ✅
+
+4. **Gere o token de acesso** no painel da Meta
+   (https://developers.facebook.com):
+   - No seu app da Meta, adicione o produto **Instagram** / **Graph API**.
+   - Use o **Graph API Explorer** para gerar um token com as permissões
+     `instagram_basic`, `instagram_content_publish`, `pages_show_list` e
+     `business_management`.
+   - Pegue também o **ID da sua conta Instagram** (o Explorer mostra, ou
+     via `GET /me/accounts` → `instagram_business_account`).
+
+5. **Conecte no app**: abra **Configurações → Conta do Instagram**, cole o
+   **ID da conta** e o **token**, clique em **Conectar e validar**. O app
+   confere com o Instagram e, se estiver tudo certo, mostra seu @usuário.
+   (Se você preencheu `META_APP_ID`/`SECRET`, o app já troca o token curto
+   por um de ~60 dias automaticamente.)
+
+6. **Pronto.** A partir daí, na hora agendada o "carteiro" (agendador)
+   publica sozinho. Você também pode testar na hora: **Histórico → 📤** num
+   post pendente → confirma → publica na hora.
+
+> ⚠️ Sobre publicar para **outras** contas além da sua: aí o app precisaria
+> passar pela **App Review** da Meta (processo à parte, com verificação de
+> negócio). Para publicar na **sua própria** conta, o token que você gera
+> já basta.
+
+> **Legenda + hashtags** vão juntas para o Instagram. **Localização** e
+> **marcação de pessoas** ficam guardadas no app mas não sobem
+> automaticamente — a API de publicação do Instagram não suporta isso de
+> forma simples (limitação do Instagram, não do app).

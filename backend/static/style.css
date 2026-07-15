@@ -867,6 +867,12 @@ input, textarea, select {
     background: var(--cream-2);
 }
 
+.queue-item-error {
+    color: var(--red-dark);
+    font-weight: 700;
+    font-size: 11px;
+}
+
 /* ============================================================
    MODAIS
    ============================================================ */
@@ -997,6 +1003,7 @@ input, textarea, select {
 
 .field-block textarea,
 .field-block input[type="text"],
+.field-block input[type="password"],
 .field-block input[type="datetime-local"] {
     width: 100%;
     padding: 10px 12px;

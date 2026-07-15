@@ -56,6 +56,7 @@ def _connect():
 
 
 def _row_to_post(row):
+    keys = row.keys()
     return {
         "id": row["id"],
         "photo_path": row["photo_path"],
@@ -67,13 +68,33 @@ def _row_to_post(row):
         "status": row["status"],
         "created_at": row["created_at"],
         "posted_at": row["posted_at"],
+        # Colunas adicionadas depois (integracao Instagram); usam .keys()
+        # para nao quebrar caso o banco seja de uma versao anterior.
+        "publish_error": row["publish_error"] if "publish_error" in keys else "",
+        "ig_media_id": row["ig_media_id"] if "ig_media_id" in keys else "",
+        "attempts": row["attempts"] if "attempts" in keys else 0,
     }
 
 
+# Colunas adicionadas apos a v2 (integracao Instagram). Sao criadas via
+# ALTER TABLE na inicializacao para nao perder o banco existente.
+_POST_EXTRA_COLUMNS = {
+    "publish_error": "TEXT NOT NULL DEFAULT ''",
+    "media_token": "TEXT NOT NULL DEFAULT ''",
+    "ig_media_id": "TEXT NOT NULL DEFAULT ''",
+    "attempts": "INTEGER NOT NULL DEFAULT 0",
+}
+
+
 def init_db():
-    """Cria a tabela e importa o queue.json antigo, se existir."""
+    """Cria a tabela, adiciona colunas novas e importa o queue.json antigo."""
     with _connect() as conn:
         conn.executescript(_SCHEMA)
+
+        existing = {r["name"] for r in conn.execute("PRAGMA table_info(posts)")}
+        for col, decl in _POST_EXTRA_COLUMNS.items():
+            if col not in existing:
+                conn.execute(f"ALTER TABLE posts ADD COLUMN {col} {decl}")
 
     _migrate_legacy_queue()
 
@@ -144,6 +165,44 @@ def get_post(post_id):
     return _row_to_post(row) if row else None
 
 
+def get_due_posts(now_iso):
+    """Posts pendentes cuja hora de publicacao ja chegou (usado pelo agendador)."""
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM posts WHERE status = 'pending' AND schedule_date IS NOT NULL "
+            "AND schedule_date <= ? ORDER BY schedule_date",
+            (now_iso,),
+        ).fetchall()
+    return [_row_to_post(r) for r in rows]
+
+
+def get_media_token(post_id):
+    """Retorna (criando se preciso) o token da URL publica da foto do post.
+
+    Esse token deixa a imagem acessivel sem senha num endereco impossivel de
+    adivinhar - necessario porque o servidor do Instagram precisa BUSCAR a foto
+    num link publico na hora de publicar.
+    """
+    import secrets
+    with _connect() as conn:
+        row = conn.execute("SELECT media_token FROM posts WHERE id = ?", (post_id,)).fetchone()
+        if row is None:
+            return None
+        token = row["media_token"]
+        if not token:
+            token = secrets.token_urlsafe(24)
+            conn.execute("UPDATE posts SET media_token = ? WHERE id = ?", (token, post_id))
+    return token
+
+
+def get_post_by_media_token(token):
+    if not token:
+        return None
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM posts WHERE media_token = ?", (token,)).fetchone()
+    return _row_to_post(row) if row else None
+
+
 def add_post(post):
     with _connect() as conn:
         conn.execute(
@@ -176,6 +235,9 @@ def update_post(post_id, fields):
         "schedule_date": lambda v: v,
         "status": lambda v: v,
         "posted_at": lambda v: v,
+        "publish_error": lambda v: v,
+        "ig_media_id": lambda v: v,
+        "attempts": lambda v: int(v),
     }
 
     sets, values = [], []
@@ -219,4 +281,11 @@ def update_settings(fields):
                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
                 (key, "" if value is None else str(value)),
             )
+    return get_settings()
+
+
+def delete_settings(keys):
+    with _connect() as conn:
+        for key in keys:
+            conn.execute("DELETE FROM settings WHERE key = ?", (key,))
     return get_settings()

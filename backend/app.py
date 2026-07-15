@@ -29,6 +29,8 @@ import time
 from datetime import datetime, timedelta
 
 import db
+import instagram
+import scheduler
 
 # Suporte a HEIC/HEIF (formato padrao de fotos do iPhone).
 # Sem isso, o Pillow nao consegue abrir nem ler EXIF de fotos .heic.
@@ -51,6 +53,14 @@ CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-4-8")
 APP_PASSWORD = os.getenv("APP_PASSWORD", "").strip()
 AUTH_ENABLED = bool(APP_PASSWORD)
+
+META_APP_ID = os.getenv("META_APP_ID", "").strip()
+META_APP_SECRET = os.getenv("META_APP_SECRET", "").strip()
+
+# URL publica HTTPS do app (ex: https://autopost-xxx.up.railway.app).
+# O Instagram precisa dela para BUSCAR a foto na hora de publicar - por isso
+# a publicacao real so funciona com o app publicado na internet, nao no localhost.
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
 
 client = anthropic.Anthropic(api_key=CLAUDE_API_KEY) if CLAUDE_API_KEY else None
 
@@ -668,6 +678,7 @@ def app_info():
         "ai_configured": client is not None,
         "heic_support": HEIC_SUPPORT,
         "auth_enabled": AUTH_ENABLED,
+        "public_base_url_set": bool(PUBLIC_BASE_URL),
     })
 
 
@@ -684,6 +695,162 @@ def patch_settings():
     if not fields:
         return jsonify({"error": "Nenhum campo válido para atualizar."}), 400
     return jsonify({"success": True, "settings": db.update_settings(fields)})
+
+
+# ============================================================
+# INTEGRACAO INSTAGRAM
+# ============================================================
+# As credenciais (id da conta + token) sao guardadas na tabela settings,
+# preenchidas pela tela de Configuracoes. O token e sensivel; fica no banco
+# (fora do git, no volume persistente do deploy).
+
+def _ig_credentials():
+    s = db.get_settings()
+    return s.get("ig_user_id", ""), s.get("ig_access_token", "")
+
+
+def _public_photo_url(post):
+    """Monta a URL publica HTTPS da foto de um post (o Instagram vai busca-la)."""
+    if not PUBLIC_BASE_URL:
+        raise instagram.InstagramError(
+            "Falta definir PUBLIC_BASE_URL (o endereco publico do app). "
+            "A publicacao real so funciona com o app publicado na internet."
+        )
+    token = db.get_media_token(post["id"])
+    return f"{PUBLIC_BASE_URL}/public/media/{token}"
+
+
+def publish_post(post):
+    """Publica UM post no Instagram e atualiza seu status no banco.
+
+    Usada tanto pelo agendador quanto pelo botao 'publicar agora'.
+    Levanta InstagramError em caso de falha (e registra o erro no post).
+    """
+    ig_user_id, access_token = _ig_credentials()
+    if not ig_user_id or not access_token:
+        raise instagram.InstagramError("Conecte uma conta do Instagram nas Configurações.")
+
+    try:
+        image_url = _public_photo_url(post)
+        caption = instagram.build_caption(post.get("caption", ""), post.get("hashtags", []))
+        media_id = instagram.publish_photo(ig_user_id, access_token, image_url, caption)
+    except instagram.InstagramError as e:
+        db.update_post(post["id"], {
+            "publish_error": str(e),
+            "attempts": (post.get("attempts", 0) or 0) + 1,
+        })
+        raise
+
+    db.update_post(post["id"], {
+        "status": "posted",
+        "posted_at": datetime.now().isoformat(),
+        "ig_media_id": media_id,
+        "publish_error": "",
+    })
+    print(f"[instagram] post {post['id']} publicado (media {media_id})")
+    return media_id
+
+
+@app.route("/api/instagram/status", methods=["GET"])
+def instagram_status():
+    ig_user_id, access_token = _ig_credentials()
+    s = db.get_settings()
+    return jsonify({
+        "connected": bool(ig_user_id and access_token),
+        "username": s.get("ig_username", ""),
+        "ig_user_id": ig_user_id,
+        "public_base_url_set": bool(PUBLIC_BASE_URL),
+        "meta_app_configured": bool(META_APP_ID and META_APP_SECRET),
+    })
+
+
+@app.route("/api/instagram/connect", methods=["POST"])
+def instagram_connect():
+    data = request.json or {}
+    ig_user_id = str(data.get("ig_user_id", "")).strip()
+    access_token = str(data.get("access_token", "")).strip()
+
+    if not ig_user_id or not access_token:
+        return jsonify({"error": "Informe o ID da conta e o token de acesso."}), 400
+
+    # Se o token for de curta duracao e tivermos app id/secret, tenta troca-lo
+    # por um de longa duracao (opcional, nao bloqueia se falhar).
+    if META_APP_ID and META_APP_SECRET:
+        try:
+            access_token = instagram.exchange_long_lived_token(META_APP_ID, META_APP_SECRET, access_token)
+        except instagram.InstagramError:
+            pass  # segue com o token informado
+
+    try:
+        info = instagram.get_account_info(ig_user_id, access_token)
+    except instagram.InstagramError as e:
+        return jsonify({"error": str(e)}), 502
+
+    db.update_settings({
+        "ig_user_id": info["id"],
+        "ig_access_token": access_token,
+        "ig_username": info.get("username", ""),
+    })
+
+    return jsonify({"success": True, "username": info.get("username", ""), "name": info.get("name", "")})
+
+
+@app.route("/api/instagram/disconnect", methods=["POST"])
+def instagram_disconnect():
+    db.delete_settings(["ig_user_id", "ig_access_token", "ig_username"])
+    return jsonify({"success": True})
+
+
+@app.route("/api/queue/<post_id>/publish-now", methods=["POST"])
+def publish_now(post_id):
+    post = db.get_post(post_id)
+    if post is None:
+        return jsonify({"error": "Post não encontrado"}), 404
+    if post["status"] == "posted":
+        return jsonify({"error": "Este post já foi publicado."}), 400
+
+    try:
+        media_id = publish_post(post)
+    except instagram.InstagramError as e:
+        return jsonify({"error": str(e)}), 502
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify({"success": True, "ig_media_id": media_id, "post": db.get_post(post_id)})
+
+
+# ============================================================
+# ENDPOINT PUBLICO: servir a foto para o Instagram buscar
+# ============================================================
+# Sem senha (o Instagram nao faz login), mas acessivel apenas por um token
+# aleatorio e impossivel de adivinhar, ligado a um post especifico.
+
+@app.route("/public/media/<token>")
+def public_media(token):
+    post = db.get_post_by_media_token(token)
+    if post is None:
+        return jsonify({"error": "not found"}), 404
+    filename = os.path.basename(post["photo_path"])
+    return send_from_directory(PHOTOS_FOLDER, filename)
+
+
+# ============================================================
+# Agendador de publicacao: inicia no primeiro request. Assim roda tanto
+# sob gunicorn (producao) quanto no servidor local, e nunca duplica sob o
+# reloader do Flask - porque so o processo que atende requests chega aqui.
+# ============================================================
+
+SCHEDULER_ENABLED = os.getenv("ENABLE_SCHEDULER", "1").lower() in ("1", "true")
+
+
+@app.before_request
+def _ensure_scheduler_started():
+    if SCHEDULER_ENABLED:
+        scheduler.start(
+            get_due_fn=lambda: db.get_due_posts(datetime.now().isoformat()),
+            publish_fn=publish_post,
+            interval=int(os.getenv("SCHEDULER_INTERVAL", "60")),
+        )
 
 
 # ============================================================
@@ -921,6 +1088,18 @@ if __name__ == "__main__":
         print("Suporte a HEIC INATIVO - rode: pip3 install pillow-heif --break-system-packages")
         print("Sem isso, fotos .heic do iPhone podem falhar ao processar.")
 
+    ig_user_id, ig_token = _ig_credentials()
+    if ig_user_id and ig_token:
+        print(f"Instagram conectado (conta {ig_user_id})")
+    else:
+        print("Instagram nao conectado (conecte em Configuracoes)")
+
+    if PUBLIC_BASE_URL:
+        print(f"URL publica: {PUBLIC_BASE_URL}")
+    else:
+        print("PUBLIC_BASE_URL nao definida - publicacao real so funciona apos o deploy")
+
+    print(f"Agendador de publicacao: {'ativo' if SCHEDULER_ENABLED else 'desativado'}")
     print(f"Banco de dados: {db.DB_PATH}")
     print("=" * 60)
     app.run(debug=debug, host="0.0.0.0", port=port, threaded=True)

@@ -195,8 +195,33 @@
 
             <div class="card">
                 <h3>Conta do Instagram</h3>
-                <p class="muted-text" id="instagramStatus">Nenhuma conta vinculada.</p>
-                <button class="btn btn-secondary" disabled title="Integração ainda não implementada">Vincular conta (em breve)</button>
+
+                <!-- Estado: conectado -->
+                <div id="igConnected" class="hidden">
+                    <p class="muted-text">Conectado como <strong id="igUsername">—</strong> (ID <span id="igUserIdLabel">—</span>).</p>
+                    <button class="btn btn-secondary" id="igDisconnectBtn">Desconectar</button>
+                </div>
+
+                <!-- Estado: desconectado (formulário) -->
+                <div id="igDisconnected">
+                    <p class="muted-text" style="margin-bottom:14px">
+                        Conecte sua conta Profissional do Instagram para publicar automaticamente.
+                        Precisa do <strong>ID da conta</strong> e de um <strong>token de acesso</strong>
+                        gerados no painel de apps da Meta.
+                    </p>
+                    <div class="field-block" style="margin-bottom:12px">
+                        <label class="field-label" for="igUserIdInput">ID da conta do Instagram</label>
+                        <input type="text" id="igUserIdInput" placeholder="ex: 17841400000000000">
+                    </div>
+                    <div class="field-block" style="margin-bottom:12px">
+                        <label class="field-label" for="igTokenInput">Token de acesso</label>
+                        <input type="password" id="igTokenInput" placeholder="EAAG... (token de longa duração)">
+                    </div>
+                    <button class="btn btn-primary" id="igConnectBtn">Conectar e validar</button>
+                    <p class="muted-text" id="igConnectHint" style="margin-top:10px"></p>
+                </div>
+
+                <p class="muted-text" id="igPublicUrlWarn" style="margin-top:12px"></p>
             </div>
 
             <div class="card">
@@ -372,6 +397,22 @@
         <div class="modal-footer">
             <button class="btn btn-secondary" id="cancelDeleteBtn">Voltar</button>
             <button class="btn btn-danger" id="confirmDeleteBtn">Sim, remover</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: CONFIRMAR PUBLICAÇÃO AGORA -->
+<!-- ============================================================ -->
+<div id="publishModal" class="modal-overlay hidden">
+    <div class="modal-panel modal-panel-sm">
+        <div class="modal-body">
+            <h3>📤 Publicar agora no Instagram?</h3>
+            <p>Isto vai publicar esta foto <strong>imediatamente</strong> no seu perfil do Instagram. Não dá para desfazer pelo app.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelPublishBtn">Voltar</button>
+            <button class="btn btn-primary" id="confirmPublishBtn">Sim, publicar</button>
         </div>
     </div>
 </div>

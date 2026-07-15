@@ -62,6 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupScheduleModal();
     setupEditModal();
     setupDeleteModal();
+    setupPublishModal();
     setupFilters();
 });
 
@@ -1055,6 +1056,12 @@ function buildQueueItem(post) {
     const div = document.createElement("div");
     div.className = "queue-item";
     const dateStr = formatDateBR(post.schedule_date);
+    const isPending = post.status !== "posted";
+
+    // Aviso discreto se a última tentativa de publicação falhou
+    const errorLine = post.publish_error
+        ? `<span class="queue-item-error" title="${escapeHtml(post.publish_error)}">⚠️ falhou</span>`
+        : "";
 
     div.innerHTML = `
         <img src="/${post.photo_path}" alt="">
@@ -1063,14 +1070,19 @@ function buildQueueItem(post) {
             <div class="queue-item-meta">
                 <span class="status-badge ${post.status}">${post.status === "posted" ? "Postado" : "Pendente"}</span>
                 <span>${dateStr}</span>
+                ${errorLine}
             </div>
         </div>
         <div class="queue-item-actions">
+            ${isPending ? '<button class="publish-btn" title="Publicar agora">📤</button>' : ""}
             <button class="edit-btn" title="Editar">✏️</button>
             <button class="delete-btn" title="Cancelar">🗑️</button>
         </div>
     `;
 
+    if (isPending) {
+        div.querySelector(".publish-btn").addEventListener("click", () => openPublishModal(post.id));
+    }
     div.querySelector(".edit-btn").addEventListener("click", () => openEditModal(post));
     div.querySelector(".delete-btn").addEventListener("click", () => openDeleteModal(post.id));
 
@@ -1163,6 +1175,49 @@ async function confirmDelete() {
 }
 
 // ============================================================
+// MODAL: PUBLICAR AGORA (ação real e irreversível → confirmação)
+// ============================================================
+
+let publishingPostId = null;
+
+function setupPublishModal() {
+    document.getElementById("cancelPublishBtn").addEventListener("click", () => {
+        document.getElementById("publishModal").classList.add("hidden");
+    });
+    document.getElementById("confirmPublishBtn").addEventListener("click", confirmPublishNow);
+}
+
+function openPublishModal(postId) {
+    publishingPostId = postId;
+    document.getElementById("publishModal").classList.remove("hidden");
+}
+
+async function confirmPublishNow() {
+    if (!publishingPostId) return;
+    const btn = document.getElementById("confirmPublishBtn");
+    btn.disabled = true;
+    btn.textContent = "Publicando...";
+
+    try {
+        const res = await apiFetch(`/queue/${publishingPostId}/publish-now`, { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+            showToast("Publicado no Instagram! 🎉", "success");
+            loadQueue();
+        } else {
+            showToast(data.error || "Não foi possível publicar.", "error");
+        }
+    } catch (e) {
+        showToast("Erro de conexão ao publicar.", "error");
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Sim, publicar";
+        document.getElementById("publishModal").classList.add("hidden");
+        publishingPostId = null;
+    }
+}
+
+// ============================================================
 // PAGINA: CONFIGURACOES
 // ============================================================
 
@@ -1180,4 +1235,94 @@ async function loadSettingsPage() {
     }
 
     document.getElementById("logoutBtn").onclick = logout;
+
+    loadInstagramStatus();
+    wireInstagramButtons();
+}
+
+// ------------------------------------------------------------
+// Instagram: conexão / desconexão nas Configurações
+// ------------------------------------------------------------
+
+async function loadInstagramStatus() {
+    const connected = document.getElementById("igConnected");
+    const disconnected = document.getElementById("igDisconnected");
+    const warn = document.getElementById("igPublicUrlWarn");
+
+    try {
+        const res = await apiFetch(`/instagram/status`);
+        const data = await res.json();
+
+        if (data.connected) {
+            connected.classList.remove("hidden");
+            disconnected.classList.add("hidden");
+            document.getElementById("igUsername").textContent = data.username ? "@" + data.username : "conta conectada";
+            document.getElementById("igUserIdLabel").textContent = data.ig_user_id || "—";
+        } else {
+            connected.classList.add("hidden");
+            disconnected.classList.remove("hidden");
+        }
+
+        // Aviso: sem URL pública, a publicação real (agendada ou "agora") não funciona
+        if (!data.public_base_url_set) {
+            warn.textContent = "⚠️ A publicação automática só funciona com o app publicado na internet (falta definir o endereço público). Localmente você consegue conectar e testar a configuração, mas não publicar de verdade.";
+        } else {
+            warn.textContent = "";
+        }
+    } catch (e) {
+        warn.textContent = "Não foi possível verificar o status do Instagram.";
+    }
+}
+
+let _igButtonsWired = false;
+function wireInstagramButtons() {
+    if (_igButtonsWired) return;
+    _igButtonsWired = true;
+
+    document.getElementById("igConnectBtn").addEventListener("click", async () => {
+        const ig_user_id = document.getElementById("igUserIdInput").value.trim();
+        const access_token = document.getElementById("igTokenInput").value.trim();
+        const hint = document.getElementById("igConnectHint");
+        const btn = document.getElementById("igConnectBtn");
+
+        if (!ig_user_id || !access_token) {
+            hint.textContent = "Preencha o ID da conta e o token.";
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = "Validando...";
+        hint.textContent = "";
+
+        try {
+            const res = await apiFetch(`/instagram/connect`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ig_user_id, access_token })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`Instagram conectado${data.username ? " como @" + data.username : ""}! 🎉`, "success");
+                document.getElementById("igTokenInput").value = "";
+                loadInstagramStatus();
+            } else {
+                hint.textContent = data.error || "Não foi possível conectar.";
+            }
+        } catch (e) {
+            hint.textContent = "Erro de conexão.";
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Conectar e validar";
+        }
+    });
+
+    document.getElementById("igDisconnectBtn").addEventListener("click", async () => {
+        try {
+            await apiFetch(`/instagram/disconnect`, { method: "POST" });
+            showToast("Instagram desconectado.", "success");
+            loadInstagramStatus();
+        } catch (e) {
+            showToast("Erro ao desconectar.", "error");
+        }
+    });
 }
