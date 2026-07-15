@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "autopost",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["backend/app.py"],
+      "port": 1234
+    }
+  ]
+}

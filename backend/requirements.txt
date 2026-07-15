@@ -1,0 +1,7 @@
+flask>=3.0.0
+python-dotenv>=1.0.0
+anthropic>=0.116.0
+Pillow>=10.4.0
+pillow-heif>=0.18.0
+requests>=2.31.0
+gunicorn>=22.0.0

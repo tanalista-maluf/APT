@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoPost - Automação de Posts Instagram</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+
+    <!-- HEADER -->
+    <header class="header">
+        <h1>🚀 AutoPost</h1>
+        <p>Automação de Posts Instagram com IA</p>
+        <div class="status-bar" id="statusBar">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Verificando conexão...</span>
+            <button id="refreshBtn" class="icon-btn" title="Verificar conexão">🔄</button>
+        </div>
+    </header>
+
+    <!-- NAV TABS -->
+    <nav class="tabs">
+        <button class="tab-btn active" data-tab="upload">📸 Novo Post</button>
+        <button class="tab-btn" data-tab="dashboard">📊 Dashboard</button>
+    </nav>
+
+    <!-- TAB: UPLOAD / FLUXO DE CRIACAO -->
+    <section id="tab-upload" class="tab-content active">
+
+        <!-- STEP 1: Selecionar Fotos -->
+        <div class="step" id="step-select">
+            <h2>1. Selecione suas fotos</h2>
+            <label class="upload-box" for="photoInput">
+                <span class="upload-icon">📁</span>
+                <span>Clique para escolher fotos ou arraste aqui</span>
+                <input type="file" id="photoInput" accept="image/*" multiple hidden>
+            </label>
+
+            <div id="photoGrid" class="photo-grid"></div>
+
+            <div id="selectionSummary" class="selection-summary hidden">
+                <span id="selectedCount">0 fotos selecionadas</span>
+            </div>
+
+            <div class="action-row">
+                <label class="checkbox-row">
+                    <input type="checkbox" id="useAiCheckbox" checked>
+                    <span>✨ Gerar legendas com IA (Claude Vision)</span>
+                </label>
+                <button id="proceedToScheduleBtn" class="btn btn-primary" disabled>
+                    Continuar →
+                </button>
+            </div>
+
+            <div id="analyzingStatus" class="analyzing-status hidden">
+                <div class="spinner"></div>
+                <span id="analyzingText">Analisando fotos com IA...</span>
+            </div>
+        </div>
+
+        <!-- STEP 2: Agendamento -->
+        <div class="step hidden" id="step-schedule">
+            <h2>2. Configurar agendamento</h2>
+
+            <div class="card">
+                <div class="summary-row">
+                    <div class="summary-item">
+                        <span class="summary-label">Total de fotos</span>
+                        <span class="summary-value" id="summaryTotalPhotos">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Duração estimada</span>
+                        <span class="summary-value" id="summaryDuration">0 dias</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Frequência</span>
+                        <span class="summary-value" id="summaryFrequency">1x/dia</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Quantas vezes por dia?</h3>
+                <div class="freq-buttons" id="freqButtons">
+                    <button class="freq-btn active" data-freq="1">1x</button>
+                    <button class="freq-btn" data-freq="2">2x</button>
+                    <button class="freq-btn" data-freq="3">3x</button>
+                    <button class="freq-btn" data-freq="4">4x</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Quando começar?</h3>
+                <input type="datetime-local" id="startDateInput" class="date-input">
+            </div>
+
+            <div class="action-row">
+                <button class="btn btn-secondary" id="backToSelectBtn">← Voltar</button>
+                <button class="btn btn-primary" id="proceedToReviewBtn">Revisar e Confirmar →</button>
+            </div>
+        </div>
+
+        <!-- STEP 3: Revisao -->
+        <div class="step hidden" id="step-review">
+            <h2>3. Revisão de Posts</h2>
+
+            <div class="review-progress">
+                <div class="progress-info">
+                    <span id="reviewPosition">1 de 1</span>
+                </div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill" id="reviewProgressFill"></div>
+                </div>
+            </div>
+
+            <div class="card review-card">
+                <img id="reviewImage" class="review-image" src="" alt="Foto">
+
+                <div class="exif-box">
+                    <h4>📸 Informações da Foto</h4>
+                    <p id="exifCamera">—</p>
+                    <p id="exifLocation">📍 Sem dados de localização</p>
+                    <p id="exifDate"></p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>✏️ Legenda</h3>
+                <div id="captionOptions" class="caption-options hidden"></div>
+                <textarea id="captionTextarea" rows="4" placeholder="Digite a legenda do post..."></textarea>
+            </div>
+
+            <div class="card">
+                <div class="card-header-row">
+                    <h3># Hashtags</h3>
+                    <button id="regenHashtagsBtn" class="btn btn-small btn-ai" title="Gera hashtags novas a partir da legenda e do local atuais">✨ Gerar da legenda</button>
+                </div>
+                <div class="hashtag-input-row">
+                    <input type="text" id="newHashtagInput" placeholder="Adicionar hashtag">
+                    <button id="addHashtagBtn" class="btn btn-small">+</button>
+                </div>
+                <div id="hashtagList" class="hashtag-list"></div>
+            </div>
+
+            <div class="card">
+                <h3>📍 Local</h3>
+                <input type="text" id="locationInput" placeholder="Digite o local (opcional)">
+            </div>
+
+            <div class="card">
+                <h3>👥 Marcar Pessoas</h3>
+                <input type="text" id="taggedPeopleInput" placeholder="@usuario1, @usuario2">
+            </div>
+
+            <div class="nav-row">
+                <button class="btn btn-secondary" id="prevPhotoBtn">← Anterior</button>
+                <button class="btn btn-secondary" id="nextPhotoBtn">Próxima →</button>
+            </div>
+
+            <div class="action-row">
+                <button class="btn btn-secondary" id="backToScheduleBtn">← Voltar</button>
+                <button class="btn btn-success" id="confirmScheduleBtn">✅ Confirmar e Agendar Todos</button>
+            </div>
+        </div>
+
+        <!-- STEP 4: Sucesso -->
+        <div class="step hidden" id="step-success">
+            <div class="success-box">
+                <div class="success-icon">✅</div>
+                <h2>Sucesso!</h2>
+                <p id="successMessage"></p>
+                <button class="btn btn-primary" id="goToDashboardBtn">Ver Dashboard →</button>
+                <button class="btn btn-secondary" id="createAnotherBtn">Criar Novo Post</button>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- TAB: DASHBOARD -->
+    <section id="tab-dashboard" class="tab-content">
+        <div class="dashboard-header">
+            <h2>📊 Dashboard de Posts</h2>
+            <button id="refreshQueueBtn" class="btn btn-secondary">🔄 Atualizar</button>
+        </div>
+
+        <div class="dashboard-filters">
+            <button class="filter-btn active" data-filter="all">Todos</button>
+            <button class="filter-btn" data-filter="pending">Pendentes</button>
+            <button class="filter-btn" data-filter="posted">Postados</button>
+        </div>
+
+        <div id="queueList" class="queue-list">
+            <p class="empty-state">Carregando fila...</p>
+        </div>
+    </section>
+
+</div>
+
+<!-- MODAL DE EDICAO (dashboard) -->
+<div id="editModal" class="modal hidden">
+    <div class="modal-content">
+        <h3>Editar Post</h3>
+        <img id="editModalImage" class="modal-image" src="" alt="">
+        <label>Legenda</label>
+        <textarea id="editModalCaption" rows="4"></textarea>
+        <label>Local</label>
+        <input type="text" id="editModalLocation">
+        <label>Hashtags (separadas por espaço)</label>
+        <input type="text" id="editModalHashtags">
+        <div class="modal-actions">
+            <button class="btn btn-secondary" id="cancelEditBtn">Cancelar</button>
+            <button class="btn btn-primary" id="saveEditBtn">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- TELA DE LOGIN (aparece so quando o servidor exige senha) -->
+<div id="loginOverlay" class="modal hidden">
+    <div class="modal-content login-box">
+        <h3>🔒 AutoPost</h3>
+        <p>Este servidor é protegido. Digite a senha de acesso.</p>
+        <input type="password" id="loginPasswordInput" placeholder="Senha" autocomplete="current-password">
+        <p id="loginError" class="login-error hidden">Senha incorreta. Tente novamente.</p>
+        <div class="modal-actions">
+            <button class="btn btn-primary" id="loginBtn">Entrar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE CONFIRMACAO DE EXCLUSAO -->
+<div id="deleteModal" class="modal hidden">
+    <div class="modal-content">
+        <h3>⚠️ Cancelar Post?</h3>
+        <p>Esta ação não pode ser desfeita. O post será removido da fila.</p>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" id="cancelDeleteBtn">Voltar</button>
+            <button class="btn btn-danger" id="confirmDeleteBtn">Sim, Remover</button>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

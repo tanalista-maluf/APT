@@ -1,0 +1,16 @@
+# Credenciais - NUNCA commitar
+backend/.env
+.env
+
+# Dados locais (banco, fotos, chave de sessao)
+backend/data/
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# Configuracao local do Claude Code
+.claude/settings.local.json
