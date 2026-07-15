@@ -301,6 +301,20 @@ input, textarea, select {
     color: var(--white);
 }
 
+/* Link de volta ao site do clube (30ºS) - separado do resto da navegação */
+.club-back-link {
+    text-decoration: none;
+    margin-top: 10px;
+    border-top: 1px solid #2A2A2A;
+    padding-top: 14px;
+    color: #9A9A9A;
+}
+
+.club-back-link:hover {
+    background: #1E1E1E;
+    color: var(--cream);
+}
+
 .side-nav-icon {
     font-size: 16px;
 }

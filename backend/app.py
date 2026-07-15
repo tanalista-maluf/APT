@@ -57,10 +57,13 @@ AUTH_ENABLED = bool(APP_PASSWORD)
 META_APP_ID = os.getenv("META_APP_ID", "").strip()
 META_APP_SECRET = os.getenv("META_APP_SECRET", "").strip()
 
-# URL publica HTTPS do app (ex: https://autopost-xxx.up.railway.app).
+# URL publica HTTPS do app (ex: https://apt.30s.world).
 # O Instagram precisa dela para BUSCAR a foto na hora de publicar - por isso
 # a publicacao real so funciona com o app publicado na internet, nao no localhost.
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
+
+# Endereco do site do clube - usado no link "voltar ao 30ºS" da barra lateral.
+CLUB_URL = os.getenv("CLUB_URL", "https://www.30s.world").strip()
 
 client = anthropic.Anthropic(api_key=CLAUDE_API_KEY) if CLAUDE_API_KEY else None
 
@@ -679,6 +682,7 @@ def app_info():
         "heic_support": HEIC_SUPPORT,
         "auth_enabled": AUTH_ENABLED,
         "public_base_url_set": bool(PUBLIC_BASE_URL),
+        "club_url": CLUB_URL,
     })
 
 

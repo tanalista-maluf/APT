@@ -64,7 +64,22 @@ document.addEventListener("DOMContentLoaded", () => {
     setupDeleteModal();
     setupPublishModal();
     setupFilters();
+    loadClubLink();
 });
+
+// Ajusta o link "voltar ao 30ºS" conforme a config do servidor (CLUB_URL).
+// O HTML já tem um endereço padrão, então funciona mesmo antes desta chamada.
+async function loadClubLink() {
+    try {
+        const res = await fetch(`${API_BASE}/app-info`, { credentials: "same-origin" });
+        const data = await res.json();
+        if (data.club_url) {
+            document.getElementById("clubBackLink").href = data.club_url;
+        }
+    } catch (e) {
+        // mantém o href padrão do HTML
+    }
+}
 
 // ============================================================
 // HELPERS GERAIS

@@ -7,6 +7,61 @@ tem `Dockerfile`, banco SQLite, senha de acesso e servidor de produção
 
 ---
 
+## ⭐ Guia rápido do 30ºS (apt.30s.world)
+
+Plano combinado: a ferramenta vira **`apt.30s.world`** (subdomínio do
+clube), com identidade Tabajara própria, acesso só para membros, e um
+botão de acesso na área de membros do site 30ºS. O que só **você** faz
+(usa suas contas — eu não crio conta nem edito DNS por você):
+
+**1. GitHub** — crie um repositório **privado** e suba o projeto:
+```bash
+cd ~/Documents/autopost-webapp
+# crie um repo privado em github.com/new (ex: "autopost-webapp"), depois:
+git remote add origin https://github.com/SEU_USUARIO/autopost-webapp.git
+git push -u origin main
+```
+
+**2. Railway** — https://railway.com (login com GitHub, plano Hobby):
+- **New Project → Deploy from GitHub repo** → escolha o repositório.
+  Ele acha o `Dockerfile`/`railway.json` e faz o build sozinho.
+- **Settings → Volumes → Add Volume**, mount path `/data`
+  (essencial: guarda banco e fotos entre atualizações).
+- **Variables** — adicione:
+
+  | Nome | Valor |
+  |---|---|
+  | `CLAUDE_API_KEY` | sua chave `sk-ant-api03-...` (a mesma do .env) |
+  | `APP_PASSWORD` | a senha única de acesso dos membros |
+  | `PUBLIC_BASE_URL` | `https://apt.30s.world` |
+  | `COOKIE_SECURE` | `1` |
+  | `CLUB_URL` | `https://www.30s.world` |
+  | `META_APP_ID` / `META_APP_SECRET` | (opcional, do .env) |
+
+**3. Subdomínio** — no Railway: **Settings → Networking → Custom Domain**
+→ digite `apt.30s.world`. O Railway mostra um destino **CNAME**. Copie-o.
+
+**4. DNS** — onde o domínio `30s.world` é gerenciado (na Vercel ou no
+registrador), crie **um registro CNAME**: nome `apt` → o destino que o
+Railway mostrou. Em alguns minutos o `https://apt.30s.world` fica no ar
+(o Railway cuida do certificado HTTPS).
+
+**5. Botão na área de membros** (no site 30ºS, na Vercel): um link/botão
+apontando para `https://apt.30s.world`. Como o app tem senha própria
+(`APP_PASSWORD`), só quem tiver a senha do clube entra.
+
+**6. Instagram** — veja a seção "📸 Publicação automática" mais abaixo
+(gerar o token no painel da Meta e conectar em Configurações).
+
+> **Acesso só de membros (v1):** é uma **senha única** compartilhada
+> (`APP_PASSWORD`) — simples e eficaz. Se um dia quiserem login por
+> membro / integração real com o cadastro do 30ºS (SSO), dá para evoluir
+> depois; me avise.
+
+O restante deste documento detalha cada plataforma e alternativas.
+
+---
+
 ## Antes de começar (obrigatório)
 
 1. **Chave da API do Claude válida** — a análise das fotos precisa dela.
