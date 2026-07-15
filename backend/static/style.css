@@ -375,6 +375,41 @@ input, textarea, select {
     box-shadow: var(--shadow-card);
 }
 
+/* Indicador global de processamento (topo, discreto) */
+.topbar-spinner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--ink);
+    color: var(--cream);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: var(--shadow-card);
+}
+
+.spinner {
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-top-color: var(--yellow);
+    border-radius: 50%;
+    display: inline-block;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+
+/* Variante escura da rodinha, para usar sobre fundo claro (ex: dropzone) */
+.spinner.spinner-dark {
+    border: 2px solid rgba(17, 17, 17, 0.15);
+    border-top-color: var(--red);
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 .status-dot {
     width: 9px;
     height: 9px;
@@ -444,7 +479,16 @@ input, textarea, select {
 .dashboard-grid {
     display: grid;
     grid-template-columns: 1.3fr 1fr;
+    grid-auto-rows: min-content;
     gap: 20px;
+    align-items: start;
+}
+
+/* min-width:0 impede que conteúdo largo (legendas longas sem quebra) estufe
+   a coluna do grid; overflow:hidden garante o corte da legenda com "...". */
+.dashboard-grid > .card {
+    min-width: 0;
+    overflow: hidden;
 }
 
 .dropzone-card {
@@ -486,6 +530,14 @@ input, textarea, select {
     font-size: 34px;
     display: block;
     margin-bottom: 8px;
+}
+
+.dropzone-spinner {
+    width: 34px;
+    height: 34px;
+    border-width: 3px;
+    margin: 0 auto 8px;
+    display: block;
 }
 
 .dropzone-text {

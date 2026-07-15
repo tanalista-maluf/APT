@@ -299,6 +299,38 @@ function hideProgressCard() {
     document.getElementById("progressCard").classList.add("hidden");
 }
 
+// Rodinha global e discreta no topo - visível de qualquer página enquanto
+// as fotos são enviadas/processadas/analisadas.
+function showTopbarSpinner(text) {
+    document.getElementById("topbarSpinnerText").textContent = text || "Processando...";
+    document.getElementById("topbarSpinner").classList.remove("hidden");
+}
+
+function updateTopbarSpinner(text) {
+    document.getElementById("topbarSpinnerText").textContent = text;
+}
+
+function hideTopbarSpinner() {
+    document.getElementById("topbarSpinner").classList.add("hidden");
+}
+
+// Troca o conteúdo da dropzone por uma rodinha enquanto processa, e restaura
+// depois. O elemento em si permanece, então os listeners de clique/drop seguem valendo.
+function setDropzoneBusy(busy, text) {
+    const inner = document.getElementById("dropzoneInner");
+    if (busy) {
+        inner.innerHTML = `
+            <span class="spinner spinner-dark dropzone-spinner"></span>
+            <p class="dropzone-text">${text || "Processando..."}</p>
+            <p class="dropzone-hint">Aguarde, a mágica Tabajara está acontecendo</p>`;
+    } else {
+        inner.innerHTML = `
+            <span class="dropzone-icon">☁️</span>
+            <p class="dropzone-text">Solte suas fotos aqui ou clique para enviar</p>
+            <p class="dropzone-hint">JPG, PNG, HEIC — pode escolher várias de uma vez</p>`;
+    }
+}
+
 function renderProgressChecklist(activeIndex) {
     const list = document.getElementById("progressChecklist");
     list.innerHTML = "";
@@ -321,61 +353,78 @@ async function handleNewFiles(fileList) {
     if (files.length === 0) return;
 
     selectedPhotos = [];
-    showProgressCard();
-
-    for (const file of files) {
-        const rawBase64 = await fileToBase64(file);
-        selectedPhotos.push({
-            id: `photo_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-            file,
-            base64: rawBase64,
-            exif: null,
-            caption: "",
-            captionOptions: [],
-            hashtags: [],
-            location: "",
-            taggedPeople: [],
-            contentType: "",
-            activeMood: null,
-            processingError: null,
-        });
-    }
-    renderProgressChecklist(1);
-
-    for (const photo of selectedPhotos) {
-        await processPhotoOnServer(photo);
-    }
-    renderProgressChecklist(2);
-
     const analysisErrors = [];
-    for (const photo of selectedPhotos) {
-        if (photo.processingError) continue;
-        try {
-            const res = await apiFetch(`/analyze-image`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    photo: photo.base64,
-                    location: photo.location || "",
-                    date: (photo.exif && photo.exif.dateTime) || ""
-                })
+    const total = files.length;
+    const plural = total > 1 ? "s" : "";
+
+    showProgressCard();
+    showTopbarSpinner(`Enviando ${total} foto${plural}...`);
+    setDropzoneBusy(true, `Enviando ${total} foto${plural}...`);
+
+    try {
+        for (const file of files) {
+            const rawBase64 = await fileToBase64(file);
+            selectedPhotos.push({
+                id: `photo_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+                file,
+                base64: rawBase64,
+                exif: null,
+                caption: "",
+                captionOptions: [],
+                hashtags: [],
+                location: "",
+                taggedPeople: [],
+                contentType: "",
+                activeMood: null,
+                processingError: null,
             });
-            const data = await res.json();
-            if (data.success) {
-                photo.captionOptions = data.captions || [];
-                photo.caption = data.caption || "";
-                photo.hashtags = data.hashtags || [];
-                photo.contentType = data.content_type || "";
-            } else if (data.error) {
-                analysisErrors.push(data.error);
-            }
-        } catch (e) {
-            analysisErrors.push("Falha de conexão com o servidor.");
         }
+        renderProgressChecklist(1);
+
+        for (let i = 0; i < selectedPhotos.length; i++) {
+            const msg = `Analisando foto ${i + 1} de ${total}...`;
+            updateTopbarSpinner(msg);
+            setDropzoneBusy(true, msg);
+            await processPhotoOnServer(selectedPhotos[i]);
+        }
+        renderProgressChecklist(2);
+
+        for (let i = 0; i < selectedPhotos.length; i++) {
+            const photo = selectedPhotos[i];
+            if (photo.processingError) continue;
+            const msg = `Gerando legenda ${i + 1} de ${total} com IA...`;
+            updateTopbarSpinner(msg);
+            setDropzoneBusy(true, msg);
+            try {
+                const res = await apiFetch(`/analyze-image`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        photo: photo.base64,
+                        location: photo.location || "",
+                        date: (photo.exif && photo.exif.dateTime) || ""
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    photo.captionOptions = data.captions || [];
+                    photo.caption = data.caption || "";
+                    photo.hashtags = data.hashtags || [];
+                    photo.contentType = data.content_type || "";
+                } else if (data.error) {
+                    analysisErrors.push(data.error);
+                }
+            } catch (e) {
+                analysisErrors.push("Falha de conexão com o servidor.");
+            }
+        }
+        renderProgressChecklist(4);
+        await sleep(300);
+    } finally {
+        hideProgressCard();
+        hideTopbarSpinner();
+        setDropzoneBusy(false);
     }
-    renderProgressChecklist(4);
-    await sleep(300);
-    hideProgressCard();
 
     const withErrors = selectedPhotos.filter((p) => p.processingError);
     if (withErrors.length > 0) {
