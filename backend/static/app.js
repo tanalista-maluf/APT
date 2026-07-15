@@ -1,58 +1,167 @@
 // ============================================================
-// AutoPost WebApp - Logica principal
+// AutoPost Tabajara! - Logica principal do frontend
 // ============================================================
 
 const API_BASE = window.location.origin + "/api";
 
+const MOODS = [
+    { id: "alegre", label: "😄 Alegre" },
+    { id: "triste", label: "😢 Triste" },
+    { id: "engracada", label: "😂 Engraçada" },
+    { id: "quinta_serie", label: "🤪 5ª Série" },
+    { id: "pensativa", label: "🤔 Pensativa" },
+    { id: "motivacional", label: "💪 Motivacional" },
+    { id: "sarcastica", label: "😏 Sarcástica" },
+    { id: "romantica", label: "❤️ Romântica" },
+];
+
+const PAGE_TITLES = {
+    dashboard: "Dashboard",
+    content: "Conteúdo",
+    calendar: "Calendário",
+    history: "Histórico",
+    settings: "Configurações",
+};
+
+const PROGRESS_STEPS = [
+    "📤 Enviando fotos...",
+    "🔍 Analisando fotos (EXIF e localização)...",
+    "✍️ Criando legendas com Claude...",
+    "🏷️ Selecionando hashtags...",
+];
+
 // Estado global
-let selectedPhotos = []; // { file, base64, exif, caption, hashtags, location, taggedPeople }
-let currentReviewIndex = 0;
+let selectedPhotos = [];       // fotos do lote de "nova postagem" em andamento
+let currentModalIndex = 0;
 let selectedFrequency = 1;
-let startDate = new Date();
-let useAI = true;
+
+let queueData = [];             // todos os posts vindos do backend
+let currentHistoryFilter = "all";
+let currentContentFilter = "all";
+
+let calendarViewDate = new Date();
+calendarViewDate.setDate(1);
+let selectedDayKey = null;
+
+let editingPostId = null;
+let deletingPostId = null;
 
 // ============================================================
 // INICIALIZACAO
 // ============================================================
 
 document.addEventListener("DOMContentLoaded", () => {
+    initAuth();
     checkConnection();
     setInterval(checkConnection, 15000);
 
     setupLogin();
-    setupTabNavigation();
-    setupPhotoUpload();
-    setupScheduleStep();
-    setupReviewStep();
-    setupDashboard();
-    setupModals();
-
-    // Data de inicio padrao = agora
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById("startDateInput").value = now.toISOString().slice(0, 16);
+    setupSidebar();
+    setupDropzone();
+    setupNewPostModal();
+    setupScheduleModal();
+    setupEditModal();
+    setupDeleteModal();
+    setupFilters();
 });
 
 // ============================================================
-// LOGIN (ativo somente quando o servidor define APP_PASSWORD)
+// HELPERS GERAIS
 // ============================================================
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+    });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatDateBR(iso) {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (isNaN(d)) return "—";
+    return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
+function capitalize(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function formatDateKey(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function getMonthLabel(date) {
+    const months = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
+        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+    return `${months[date.getMonth()]} de ${date.getFullYear()}`;
+}
+
+function formatKeyLongBR(key) {
+    const [y, m, d] = key.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    return capitalize(date.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }));
+}
+
+function showToast(message, type = "success", duration = 4500) {
+    const container = document.getElementById("toastContainer");
+    const el = document.createElement("div");
+    el.className = `toast ${type}`;
+    el.textContent = message;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), duration);
+}
 
 // Wrapper de fetch: se o servidor pedir login (401), mostra a tela de senha.
 async function apiFetch(path, options = {}) {
     const res = await fetch(`${API_BASE}${path}`, { credentials: "same-origin", ...options });
     if (res.status === 401) {
-        showLoginOverlay();
+        showLogin();
     }
     return res;
 }
 
-function showLoginOverlay() {
-    document.getElementById("loginOverlay").classList.remove("hidden");
-    document.getElementById("loginPasswordInput").focus();
+// ============================================================
+// LOGIN / AUTENTICACAO
+// ============================================================
+
+async function initAuth() {
+    try {
+        const res = await fetch(`${API_BASE}/auth-status`, { credentials: "same-origin" });
+        const data = await res.json();
+        if (data.auth_required && !data.authenticated) {
+            showLogin();
+        } else {
+            showApp();
+        }
+    } catch (e) {
+        showApp();
+    }
+}
+
+function showLogin() {
+    document.getElementById("loginScreen").classList.remove("hidden");
+    document.getElementById("appShell").classList.add("hidden");
+}
+
+function showApp() {
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("appShell").classList.remove("hidden");
+    loadQueue();
 }
 
 function setupLogin() {
-    const overlay = document.getElementById("loginOverlay");
     const input = document.getElementById("loginPasswordInput");
     const errorEl = document.getElementById("loginError");
 
@@ -66,9 +175,8 @@ function setupLogin() {
                 body: JSON.stringify({ password: input.value })
             });
             if (res.ok) {
-                overlay.classList.add("hidden");
                 input.value = "";
-                loadQueue();
+                showApp();
             } else {
                 errorEl.classList.remove("hidden");
             }
@@ -82,18 +190,19 @@ function setupLogin() {
     input.addEventListener("keypress", (e) => {
         if (e.key === "Enter") doLogin();
     });
+}
 
-    // Verifica ao carregar se o servidor exige senha
-    fetch(`${API_BASE}/auth-status`, { credentials: "same-origin" })
-        .then(res => res.json())
-        .then(data => {
-            if (data.auth_required && !data.authenticated) showLoginOverlay();
-        })
-        .catch(() => {});
+async function logout() {
+    try {
+        await apiFetch("/logout", { method: "POST" });
+    } catch (e) {
+        // segue o jogo - mostra login de qualquer forma
+    }
+    showLogin();
 }
 
 // ============================================================
-// CONEXAO COM BACKEND
+// CONEXAO COM BACKEND (status pill)
 // ============================================================
 
 async function checkConnection() {
@@ -104,106 +213,185 @@ async function checkConnection() {
         const res = await fetch(`${API_BASE}/health`);
         if (res.ok) {
             dot.classList.add("connected");
-            text.textContent = "Backend Conectado";
+            text.textContent = "Operação Tabajara: ONLINE";
         } else {
             throw new Error("offline");
         }
     } catch (e) {
         dot.classList.remove("connected");
-        text.textContent = "Backend Desconectado";
+        text.textContent = "Operação Tabajara: OFFLINE";
     }
 }
 
-document.getElementById("refreshBtn").addEventListener("click", checkConnection);
-
 // ============================================================
-// NAVEGACAO POR TABS
+// SIDEBAR / NAVEGACAO ENTRE PAGINAS
 // ============================================================
 
-function setupTabNavigation() {
-    document.querySelectorAll(".tab-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-            document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
-
-            btn.classList.add("active");
-            document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
-
-            if (btn.dataset.tab === "dashboard") {
-                loadQueue();
-            }
-        });
+function setupSidebar() {
+    document.querySelectorAll(".side-nav-item[data-page]").forEach((btn) => {
+        btn.addEventListener("click", () => switchPage(btn.dataset.page));
     });
+
+    document.querySelectorAll(".link-btn[data-page]").forEach((btn) => {
+        btn.addEventListener("click", () => switchPage(btn.dataset.page));
+    });
+
+    document.getElementById("navNewPost").addEventListener("click", () => {
+        document.getElementById("photoInput").click();
+    });
+
+    document.getElementById("userAvatarBtn").addEventListener("click", () => switchPage("settings"));
 }
 
-function switchToTab(tabName) {
-    document.querySelector(`.tab-btn[data-tab="${tabName}"]`).click();
-}
+function switchPage(pageName) {
+    document.querySelectorAll(".side-nav-item[data-page]").forEach((b) => {
+        b.classList.toggle("active", b.dataset.page === pageName);
+    });
+    document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
+    document.getElementById(`page-${pageName}`).classList.add("active");
+    document.getElementById("pageTitle").textContent = PAGE_TITLES[pageName] || "Dashboard";
 
-function showStep(stepId) {
-    document.querySelectorAll(".step").forEach(s => s.classList.add("hidden"));
-    document.getElementById(stepId).classList.remove("hidden");
+    if (pageName === "calendar") {
+        selectedDayKey = null;
+        renderFullCalendarPage();
+    } else if (pageName === "history") {
+        renderHistoryList();
+    } else if (pageName === "content") {
+        renderContentGrid();
+    } else if (pageName === "settings") {
+        loadSettingsPage();
+    }
 }
 
 // ============================================================
-// STEP 1: UPLOAD E SELECAO DE FOTOS
+// UPLOAD DE FOTOS (dropzone + pipeline de processamento)
 // ============================================================
 
-function setupPhotoUpload() {
+function setupDropzone() {
     const input = document.getElementById("photoInput");
-    const grid = document.getElementById("photoGrid");
-    const proceedBtn = document.getElementById("proceedToScheduleBtn");
-    const useAiCheckbox = document.getElementById("useAiCheckbox");
+    const inner = document.getElementById("dropzoneInner");
 
-    input.addEventListener("change", async (e) => {
-        const files = Array.from(e.target.files);
-        const newPhotos = [];
+    inner.addEventListener("click", () => input.click());
 
-        for (const file of files) {
-            const rawBase64 = await fileToBase64(file);
-            const photo = {
-                id: `photo_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-                file,
-                base64: rawBase64,   // sera substituido pela versao normalizada
-                processing: true,     // mostra spinner ate o backend responder
-                selected: true,
-                exif: null,
-                caption: "",
-                hashtags: [],
-                location: "",
-                taggedPeople: []
-            };
-            selectedPhotos.push(photo);
-            newPhotos.push(photo);
-        }
-
-        renderPhotoGrid();
+    input.addEventListener("change", (e) => {
+        handleNewFiles(e.target.files);
         input.value = "";
-
-        // Processa cada foto nova, uma de cada vez: corrige HEIC/rotacao, extrai EXIF/local.
-        // Sequencial (nao em paralelo) para nao sobrecarregar o servidor local
-        // nem estourar o limite de 1 req/seg do servico de geolocalizacao.
-        for (const photo of newPhotos) {
-            await processPhotoOnServer(photo);
-            renderPhotoGrid();
-        }
     });
 
-    useAiCheckbox.addEventListener("change", (e) => {
-        useAI = e.target.checked;
+    inner.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        inner.classList.add("drag-over");
     });
-
-    proceedBtn.addEventListener("click", async () => {
-        await proceedFromSelection();
+    inner.addEventListener("dragleave", () => inner.classList.remove("drag-over"));
+    inner.addEventListener("drop", (e) => {
+        e.preventDefault();
+        inner.classList.remove("drag-over");
+        if (e.dataTransfer.files.length > 0) handleNewFiles(e.dataTransfer.files);
     });
 }
 
-function fileToBase64(file) {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.readAsDataURL(file);
+function showProgressCard() {
+    document.getElementById("progressCard").classList.remove("hidden");
+    renderProgressChecklist(0);
+}
+
+function hideProgressCard() {
+    document.getElementById("progressCard").classList.add("hidden");
+}
+
+function renderProgressChecklist(activeIndex) {
+    const list = document.getElementById("progressChecklist");
+    list.innerHTML = "";
+    PROGRESS_STEPS.forEach((label, i) => {
+        const li = document.createElement("li");
+        if (i < activeIndex) li.classList.add("done");
+        const check = document.createElement("span");
+        check.className = "check";
+        check.textContent = i < activeIndex ? "✅" : (i === activeIndex ? "⏳" : "⬜");
+        const text = document.createElement("span");
+        text.textContent = label;
+        li.appendChild(check);
+        li.appendChild(text);
+        list.appendChild(li);
     });
+}
+
+async function handleNewFiles(fileList) {
+    const files = Array.from(fileList);
+    if (files.length === 0) return;
+
+    selectedPhotos = [];
+    showProgressCard();
+
+    for (const file of files) {
+        const rawBase64 = await fileToBase64(file);
+        selectedPhotos.push({
+            id: `photo_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            file,
+            base64: rawBase64,
+            exif: null,
+            caption: "",
+            captionOptions: [],
+            hashtags: [],
+            location: "",
+            taggedPeople: [],
+            contentType: "",
+            activeMood: null,
+            processingError: null,
+        });
+    }
+    renderProgressChecklist(1);
+
+    for (const photo of selectedPhotos) {
+        await processPhotoOnServer(photo);
+    }
+    renderProgressChecklist(2);
+
+    const analysisErrors = [];
+    for (const photo of selectedPhotos) {
+        if (photo.processingError) continue;
+        try {
+            const res = await apiFetch(`/analyze-image`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    photo: photo.base64,
+                    location: photo.location || "",
+                    date: (photo.exif && photo.exif.dateTime) || ""
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                photo.captionOptions = data.captions || [];
+                photo.caption = data.caption || "";
+                photo.hashtags = data.hashtags || [];
+                photo.contentType = data.content_type || "";
+            } else if (data.error) {
+                analysisErrors.push(data.error);
+            }
+        } catch (e) {
+            analysisErrors.push("Falha de conexão com o servidor.");
+        }
+    }
+    renderProgressChecklist(4);
+    await sleep(300);
+    hideProgressCard();
+
+    const withErrors = selectedPhotos.filter((p) => p.processingError);
+    if (withErrors.length > 0) {
+        showToast(`${withErrors.length} foto(s) não puderam ser processadas e foram ignoradas.`, "error");
+        selectedPhotos = selectedPhotos.filter((p) => !p.processingError);
+    }
+    if (analysisErrors.length > 0) {
+        showToast(`A análise com IA falhou em ${analysisErrors.length} foto(s). Você pode escrever as legendas manualmente.`, "error");
+    }
+    if (selectedPhotos.length === 0) {
+        showToast("Nenhuma foto pôde ser processada.", "error");
+        return;
+    }
+
+    currentModalIndex = 0;
+    openNewPostModal();
 }
 
 async function processPhotoOnServer(photo) {
@@ -224,198 +412,32 @@ async function processPhotoOnServer(photo) {
         }
     } catch (e) {
         photo.processingError = "Não foi possível conectar ao servidor";
-    } finally {
-        photo.processing = false;
     }
-}
-
-function renderPhotoGrid() {
-    const grid = document.getElementById("photoGrid");
-    const summary = document.getElementById("selectionSummary");
-    const countEl = document.getElementById("selectedCount");
-    const proceedBtn = document.getElementById("proceedToScheduleBtn");
-
-    grid.innerHTML = "";
-
-    selectedPhotos.forEach((photo) => {
-        const div = document.createElement("div");
-        div.className = "photo-item" + (photo.selected ? " selected" : "");
-
-        if (photo.processing) {
-            div.innerHTML = `<div class="photo-processing"><div class="spinner"></div></div>`;
-        } else if (photo.processingError) {
-            div.innerHTML = `<div class="photo-error" title="${photo.processingError}">⚠️</div>`;
-        } else {
-            div.innerHTML = `<img src="${photo.base64}" alt="">`;
-        }
-
-        div.addEventListener("click", () => {
-            if (photo.processing) return;
-            photo.selected = !photo.selected;
-            renderPhotoGrid();
-        });
-        grid.appendChild(div);
-    });
-
-    const selectedCount = selectedPhotos.filter(p => p.selected).length;
-
-    if (selectedPhotos.length > 0) {
-        summary.classList.remove("hidden");
-        countEl.textContent = `${selectedCount} foto(s) selecionada(s)`;
-    } else {
-        summary.classList.add("hidden");
-    }
-
-    proceedBtn.disabled = selectedCount === 0;
-}
-
-async function proceedFromSelection() {
-    let activePhotos = selectedPhotos.filter(p => p.selected);
-    if (activePhotos.length === 0) return;
-
-    // Se alguma foto ainda estiver processando (raro, mas possivel em conexoes lentas),
-    // espera terminar antes de continuar.
-    const stillProcessing = activePhotos.filter(p => p.processing);
-    if (stillProcessing.length > 0) {
-        const analyzingStatus = document.getElementById("analyzingStatus");
-        const analyzingText = document.getElementById("analyzingText");
-        analyzingStatus.classList.remove("hidden");
-        analyzingText.textContent = "Aguardando processamento das fotos...";
-        await Promise.all(stillProcessing.map(p => waitUntil(() => !p.processing)));
-        analyzingStatus.classList.add("hidden");
-        renderPhotoGrid();
-    }
-
-    // Remove fotos que falharam ao processar (ex: arquivo corrompido).
-    // Desmarca no estado global tambem, para nao reaparecerem depois.
-    const withErrors = activePhotos.filter(p => p.processingError);
-    if (withErrors.length > 0) {
-        alert(`${withErrors.length} foto(s) não puderam ser processadas e foram ignoradas.`);
-        withErrors.forEach(p => { p.selected = false; });
-        activePhotos = activePhotos.filter(p => !p.processingError);
-        renderPhotoGrid();
-    }
-
-    if (activePhotos.length === 0) return;
-
-    // Analise com IA (opcional) - a foto ja esta normalizada desde a selecao
-    if (useAI) {
-        const analyzingStatus = document.getElementById("analyzingStatus");
-        const analyzingText = document.getElementById("analyzingText");
-        analyzingStatus.classList.remove("hidden");
-
-        const analysisErrors = [];
-        for (let i = 0; i < activePhotos.length; i++) {
-            const photo = activePhotos[i];
-            analyzingText.textContent = `Gerando legendas com IA (${i + 1} de ${activePhotos.length})...`;
-            try {
-                // Envia tambem o local (do GPS) e a data - o Claude usa isso
-                // para criar legendas e hashtags que citam o lugar da foto.
-                const analyzeRes = await apiFetch(`/analyze-image`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        photo: photo.base64,
-                        location: photo.location || "",
-                        date: (photo.exif && photo.exif.dateTime) || ""
-                    })
-                });
-                const analysis = await analyzeRes.json();
-                if (analysis.success) {
-                    photo.captionOptions = analysis.captions || [];
-                    photo.caption = analysis.caption || "";
-                    photo.hashtags = analysis.hashtags || [];
-                    photo.contentType = analysis.content_type || "";
-                } else if (analysis.error) {
-                    analysisErrors.push(analysis.error);
-                }
-            } catch (e) {
-                console.error("Erro ao analisar imagem:", e);
-                analysisErrors.push("Falha de conexão com o servidor.");
-            }
-        }
-
-        analyzingStatus.classList.add("hidden");
-
-        if (analysisErrors.length > 0) {
-            alert(`A análise com IA falhou em ${analysisErrors.length} foto(s):\n${analysisErrors[0]}\n\nVocê ainda pode escrever as legendas manualmente na revisão.`);
-        }
-    }
-
-    updateScheduleSummary(activePhotos.length);
-    showStep("step-schedule");
-}
-
-function waitUntil(conditionFn, intervalMs = 200) {
-    return new Promise((resolve) => {
-        const check = () => {
-            if (conditionFn()) {
-                resolve();
-            } else {
-                setTimeout(check, intervalMs);
-            }
-        };
-        check();
-    });
 }
 
 // ============================================================
-// STEP 2: AGENDAMENTO
+// MODAL: NOVA POSTAGEM (revisão foto a foto)
 // ============================================================
 
-function setupScheduleStep() {
-    document.querySelectorAll(".freq-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll(".freq-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            selectedFrequency = parseInt(btn.dataset.freq);
-            updateScheduleSummary(getActivePhotos().length);
-        });
+function setupNewPostModal() {
+    document.getElementById("closeNewPostBtn").addEventListener("click", () => {
+        document.getElementById("newPostModal").classList.add("hidden");
+        selectedPhotos = [];
     });
 
-    document.getElementById("backToSelectBtn").addEventListener("click", () => {
-        showStep("step-select");
-    });
-
-    document.getElementById("proceedToReviewBtn").addEventListener("click", () => {
-        const dateInput = document.getElementById("startDateInput").value;
-        startDate = dateInput ? new Date(dateInput) : new Date();
-        currentReviewIndex = 0;
-        renderReviewCard();
-        showStep("step-review");
-    });
-}
-
-function getActivePhotos() {
-    return selectedPhotos.filter(p => p.selected);
-}
-
-function updateScheduleSummary(totalPhotos) {
-    const days = Math.ceil(totalPhotos / selectedFrequency) || 0;
-    document.getElementById("summaryTotalPhotos").textContent = totalPhotos;
-    document.getElementById("summaryDuration").textContent = `${days} dia(s)`;
-    document.getElementById("summaryFrequency").textContent = `${selectedFrequency}x/dia`;
-}
-
-// ============================================================
-// STEP 3: REVISAO
-// ============================================================
-
-function setupReviewStep() {
     document.getElementById("prevPhotoBtn").addEventListener("click", () => {
         saveCurrentReviewFields();
-        if (currentReviewIndex > 0) {
-            currentReviewIndex--;
-            renderReviewCard();
+        if (currentModalIndex > 0) {
+            currentModalIndex--;
+            renderNewPostCard();
         }
     });
 
     document.getElementById("nextPhotoBtn").addEventListener("click", () => {
         saveCurrentReviewFields();
-        const photos = getActivePhotos();
-        if (currentReviewIndex < photos.length - 1) {
-            currentReviewIndex++;
-            renderReviewCard();
+        if (currentModalIndex < selectedPhotos.length - 1) {
+            currentModalIndex++;
+            renderNewPostCard();
         }
     });
 
@@ -427,25 +449,146 @@ function setupReviewStep() {
         }
     });
 
-    document.getElementById("backToScheduleBtn").addEventListener("click", () => {
-        saveCurrentReviewFields();
-        showStep("step-schedule");
-    });
-
-    document.getElementById("confirmScheduleBtn").addEventListener("click", confirmAndSchedule);
     document.getElementById("regenHashtagsBtn").addEventListener("click", regenerateHashtags);
+
+    document.getElementById("reviewScheduleBtn").addEventListener("click", () => {
+        saveCurrentReviewFields();
+        openScheduleModal();
+    });
 }
 
-// Gera hashtags novas a partir da legenda + local atuais (depois de editar)
+function openNewPostModal() {
+    document.getElementById("newPostModal").classList.remove("hidden");
+    renderNewPostCard();
+}
+
+function getCurrentPhoto() {
+    return selectedPhotos[currentModalIndex];
+}
+
+function renderNewPostCard() {
+    const photo = getCurrentPhoto();
+    if (!photo) return;
+
+    document.getElementById("newPostPosition").textContent = `${currentModalIndex + 1} de ${selectedPhotos.length}`;
+    document.getElementById("newPostImage").src = photo.base64;
+
+    if (photo.exif) {
+        const settings = [
+            photo.exif.cameraModel,
+            photo.exif.focalLength ? `${photo.exif.focalLength}mm` : null,
+            photo.exif.aperture ? `f/${photo.exif.aperture}` : null,
+            photo.exif.iso ? `ISO${photo.exif.iso}` : null
+        ].filter(Boolean).join(" • ");
+
+        document.getElementById("exifCamera").textContent = settings || "Câmera desconhecida";
+        document.getElementById("exifDate").textContent = photo.exif.dateTime ? `🕐 ${photo.exif.dateTime}` : "";
+    } else {
+        document.getElementById("exifCamera").textContent = "Sem dados EXIF";
+        document.getElementById("exifDate").textContent = "";
+    }
+    document.getElementById("exifLocationLine").textContent = photo.location
+        ? `📍 ${photo.location}`
+        : "📍 Sem dados de localização";
+
+    document.getElementById("captionTextarea").value = photo.caption || "";
+    document.getElementById("locationInput").value = photo.location || "";
+    document.getElementById("taggedPeopleInput").value = (photo.taggedPeople || []).join(", ");
+
+    renderMoodChips(photo);
+    renderHashtagList(photo);
+
+    document.getElementById("prevPhotoBtn").disabled = currentModalIndex === 0;
+    document.getElementById("nextPhotoBtn").disabled = currentModalIndex === selectedPhotos.length - 1;
+}
+
+function renderMoodChips(photo, loadingMood = null) {
+    const container = document.getElementById("moodChips");
+    container.innerHTML = "";
+
+    MOODS.forEach((mood) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mood-chip" + (photo.activeMood === mood.id ? " active" : "");
+        btn.textContent = loadingMood === mood.id ? "Gerando..." : mood.label;
+        btn.disabled = loadingMood !== null;
+        btn.addEventListener("click", () => applyMood(photo, mood.id));
+        container.appendChild(btn);
+    });
+}
+
+async function applyMood(photo, moodId) {
+    saveCurrentReviewFields();
+    const currentCaption = document.getElementById("captionTextarea").value;
+    renderMoodChips(photo, moodId);
+
+    try {
+        const res = await apiFetch(`/rewrite-caption`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                caption: currentCaption,
+                mood: moodId,
+                location: photo.location || "",
+                content_type: photo.contentType || ""
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            photo.caption = data.caption;
+            photo.activeMood = moodId;
+            document.getElementById("captionTextarea").value = data.caption;
+        } else if (data.error) {
+            showToast(data.error, "error");
+        }
+    } catch (e) {
+        showToast("Erro ao gerar legenda. Verifique a conexão.", "error");
+    } finally {
+        renderMoodChips(photo);
+    }
+}
+
+function renderHashtagList(photo) {
+    const list = document.getElementById("hashtagList");
+    list.innerHTML = "";
+
+    (photo.hashtags || []).forEach((tag) => {
+        const chip = document.createElement("div");
+        chip.className = "hashtag-chip";
+        chip.innerHTML = `<span>${escapeHtml(tag)}</span><button>×</button>`;
+        chip.querySelector("button").addEventListener("click", () => {
+            photo.hashtags = photo.hashtags.filter((t) => t !== tag);
+            renderHashtagList(photo);
+        });
+        list.appendChild(chip);
+    });
+}
+
+function addHashtagToCurrent() {
+    const input = document.getElementById("newHashtagInput");
+    let tag = input.value.trim();
+    if (!tag) return;
+    if (!tag.startsWith("#")) tag = "#" + tag;
+
+    const photo = getCurrentPhoto();
+    if (!photo) return;
+
+    if (!photo.hashtags) photo.hashtags = [];
+    if (!photo.hashtags.includes(tag)) {
+        photo.hashtags.push(tag);
+        renderHashtagList(photo);
+    }
+    input.value = "";
+}
+
 async function regenerateHashtags() {
-    const photos = getActivePhotos();
-    const photo = photos[currentReviewIndex];
+    const photo = getCurrentPhoto();
     if (!photo) return;
 
     saveCurrentReviewFields();
 
     if (!photo.caption && !photo.location) {
-        alert("Escreva uma legenda (ou preencha o local) antes de gerar as hashtags.");
+        showToast("Escreva uma legenda (ou preencha o local) antes de gerar as hashtags.", "error");
         return;
     }
 
@@ -469,155 +612,86 @@ async function regenerateHashtags() {
             photo.hashtags = data.hashtags || [];
             renderHashtagList(photo);
         } else if (data.error) {
-            alert(data.error);
+            showToast(data.error, "error");
         }
     } catch (e) {
-        alert("Erro ao gerar hashtags. Verifique a conexão.");
+        showToast("Erro ao gerar hashtags. Verifique a conexão.", "error");
     } finally {
         btn.disabled = false;
         btn.textContent = originalText;
     }
 }
 
-function renderReviewCard() {
-    const photos = getActivePhotos();
-    const photo = photos[currentReviewIndex];
-    if (!photo) return;
-
-    document.getElementById("reviewPosition").textContent = `${currentReviewIndex + 1} de ${photos.length}`;
-    document.getElementById("reviewProgressFill").style.width = `${((currentReviewIndex + 1) / photos.length) * 100}%`;
-
-    document.getElementById("reviewImage").src = photo.base64;
-
-    if (photo.exif) {
-        const settings = [
-            photo.exif.cameraModel,
-            photo.exif.focalLength ? `${photo.exif.focalLength}mm` : null,
-            photo.exif.aperture ? `f/${photo.exif.aperture}` : null,
-            photo.exif.iso ? `ISO${photo.exif.iso}` : null
-        ].filter(Boolean).join(" • ");
-
-        document.getElementById("exifCamera").textContent = settings || "Câmera desconhecida";
-        document.getElementById("exifLocation").textContent = photo.exif.locationName
-            ? `📍 ${photo.exif.locationName}`
-            : "📍 Sem dados de localização";
-        document.getElementById("exifDate").textContent = photo.exif.dateTime ? `🕐 ${photo.exif.dateTime}` : "";
-    } else {
-        document.getElementById("exifCamera").textContent = "Sem dados EXIF";
-        document.getElementById("exifLocation").textContent = "📍 Sem dados de localização";
-        document.getElementById("exifDate").textContent = "";
-    }
-
-    document.getElementById("captionTextarea").value = photo.caption || "";
-    document.getElementById("locationInput").value = photo.location || "";
-    document.getElementById("taggedPeopleInput").value = (photo.taggedPeople || []).join(", ");
-
-    renderCaptionOptions(photo);
-    renderHashtagList(photo);
-
-    document.getElementById("prevPhotoBtn").disabled = currentReviewIndex === 0;
-    document.getElementById("nextPhotoBtn").disabled = currentReviewIndex === photos.length - 1;
-}
-
-// Mostra as 3 opcoes de legenda geradas pela IA; clicar numa opcao
-// preenche o campo de legenda (que continua 100% editavel).
-function renderCaptionOptions(photo) {
-    const container = document.getElementById("captionOptions");
-    const options = photo.captionOptions || [];
-
-    if (options.length === 0) {
-        container.classList.add("hidden");
-        container.innerHTML = "";
-        return;
-    }
-
-    container.classList.remove("hidden");
-    container.innerHTML = "";
-
-    options.forEach(opt => {
-        const div = document.createElement("div");
-        div.className = "caption-option" + (photo.caption === opt.text ? " selected" : "");
-
-        const label = document.createElement("span");
-        label.className = "caption-option-style";
-        label.textContent = opt.style;
-
-        const text = document.createElement("p");
-        text.className = "caption-option-text";
-        text.textContent = opt.text;
-
-        div.appendChild(label);
-        div.appendChild(text);
-
-        div.addEventListener("click", () => {
-            photo.caption = opt.text;
-            document.getElementById("captionTextarea").value = opt.text;
-            renderCaptionOptions(photo);
-        });
-
-        container.appendChild(div);
-    });
-}
-
-function renderHashtagList(photo) {
-    const list = document.getElementById("hashtagList");
-    list.innerHTML = "";
-
-    (photo.hashtags || []).forEach(tag => {
-        const chip = document.createElement("div");
-        chip.className = "hashtag-chip";
-        chip.innerHTML = `<span>${tag}</span><button>×</button>`;
-        chip.querySelector("button").addEventListener("click", () => {
-            photo.hashtags = photo.hashtags.filter(t => t !== tag);
-            renderHashtagList(photo);
-        });
-        list.appendChild(chip);
-    });
-}
-
-function addHashtagToCurrent() {
-    const input = document.getElementById("newHashtagInput");
-    let tag = input.value.trim();
-    if (!tag) return;
-    if (!tag.startsWith("#")) tag = "#" + tag;
-
-    const photos = getActivePhotos();
-    const photo = photos[currentReviewIndex];
-
-    if (!photo.hashtags) photo.hashtags = [];
-    if (!photo.hashtags.includes(tag)) {
-        photo.hashtags.push(tag);
-        renderHashtagList(photo);
-    }
-    input.value = "";
-}
-
 function saveCurrentReviewFields() {
-    const photos = getActivePhotos();
-    const photo = photos[currentReviewIndex];
+    const photo = getCurrentPhoto();
     if (!photo) return;
 
     photo.caption = document.getElementById("captionTextarea").value;
     photo.location = document.getElementById("locationInput").value;
     photo.taggedPeople = document.getElementById("taggedPeopleInput").value
         .split(",")
-        .map(s => s.trim())
+        .map((s) => s.trim())
         .filter(Boolean);
 }
 
-async function confirmAndSchedule() {
-    saveCurrentReviewFields();
+// ============================================================
+// MODAL: AGENDAMENTO
+// ============================================================
 
-    const photos = getActivePhotos();
+function setupScheduleModal() {
+    document.querySelectorAll(".freq-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".freq-btn").forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+            selectedFrequency = parseInt(btn.dataset.freq);
+            updateScheduleSummary();
+        });
+    });
+
+    document.getElementById("backToReviewBtn").addEventListener("click", backToReview);
+    document.getElementById("closeScheduleBtn").addEventListener("click", backToReview);
+    document.getElementById("confirmScheduleBtn").addEventListener("click", confirmAndSchedule);
+}
+
+function openScheduleModal() {
+    document.getElementById("newPostModal").classList.add("hidden");
+    document.getElementById("scheduleModal").classList.remove("hidden");
+
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById("startDateInput").value = now.toISOString().slice(0, 16);
+
+    updateScheduleSummary();
+}
+
+function backToReview() {
+    document.getElementById("scheduleModal").classList.add("hidden");
+    document.getElementById("newPostModal").classList.remove("hidden");
+    renderNewPostCard();
+}
+
+function updateScheduleSummary() {
+    const total = selectedPhotos.length;
+    const days = Math.ceil(total / selectedFrequency) || 0;
+    document.getElementById("summaryTotalPhotos").textContent = total;
+    document.getElementById("summaryDuration").textContent = `${days} dia(s)`;
+    document.getElementById("summaryFrequency").textContent = `${selectedFrequency}x/dia`;
+}
+
+async function confirmAndSchedule() {
+    const total = selectedPhotos.length;
     const confirmBtn = document.getElementById("confirmScheduleBtn");
     confirmBtn.disabled = true;
     confirmBtn.textContent = "Agendando...";
 
-    let postedCount = 0;
+    const startDateValue = document.getElementById("startDateInput").value;
+    const startDate = startDateValue ? new Date(startDateValue) : new Date();
     const hoursBetween = 24 / selectedFrequency;
 
-    for (let i = 0; i < photos.length; i++) {
-        const photo = photos[i];
+    let postedCount = 0;
+
+    for (let i = 0; i < selectedPhotos.length; i++) {
+        const photo = selectedPhotos[i];
         const scheduledDate = new Date(startDate.getTime() + hoursBetween * i * 3600 * 1000);
 
         try {
@@ -636,145 +710,348 @@ async function confirmAndSchedule() {
             const data = await res.json();
             if (data.success) postedCount++;
         } catch (e) {
-            console.error("Erro ao criar post:", e);
+            // conta como falha, segue para a proxima
         }
     }
 
     confirmBtn.disabled = false;
-    confirmBtn.textContent = "✅ Confirmar e Agendar Todos";
+    confirmBtn.textContent = "✅ Agendar Tudo";
 
-    document.getElementById("successMessage").textContent =
-        postedCount > 0
-            ? `${postedCount} post(s) agendado(s) com sucesso!\n\nComeçarão em ${startDate.toLocaleString("pt-BR")}`
-            : "Nenhum post foi agendado. Verifique a conexão.";
+    if (postedCount > 0) {
+        showToast(`${postedCount} postagem(ns) agendada(s) com sucesso!`, "success");
+    }
+    if (postedCount < total) {
+        showToast(`${total - postedCount} postagem(ns) falharam ao agendar.`, "error");
+    }
 
-    showStep("step-success");
-    resetCreationState();
-}
-
-function resetCreationState() {
+    document.getElementById("scheduleModal").classList.add("hidden");
+    document.getElementById("newPostModal").classList.add("hidden");
     selectedPhotos = [];
-    currentReviewIndex = 0;
-    document.getElementById("photoGrid").innerHTML = "";
-    document.getElementById("selectionSummary").classList.add("hidden");
-    document.getElementById("proceedToScheduleBtn").disabled = true;
+    currentModalIndex = 0;
+
+    loadQueue();
 }
 
-document.getElementById("goToDashboardBtn").addEventListener("click", () => {
-    showStep("step-select");
-    switchToTab("dashboard");
-});
-
-document.getElementById("createAnotherBtn").addEventListener("click", () => {
-    showStep("step-select");
-});
-
 // ============================================================
-// DASHBOARD
+// CARREGAR FILA + RENDERIZAR DASHBOARD/CALENDARIO/HISTORICO/CONTEUDO
 // ============================================================
 
-let currentFilter = "all";
-let queueData = [];
-let editingPostId = null;
-let deletingPostId = null;
+async function loadQueue() {
+    try {
+        const res = await apiFetch(`/queue`);
+        const data = await res.json();
+        queueData = (data.posts || []).sort((a, b) => new Date(a.schedule_date) - new Date(b.schedule_date));
+    } catch (e) {
+        showToast("Erro ao carregar a fila de postagens.", "error");
+        return;
+    }
 
-function setupDashboard() {
-    document.getElementById("refreshQueueBtn").addEventListener("click", loadQueue);
+    renderNextPosts();
+    renderLastPost();
+    renderMiniCalendar();
 
-    document.querySelectorAll(".filter-btn").forEach(btn => {
+    const activePage = document.querySelector(".page.active");
+    const activeId = activePage ? activePage.id.replace("page-", "") : "dashboard";
+    if (activeId === "calendar") renderFullCalendarPage();
+    else if (activeId === "history") renderHistoryList();
+    else if (activeId === "content") renderContentGrid();
+}
+
+function groupPostsByDate(posts) {
+    const map = {};
+    posts.forEach((p) => {
+        if (!p.schedule_date) return;
+        const d = new Date(p.schedule_date);
+        if (isNaN(d)) return;
+        const key = formatDateKey(d);
+        if (!map[key]) map[key] = [];
+        map[key].push(p);
+    });
+    return map;
+}
+
+// ------------------------------------------------------------
+// Dashboard: próximas postagens + última postagem
+// ------------------------------------------------------------
+
+function buildMiniPostItem(post) {
+    const div = document.createElement("div");
+    div.className = "mini-post-item";
+    const dateStr = formatDateBR(post.schedule_date);
+    div.innerHTML = `
+        <img src="/${post.photo_path}" alt="">
+        <div class="mini-post-item-info">
+            <p class="mini-post-item-caption">${escapeHtml(post.caption || "(sem legenda)")}</p>
+            <div class="mini-post-item-meta">
+                <span class="status-badge ${post.status}">${post.status === "posted" ? "Postado" : "Pendente"}</span>
+                <span>${dateStr}</span>
+            </div>
+        </div>
+    `;
+    div.addEventListener("click", () => openEditModal(post));
+    return div;
+}
+
+function renderNextPosts() {
+    const list = document.getElementById("nextPostsList");
+    const pending = queueData
+        .filter((p) => p.status === "pending")
+        .sort((a, b) => new Date(a.schedule_date) - new Date(b.schedule_date))
+        .slice(0, 6);
+
+    list.innerHTML = "";
+    if (pending.length === 0) {
+        list.innerHTML = '<p class="empty-state">Nenhuma postagem agendada ainda.</p>';
+        return;
+    }
+    pending.forEach((p) => list.appendChild(buildMiniPostItem(p)));
+}
+
+function renderLastPost() {
+    const box = document.getElementById("lastPostBox");
+    const posted = queueData
+        .filter((p) => p.status === "posted")
+        .sort((a, b) => new Date(b.posted_at || b.schedule_date) - new Date(a.posted_at || a.schedule_date));
+
+    const last = posted[0];
+    box.innerHTML = "";
+    if (!last) {
+        box.innerHTML = '<p class="empty-state">Nenhuma postagem publicada ainda.</p>';
+        return;
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "last-post-box";
+    wrap.innerHTML = `
+        <img src="/${last.photo_path}" alt="">
+        <div>
+            <p class="last-post-caption">${escapeHtml(last.caption || "(sem legenda)")}</p>
+            <p class="mini-post-item-meta">${formatDateBR(last.posted_at || last.schedule_date)}</p>
+        </div>
+    `;
+    box.appendChild(wrap);
+}
+
+// ------------------------------------------------------------
+// Calendário (mini + completo)
+// ------------------------------------------------------------
+
+function renderCalendarGrid(container, monthDate, postsByDate, opts = {}) {
+    const { clickable = false, onDayClick = null, selectedKey = null } = opts;
+    container.innerHTML = "";
+
+    const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    weekdays.forEach((w) => {
+        const el = document.createElement("div");
+        el.className = "cal-weekday";
+        el.textContent = w;
+        container.appendChild(el);
+    });
+
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const todayKey = formatDateKey(new Date());
+
+    for (let i = 0; i < firstDay; i++) {
+        const el = document.createElement("div");
+        el.className = "cal-day empty";
+        container.appendChild(el);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const dayPosts = postsByDate[key] || [];
+
+        const el = document.createElement("div");
+        el.className = "cal-day";
+        if (key === todayKey) el.classList.add("today");
+        if (key === selectedKey) el.classList.add("selected");
+        if (clickable && dayPosts.length > 0) el.classList.add("clickable");
+
+        const num = document.createElement("span");
+        num.textContent = day;
+        el.appendChild(num);
+
+        if (dayPosts.length > 0) {
+            const dots = document.createElement("div");
+            dots.className = "cal-dots";
+            if (dayPosts.some((p) => p.status === "pending")) {
+                const d = document.createElement("span");
+                d.className = "cal-dot pending";
+                dots.appendChild(d);
+            }
+            if (dayPosts.some((p) => p.status === "posted")) {
+                const d = document.createElement("span");
+                d.className = "cal-dot posted";
+                dots.appendChild(d);
+            }
+            el.appendChild(dots);
+        }
+
+        if (clickable && dayPosts.length > 0 && onDayClick) {
+            el.addEventListener("click", () => onDayClick(key, dayPosts));
+        }
+
+        container.appendChild(el);
+    }
+}
+
+function renderMiniCalendar() {
+    const postsByDate = groupPostsByDate(queueData);
+    const today = new Date();
+    document.getElementById("miniCalendarLabel").textContent = capitalize(getMonthLabel(today));
+    renderCalendarGrid(document.getElementById("miniCalendarGrid"), today, postsByDate, { clickable: false });
+}
+
+function renderFullCalendarPage() {
+    const postsByDate = groupPostsByDate(queueData);
+    document.getElementById("fullCalendarLabel").textContent = capitalize(getMonthLabel(calendarViewDate));
+
+    renderCalendarGrid(document.getElementById("fullCalendarGrid"), calendarViewDate, postsByDate, {
+        clickable: true,
+        selectedKey: selectedDayKey,
+        onDayClick: (key, posts) => {
+            selectedDayKey = key;
+            renderFullCalendarPage();
+            renderCalendarDayPosts(key, posts);
+        }
+    });
+
+    if (!selectedDayKey) {
+        document.getElementById("calendarDayLabel").textContent = "Selecione um dia";
+        document.getElementById("calendarDayPosts").innerHTML =
+            '<p class="empty-state">Clique num dia com postagens para ver os detalhes.</p>';
+    }
+
+    document.getElementById("calPrevBtn").onclick = () => {
+        calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() - 1, 1);
+        selectedDayKey = null;
+        renderFullCalendarPage();
+    };
+    document.getElementById("calNextBtn").onclick = () => {
+        calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() + 1, 1);
+        selectedDayKey = null;
+        renderFullCalendarPage();
+    };
+}
+
+function renderCalendarDayPosts(key, posts) {
+    document.getElementById("calendarDayLabel").textContent = formatKeyLongBR(key);
+    const container = document.getElementById("calendarDayPosts");
+    container.innerHTML = "";
+    posts
+        .sort((a, b) => new Date(a.schedule_date) - new Date(b.schedule_date))
+        .forEach((p) => container.appendChild(buildMiniPostItem(p)));
+}
+
+// ------------------------------------------------------------
+// Conteúdo (galeria)
+// ------------------------------------------------------------
+
+function setupFilters() {
+    document.querySelectorAll("#contentFilters .filter-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
-            document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+            document.querySelectorAll("#contentFilters .filter-btn").forEach((b) => b.classList.remove("active"));
             btn.classList.add("active");
-            currentFilter = btn.dataset.filter;
-            renderQueue();
+            currentContentFilter = btn.dataset.filter;
+            renderContentGrid();
+        });
+    });
+
+    document.querySelectorAll("#historyFilters .filter-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll("#historyFilters .filter-btn").forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+            currentHistoryFilter = btn.dataset.filter;
+            renderHistoryList();
         });
     });
 }
 
-async function loadQueue() {
-    const list = document.getElementById("queueList");
-    list.innerHTML = `<p class="empty-state">Carregando fila...</p>`;
-
-    try {
-        const res = await apiFetch(`/queue`);
-        const data = await res.json();
-        queueData = (data.posts || []).sort((a, b) =>
-            new Date(a.schedule_date) - new Date(b.schedule_date)
-        );
-        renderQueue();
-    } catch (e) {
-        list.innerHTML = `<p class="empty-state">Erro ao carregar fila. Verifique a conexão.</p>`;
-    }
+function filterPosts(filter) {
+    if (filter === "pending") return queueData.filter((p) => p.status === "pending");
+    if (filter === "posted") return queueData.filter((p) => p.status === "posted");
+    return queueData;
 }
 
-function renderQueue() {
-    const list = document.getElementById("queueList");
-    let filtered = queueData;
+function renderContentGrid() {
+    const grid = document.getElementById("contentGrid");
+    const filtered = filterPosts(currentContentFilter);
 
-    if (currentFilter === "pending") {
-        filtered = queueData.filter(p => p.status === "pending");
-    } else if (currentFilter === "posted") {
-        filtered = queueData.filter(p => p.status === "posted");
-    }
-
+    grid.innerHTML = "";
     if (filtered.length === 0) {
-        list.innerHTML = `<p class="empty-state">Nenhum post encontrado.</p>`;
+        grid.innerHTML = '<p class="empty-state">Nenhuma foto encontrada.</p>';
         return;
     }
 
-    list.innerHTML = "";
-
-    filtered.forEach(post => {
+    filtered.forEach((post) => {
         const div = document.createElement("div");
-        div.className = "queue-item";
-
-        const scheduleDate = post.schedule_date ? new Date(post.schedule_date) : null;
-        const dateStr = scheduleDate ? scheduleDate.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—";
-
+        div.className = "content-grid-item";
         div.innerHTML = `
             <img src="/${post.photo_path}" alt="">
-            <div class="queue-item-info">
-                <p class="queue-item-caption">${escapeHtml(post.caption || "(sem legenda)")}</p>
-                <div class="queue-item-meta">
-                    <span class="status-badge ${post.status}">${post.status === "posted" ? "Postado" : "Pendente"}</span>
-                    <span>${dateStr}</span>
-                </div>
-            </div>
-            <div class="queue-item-actions">
-                <button class="edit-btn" title="Editar">✏️</button>
-                <button class="delete-btn" title="Cancelar">🗑️</button>
-            </div>
+            <span class="status-badge ${post.status}">${post.status === "posted" ? "Postado" : "Pendente"}</span>
         `;
-
-        div.querySelector(".edit-btn").addEventListener("click", () => openEditModal(post));
-        div.querySelector(".delete-btn").addEventListener("click", () => openDeleteModal(post.id));
-
-        list.appendChild(div);
+        div.addEventListener("click", () => openEditModal(post));
+        grid.appendChild(div);
     });
 }
 
-function escapeHtml(text) {
+// ------------------------------------------------------------
+// Histórico
+// ------------------------------------------------------------
+
+function buildQueueItem(post) {
     const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
+    div.className = "queue-item";
+    const dateStr = formatDateBR(post.schedule_date);
+
+    div.innerHTML = `
+        <img src="/${post.photo_path}" alt="">
+        <div class="queue-item-info">
+            <p class="queue-item-caption">${escapeHtml(post.caption || "(sem legenda)")}</p>
+            <div class="queue-item-meta">
+                <span class="status-badge ${post.status}">${post.status === "posted" ? "Postado" : "Pendente"}</span>
+                <span>${dateStr}</span>
+            </div>
+        </div>
+        <div class="queue-item-actions">
+            <button class="edit-btn" title="Editar">✏️</button>
+            <button class="delete-btn" title="Cancelar">🗑️</button>
+        </div>
+    `;
+
+    div.querySelector(".edit-btn").addEventListener("click", () => openEditModal(post));
+    div.querySelector(".delete-btn").addEventListener("click", () => openDeleteModal(post.id));
+
+    return div;
+}
+
+function renderHistoryList() {
+    const list = document.getElementById("historyList");
+    const filtered = filterPosts(currentHistoryFilter);
+
+    list.innerHTML = "";
+    if (filtered.length === 0) {
+        list.innerHTML = '<p class="empty-state">Nenhuma postagem encontrada.</p>';
+        return;
+    }
+    filtered.forEach((post) => list.appendChild(buildQueueItem(post)));
 }
 
 // ============================================================
-// MODAIS
+// MODAL: EDITAR POSTAGEM
 // ============================================================
 
-function setupModals() {
+function setupEditModal() {
+    document.getElementById("closeEditBtn").addEventListener("click", () => {
+        document.getElementById("editModal").classList.add("hidden");
+    });
     document.getElementById("cancelEditBtn").addEventListener("click", () => {
         document.getElementById("editModal").classList.add("hidden");
     });
-
     document.getElementById("saveEditBtn").addEventListener("click", saveEdit);
-
-    document.getElementById("cancelDeleteBtn").addEventListener("click", () => {
-        document.getElementById("deleteModal").classList.add("hidden");
-    });
-
-    document.getElementById("confirmDeleteBtn").addEventListener("click", confirmDelete);
 }
 
 function openEditModal(post) {
@@ -800,10 +1077,22 @@ async function saveEdit() {
             body: JSON.stringify({ caption, location, hashtags })
         });
         document.getElementById("editModal").classList.add("hidden");
+        showToast("Postagem atualizada.", "success");
         loadQueue();
     } catch (e) {
-        alert("Erro ao salvar edição.");
+        showToast("Erro ao salvar edição.", "error");
     }
+}
+
+// ============================================================
+// MODAL: CONFIRMAR EXCLUSAO
+// ============================================================
+
+function setupDeleteModal() {
+    document.getElementById("cancelDeleteBtn").addEventListener("click", () => {
+        document.getElementById("deleteModal").classList.add("hidden");
+    });
+    document.getElementById("confirmDeleteBtn").addEventListener("click", confirmDelete);
 }
 
 function openDeleteModal(postId) {
@@ -817,8 +1106,29 @@ async function confirmDelete() {
     try {
         await apiFetch(`/queue/${deletingPostId}`, { method: "DELETE" });
         document.getElementById("deleteModal").classList.add("hidden");
+        showToast("Postagem removida.", "success");
         loadQueue();
     } catch (e) {
-        alert("Erro ao remover post.");
+        showToast("Erro ao remover postagem.", "error");
     }
+}
+
+// ============================================================
+// PAGINA: CONFIGURACOES
+// ============================================================
+
+async function loadSettingsPage() {
+    try {
+        const res = await apiFetch(`/app-info`);
+        const data = await res.json();
+        document.getElementById("serverInfoModel").textContent =
+            `Modelo de IA: ${data.claude_model}${data.ai_configured ? "" : " (chave não configurada)"}`;
+        document.getElementById("serverInfoAuth").textContent =
+            `Proteção por senha: ${data.auth_enabled ? "ativa" : "desativada"}`;
+        document.getElementById("logoutCard").classList.toggle("hidden", !data.auth_enabled);
+    } catch (e) {
+        document.getElementById("serverInfoModel").textContent = "Modelo de IA: —";
+    }
+
+    document.getElementById("logoutBtn").onclick = logout;
 }

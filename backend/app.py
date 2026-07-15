@@ -582,6 +582,111 @@ def generate_hashtags():
 
 
 # ============================================================
+# ENDPOINT: Reescrever legenda em outro "mood" (humor/tom)
+# ============================================================
+
+CAPTION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "caption": {"type": "string", "description": "Legenda reescrita, sem hashtags"}
+    },
+    "required": ["caption"],
+    "additionalProperties": False
+}
+
+# Cada mood e um botao na tela de revisao - a legenda atual e reescrita
+# no tom escolhido, mantendo o assunto original.
+MOOD_PROMPTS = {
+    "alegre": "alegre e animada, transbordando energia positiva",
+    "triste": "nostálgica e melancólica, tom introspectivo e saudoso",
+    "engracada": "engraçada, com humor leve e espontâneo",
+    "quinta_serie": "descontraída e zoeira, tipo brincadeira de grupo de amigos de escola",
+    "pensativa": "pensativa e reflexiva, quase filosófica",
+    "motivacional": "motivacional e inspiradora, como uma pequena lição de vida",
+    "sarcastica": "sarcástica e irônica, com deboche leve e bem-humorado",
+    "romantica": "romântica e apaixonada",
+}
+
+
+@app.route("/api/rewrite-caption", methods=["POST"])
+def rewrite_caption():
+    """Reescreve a legenda atual num mood/tom escolhido pelo usuario."""
+    if client is None:
+        return jsonify({"error": "CLAUDE_API_KEY não configurada no servidor."}), 503
+
+    try:
+        data = request.json or {}
+        caption = (data.get("caption") or "").strip()
+        mood = (data.get("mood") or "").strip()
+        location = (data.get("location") or "").strip()
+        content_type = (data.get("content_type") or "").strip()
+
+        mood_desc = MOOD_PROMPTS.get(mood)
+        if not mood_desc:
+            return jsonify({"error": "Mood inválido."}), 400
+
+        parts = [f"Reescreva esta legenda de Instagram em português do Brasil, em um tom {mood_desc}:"]
+        if caption:
+            parts.append(f'Legenda atual: "{caption}"')
+        if content_type:
+            parts.append(f"Tipo de conteúdo da foto: {content_type}")
+        if location:
+            parts.append(f"Local da foto: {location}")
+        parts.append(
+            "Mantenha o mesmo assunto/contexto, apenas mude o tom. "
+            "Sem hashtags. No máximo 3 frases curtas. Pode usar emojis com moderação."
+        )
+
+        message = client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=500,
+            output_config={"format": {"type": "json_schema", "schema": CAPTION_SCHEMA}},
+            messages=[{"role": "user", "content": "\n".join(parts)}],
+        )
+
+        response_text = next((b.text for b in message.content if b.type == "text"), "")
+        result = json.loads(response_text)
+
+        return jsonify({"success": True, "caption": str(result.get("caption", "")).strip()})
+
+    except HTTPException:
+        raise
+    except json.JSONDecodeError:
+        return jsonify({"error": "A IA retornou uma resposta inesperada. Tente novamente."}), 502
+    except Exception as e:
+        return _claude_error_response(e)
+
+
+# ============================================================
+# ENDPOINT: Informações do app e configurações
+# ============================================================
+
+@app.route("/api/app-info", methods=["GET"])
+def app_info():
+    return jsonify({
+        "claude_model": CLAUDE_MODEL,
+        "ai_configured": client is not None,
+        "heic_support": HEIC_SUPPORT,
+        "auth_enabled": AUTH_ENABLED,
+    })
+
+
+@app.route("/api/settings", methods=["GET"])
+def get_settings():
+    return jsonify({"settings": db.get_settings()})
+
+
+@app.route("/api/settings", methods=["PATCH"])
+def patch_settings():
+    data = request.json or {}
+    allowed_keys = {"language"}
+    fields = {k: v for k, v in data.items() if k in allowed_keys}
+    if not fields:
+        return jsonify({"error": "Nenhum campo válido para atualizar."}), 400
+    return jsonify({"success": True, "settings": db.update_settings(fields)})
+
+
+# ============================================================
 # ROTAS DE FRONTEND
 # ============================================================
 

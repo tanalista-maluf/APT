@@ -31,6 +31,11 @@ CREATE TABLE IF NOT EXISTS posts (
     created_at    TEXT,
     posted_at     TEXT
 );
+
+CREATE TABLE IF NOT EXISTS settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL DEFAULT ''
+);
 """
 
 
@@ -194,3 +199,24 @@ def delete_post(post_id):
     with _connect() as conn:
         cur = conn.execute("DELETE FROM posts WHERE id = ?", (post_id,))
         return cur.rowcount > 0
+
+
+# ============================================================
+# Settings (chave/valor simples: idioma, nome do perfil vinculado, etc)
+# ============================================================
+
+def get_settings():
+    with _connect() as conn:
+        rows = conn.execute("SELECT key, value FROM settings").fetchall()
+    return {r["key"]: r["value"] for r in rows}
+
+
+def update_settings(fields):
+    with _connect() as conn:
+        for key, value in fields.items():
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES (?, ?) "
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                (key, "" if value is None else str(value)),
+            )
+    return get_settings()

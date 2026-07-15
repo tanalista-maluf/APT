@@ -3,87 +3,305 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AutoPost - Automação de Posts Instagram</title>
+<title>AutoPost Tabajara!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="app">
-
-    <!-- HEADER -->
-    <header class="header">
-        <h1>🚀 AutoPost</h1>
-        <p>Automação de Posts Instagram com IA</p>
-        <div class="status-bar" id="statusBar">
-            <span class="status-dot" id="statusDot"></span>
-            <span id="statusText">Verificando conexão...</span>
-            <button id="refreshBtn" class="icon-btn" title="Verificar conexão">🔄</button>
+<!-- ============================================================ -->
+<!-- TELA DE LOGIN -->
+<!-- ============================================================ -->
+<div id="loginScreen" class="login-screen hidden">
+    <div class="login-card">
+        <div class="stamp-logo">
+            <span class="stamp-logo-top">AutoPost</span>
+            <span class="stamp-logo-main">TABAJARA!</span>
+            <span class="stamp-logo-tag">A GENTE AUTOMATIZA O QUE PODE.</span>
         </div>
-    </header>
+        <p class="login-sub">Acesso restrito. Digite a senha para entrar.</p>
+        <label class="field-label" for="loginPasswordInput">Senha de acesso</label>
+        <input type="password" id="loginPasswordInput" placeholder="••••••••" autocomplete="current-password">
+        <p id="loginError" class="login-error hidden">Senha incorreta. Tente de novo (ou quase).</p>
+        <button class="btn btn-primary btn-block" id="loginBtn">Entrar (ou tentar) →</button>
+    </div>
+</div>
 
-    <!-- NAV TABS -->
-    <nav class="tabs">
-        <button class="tab-btn active" data-tab="upload">📸 Novo Post</button>
-        <button class="tab-btn" data-tab="dashboard">📊 Dashboard</button>
-    </nav>
+<!-- ============================================================ -->
+<!-- APP -->
+<!-- ============================================================ -->
+<div id="appShell" class="app-shell hidden">
 
-    <!-- TAB: UPLOAD / FLUXO DE CRIACAO -->
-    <section id="tab-upload" class="tab-content active">
-
-        <!-- STEP 1: Selecionar Fotos -->
-        <div class="step" id="step-select">
-            <h2>1. Selecione suas fotos</h2>
-            <label class="upload-box" for="photoInput">
-                <span class="upload-icon">📁</span>
-                <span>Clique para escolher fotos ou arraste aqui</span>
-                <input type="file" id="photoInput" accept="image/*" multiple hidden>
-            </label>
-
-            <div id="photoGrid" class="photo-grid"></div>
-
-            <div id="selectionSummary" class="selection-summary hidden">
-                <span id="selectedCount">0 fotos selecionadas</span>
-            </div>
-
-            <div class="action-row">
-                <label class="checkbox-row">
-                    <input type="checkbox" id="useAiCheckbox" checked>
-                    <span>✨ Gerar legendas com IA (Claude Vision)</span>
-                </label>
-                <button id="proceedToScheduleBtn" class="btn btn-primary" disabled>
-                    Continuar →
-                </button>
-            </div>
-
-            <div id="analyzingStatus" class="analyzing-status hidden">
-                <div class="spinner"></div>
-                <span id="analyzingText">Analisando fotos com IA...</span>
-            </div>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="stamp-logo stamp-logo-sm">
+            <span class="stamp-logo-top">AutoPost</span>
+            <span class="stamp-logo-main">TABAJARA!</span>
+            <span class="stamp-logo-tag">A GENTE AUTOMATIZA O QUE PODE.</span>
         </div>
 
-        <!-- STEP 2: Agendamento -->
-        <div class="step hidden" id="step-schedule">
-            <h2>2. Configurar agendamento</h2>
+        <nav class="side-nav">
+            <button class="side-nav-item active" data-page="dashboard">
+                <span class="side-nav-icon">🏠</span> Dashboard
+            </button>
+            <button class="side-nav-item" id="navNewPost">
+                <span class="side-nav-icon">➕</span> Nova Postagem
+            </button>
+            <button class="side-nav-item" data-page="content">
+                <span class="side-nav-icon">🖼️</span> Conteúdo
+            </button>
+            <button class="side-nav-item" data-page="calendar">
+                <span class="side-nav-icon">📅</span> Calendário
+            </button>
+            <button class="side-nav-item" data-page="history">
+                <span class="side-nav-icon">🕓</span> Histórico
+            </button>
+            <button class="side-nav-item" data-page="settings">
+                <span class="side-nav-icon">⚙️</span> Configurações
+            </button>
+        </nav>
+
+        <div class="sticky-note">
+            <p>SE É TABAJARA,<br>FUNCIONA...</p>
+            <p class="sticky-note-small">MAIS OU MENOS.</p>
+            <span class="sticky-note-thumb">👍</span>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main-content">
+        <header class="topbar">
+            <h1 id="pageTitle">Dashboard</h1>
+            <div class="topbar-right">
+                <div class="status-pill">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">Operação Tabajara: verificando...</span>
+                </div>
+                <div class="user-avatar" id="userAvatarBtn">RM</div>
+            </div>
+        </header>
+
+        <!-- PÁGINA: DASHBOARD -->
+        <section id="page-dashboard" class="page active">
+            <div class="dashboard-grid">
+
+                <div class="card dropzone-card" id="dropzoneCard">
+                    <input type="file" id="photoInput" accept="image/*" multiple hidden>
+                    <div class="dropzone-inner" id="dropzoneInner">
+                        <span class="dropzone-icon">☁️</span>
+                        <p class="dropzone-text">Solte suas fotos aqui ou clique para enviar</p>
+                        <p class="dropzone-hint">JPG, PNG, HEIC — pode escolher várias de uma vez</p>
+                    </div>
+                </div>
+
+                <div class="card progress-card hidden" id="progressCard">
+                    <h3>AutoPost Tabajara em ação</h3>
+                    <ul class="progress-checklist" id="progressChecklist"></ul>
+                </div>
+
+                <div class="card next-posts-card">
+                    <div class="card-header-row">
+                        <h3>Próximas Postagens</h3>
+                    </div>
+                    <div id="nextPostsList" class="mini-post-list">
+                        <p class="empty-state">Nenhuma postagem agendada ainda.</p>
+                    </div>
+                    <button class="link-btn" data-page="history">Ver histórico completo →</button>
+                </div>
+
+                <div class="card last-post-card">
+                    <h3>Última Postagem</h3>
+                    <div id="lastPostBox">
+                        <p class="empty-state">Nenhuma postagem publicada ainda.</p>
+                    </div>
+                </div>
+
+                <div class="card mini-calendar-card">
+                    <div class="card-header-row">
+                        <h3 id="miniCalendarLabel">Calendário</h3>
+                    </div>
+                    <div id="miniCalendarGrid" class="mini-calendar-grid"></div>
+                    <button class="link-btn" data-page="calendar">Ver calendário completo →</button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- PÁGINA: CONTEÚDO (galeria) -->
+        <section id="page-content" class="page">
+            <div class="card">
+                <div class="card-header-row">
+                    <h3>Conteúdo enviado</h3>
+                    <div class="dashboard-filters" id="contentFilters">
+                        <button class="filter-btn active" data-filter="all">Todos</button>
+                        <button class="filter-btn" data-filter="pending">Pendentes</button>
+                        <button class="filter-btn" data-filter="posted">Postados</button>
+                    </div>
+                </div>
+                <div id="contentGrid" class="content-grid">
+                    <p class="empty-state">Nenhuma foto enviada ainda.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- PÁGINA: CALENDÁRIO -->
+        <section id="page-calendar" class="page">
+            <div class="card">
+                <div class="card-header-row">
+                    <h3 id="fullCalendarLabel">Calendário</h3>
+                    <div class="calendar-nav">
+                        <button class="btn btn-small" id="calPrevBtn">← Mês anterior</button>
+                        <button class="btn btn-small" id="calNextBtn">Próximo mês →</button>
+                    </div>
+                </div>
+                <div id="fullCalendarGrid" class="full-calendar-grid"></div>
+            </div>
+            <div class="card">
+                <h3 id="calendarDayLabel">Selecione um dia</h3>
+                <div id="calendarDayPosts" class="mini-post-list">
+                    <p class="empty-state">Clique num dia com postagens para ver os detalhes.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- PÁGINA: HISTÓRICO -->
+        <section id="page-history" class="page">
+            <div class="card">
+                <div class="card-header-row">
+                    <h3>Histórico de Postagens</h3>
+                    <div class="dashboard-filters" id="historyFilters">
+                        <button class="filter-btn active" data-filter="all">Todos</button>
+                        <button class="filter-btn" data-filter="pending">Pendentes</button>
+                        <button class="filter-btn" data-filter="posted">Postados</button>
+                    </div>
+                </div>
+                <div id="historyList" class="queue-list">
+                    <p class="empty-state">Carregando...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- PÁGINA: CONFIGURAÇÕES -->
+        <section id="page-settings" class="page">
+            <div class="card">
+                <h3>Idioma da plataforma</h3>
+                <p class="muted-text">Português (Brasil) — outros idiomas em breve.</p>
+            </div>
 
             <div class="card">
-                <div class="summary-row">
-                    <div class="summary-item">
-                        <span class="summary-label">Total de fotos</span>
-                        <span class="summary-value" id="summaryTotalPhotos">0</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Duração estimada</span>
-                        <span class="summary-value" id="summaryDuration">0 dias</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Frequência</span>
-                        <span class="summary-value" id="summaryFrequency">1x/dia</span>
-                    </div>
+                <h3>Conta do Instagram</h3>
+                <p class="muted-text" id="instagramStatus">Nenhuma conta vinculada.</p>
+                <button class="btn btn-secondary" disabled title="Integração ainda não implementada">Vincular conta (em breve)</button>
+            </div>
+
+            <div class="card">
+                <h3>Sobre o servidor</h3>
+                <p class="muted-text" id="serverInfoModel">Modelo de IA: —</p>
+                <p class="muted-text" id="serverInfoAuth">Proteção por senha: —</p>
+            </div>
+
+            <div class="card" id="logoutCard">
+                <h3>Sessão</h3>
+                <button class="btn btn-danger" id="logoutBtn">Sair</button>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: NOVA POSTAGEM (revisão foto a foto) -->
+<!-- ============================================================ -->
+<div id="newPostModal" class="modal-overlay hidden">
+    <div class="modal-panel new-post-modal">
+        <div class="modal-header">
+            <h2>Nova Postagem</h2>
+            <span class="modal-position" id="newPostPosition">1 de 1</span>
+            <button class="modal-close" id="closeNewPostBtn">✕</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="new-post-photo-col">
+                <img id="newPostImage" class="new-post-image" src="" alt="Foto">
+                <div class="exif-box">
+                    <p id="exifCamera">—</p>
+                    <p id="exifLocationLine"></p>
+                    <p id="exifDate"></p>
                 </div>
             </div>
 
-            <div class="card">
-                <h3>Quantas vezes por dia?</h3>
+            <div class="new-post-fields-col">
+                <div class="field-block">
+                    <div class="card-header-row">
+                        <label class="field-label">Legenda sugerida pelo Claude</label>
+                    </div>
+                    <textarea id="captionTextarea" rows="4" placeholder="A legenda aparece aqui assim que a IA analisar a foto..."></textarea>
+                    <div class="mood-chips" id="moodChips"></div>
+                </div>
+
+                <div class="field-block">
+                    <div class="card-header-row">
+                        <label class="field-label"># Hashtags</label>
+                        <button id="regenHashtagsBtn" class="btn btn-small btn-ai" title="Gera hashtags novas a partir da legenda e do local atuais">✨ Gerar da legenda</button>
+                    </div>
+                    <div class="hashtag-input-row">
+                        <input type="text" id="newHashtagInput" placeholder="Adicionar hashtag">
+                        <button id="addHashtagBtn" class="btn btn-small">+</button>
+                    </div>
+                    <div id="hashtagList" class="hashtag-list"></div>
+                </div>
+
+                <div class="field-block">
+                    <label class="field-label">📍 Local</label>
+                    <input type="text" id="locationInput" placeholder="Digite o local (opcional)">
+                </div>
+
+                <div class="field-block">
+                    <label class="field-label">👥 Marcar pessoas</label>
+                    <input type="text" id="taggedPeopleInput" placeholder="@usuario1, @usuario2 (opcional)">
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <div class="nav-row">
+                <button class="btn btn-secondary" id="prevPhotoBtn">← Anterior</button>
+                <button class="btn btn-secondary" id="nextPhotoBtn">Próxima →</button>
+            </div>
+            <button class="btn btn-primary" id="reviewScheduleBtn">Revisar e Agendar →</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: AGENDAMENTO -->
+<!-- ============================================================ -->
+<div id="scheduleModal" class="modal-overlay hidden">
+    <div class="modal-panel schedule-modal">
+        <div class="modal-header">
+            <h2>Configurar Agendamento</h2>
+            <button class="modal-close" id="closeScheduleBtn">✕</button>
+        </div>
+
+        <div class="modal-body schedule-body">
+            <div class="summary-row">
+                <div class="summary-item">
+                    <span class="summary-label">Total de fotos</span>
+                    <span class="summary-value" id="summaryTotalPhotos">0</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Duração estimada</span>
+                    <span class="summary-value" id="summaryDuration">0 dias</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Frequência</span>
+                    <span class="summary-value" id="summaryFrequency">1x/dia</span>
+                </div>
+            </div>
+
+            <div class="field-block">
+                <label class="field-label">Quantas vezes por dia?</label>
                 <div class="freq-buttons" id="freqButtons">
                     <button class="freq-btn active" data-freq="1">1x</button>
                     <button class="freq-btn" data-freq="2">2x</button>
@@ -92,155 +310,70 @@
                 </div>
             </div>
 
-            <div class="card">
-                <h3>Quando começar?</h3>
+            <div class="field-block">
+                <label class="field-label">Quando começar?</label>
                 <input type="datetime-local" id="startDateInput" class="date-input">
             </div>
-
-            <div class="action-row">
-                <button class="btn btn-secondary" id="backToSelectBtn">← Voltar</button>
-                <button class="btn btn-primary" id="proceedToReviewBtn">Revisar e Confirmar →</button>
-            </div>
         </div>
 
-        <!-- STEP 3: Revisao -->
-        <div class="step hidden" id="step-review">
-            <h2>3. Revisão de Posts</h2>
-
-            <div class="review-progress">
-                <div class="progress-info">
-                    <span id="reviewPosition">1 de 1</span>
-                </div>
-                <div class="progress-bar-track">
-                    <div class="progress-bar-fill" id="reviewProgressFill"></div>
-                </div>
-            </div>
-
-            <div class="card review-card">
-                <img id="reviewImage" class="review-image" src="" alt="Foto">
-
-                <div class="exif-box">
-                    <h4>📸 Informações da Foto</h4>
-                    <p id="exifCamera">—</p>
-                    <p id="exifLocation">📍 Sem dados de localização</p>
-                    <p id="exifDate"></p>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>✏️ Legenda</h3>
-                <div id="captionOptions" class="caption-options hidden"></div>
-                <textarea id="captionTextarea" rows="4" placeholder="Digite a legenda do post..."></textarea>
-            </div>
-
-            <div class="card">
-                <div class="card-header-row">
-                    <h3># Hashtags</h3>
-                    <button id="regenHashtagsBtn" class="btn btn-small btn-ai" title="Gera hashtags novas a partir da legenda e do local atuais">✨ Gerar da legenda</button>
-                </div>
-                <div class="hashtag-input-row">
-                    <input type="text" id="newHashtagInput" placeholder="Adicionar hashtag">
-                    <button id="addHashtagBtn" class="btn btn-small">+</button>
-                </div>
-                <div id="hashtagList" class="hashtag-list"></div>
-            </div>
-
-            <div class="card">
-                <h3>📍 Local</h3>
-                <input type="text" id="locationInput" placeholder="Digite o local (opcional)">
-            </div>
-
-            <div class="card">
-                <h3>👥 Marcar Pessoas</h3>
-                <input type="text" id="taggedPeopleInput" placeholder="@usuario1, @usuario2">
-            </div>
-
-            <div class="nav-row">
-                <button class="btn btn-secondary" id="prevPhotoBtn">← Anterior</button>
-                <button class="btn btn-secondary" id="nextPhotoBtn">Próxima →</button>
-            </div>
-
-            <div class="action-row">
-                <button class="btn btn-secondary" id="backToScheduleBtn">← Voltar</button>
-                <button class="btn btn-success" id="confirmScheduleBtn">✅ Confirmar e Agendar Todos</button>
-            </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="backToReviewBtn">← Voltar à revisão</button>
+            <button class="btn btn-primary" id="confirmScheduleBtn">✅ Agendar Tudo</button>
         </div>
-
-        <!-- STEP 4: Sucesso -->
-        <div class="step hidden" id="step-success">
-            <div class="success-box">
-                <div class="success-icon">✅</div>
-                <h2>Sucesso!</h2>
-                <p id="successMessage"></p>
-                <button class="btn btn-primary" id="goToDashboardBtn">Ver Dashboard →</button>
-                <button class="btn btn-secondary" id="createAnotherBtn">Criar Novo Post</button>
-            </div>
-        </div>
-
-    </section>
-
-    <!-- TAB: DASHBOARD -->
-    <section id="tab-dashboard" class="tab-content">
-        <div class="dashboard-header">
-            <h2>📊 Dashboard de Posts</h2>
-            <button id="refreshQueueBtn" class="btn btn-secondary">🔄 Atualizar</button>
-        </div>
-
-        <div class="dashboard-filters">
-            <button class="filter-btn active" data-filter="all">Todos</button>
-            <button class="filter-btn" data-filter="pending">Pendentes</button>
-            <button class="filter-btn" data-filter="posted">Postados</button>
-        </div>
-
-        <div id="queueList" class="queue-list">
-            <p class="empty-state">Carregando fila...</p>
-        </div>
-    </section>
-
+    </div>
 </div>
 
-<!-- MODAL DE EDICAO (dashboard) -->
-<div id="editModal" class="modal hidden">
-    <div class="modal-content">
-        <h3>Editar Post</h3>
-        <img id="editModalImage" class="modal-image" src="" alt="">
-        <label>Legenda</label>
-        <textarea id="editModalCaption" rows="4"></textarea>
-        <label>Local</label>
-        <input type="text" id="editModalLocation">
-        <label>Hashtags (separadas por espaço)</label>
-        <input type="text" id="editModalHashtags">
-        <div class="modal-actions">
+<!-- ============================================================ -->
+<!-- MODAL: EDITAR POSTAGEM (dashboard / histórico) -->
+<!-- ============================================================ -->
+<div id="editModal" class="modal-overlay hidden">
+    <div class="modal-panel">
+        <div class="modal-header">
+            <h2>Editar Postagem</h2>
+            <button class="modal-close" id="closeEditBtn">✕</button>
+        </div>
+        <div class="modal-body edit-modal-body">
+            <img id="editModalImage" class="new-post-image" src="" alt="">
+            <div class="new-post-fields-col">
+                <div class="field-block">
+                    <label class="field-label">Legenda</label>
+                    <textarea id="editModalCaption" rows="4"></textarea>
+                </div>
+                <div class="field-block">
+                    <label class="field-label">Local</label>
+                    <input type="text" id="editModalLocation">
+                </div>
+                <div class="field-block">
+                    <label class="field-label">Hashtags (separadas por espaço)</label>
+                    <input type="text" id="editModalHashtags">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
             <button class="btn btn-secondary" id="cancelEditBtn">Cancelar</button>
             <button class="btn btn-primary" id="saveEditBtn">Salvar</button>
         </div>
     </div>
 </div>
 
-<!-- TELA DE LOGIN (aparece so quando o servidor exige senha) -->
-<div id="loginOverlay" class="modal hidden">
-    <div class="modal-content login-box">
-        <h3>🔒 AutoPost</h3>
-        <p>Este servidor é protegido. Digite a senha de acesso.</p>
-        <input type="password" id="loginPasswordInput" placeholder="Senha" autocomplete="current-password">
-        <p id="loginError" class="login-error hidden">Senha incorreta. Tente novamente.</p>
-        <div class="modal-actions">
-            <button class="btn btn-primary" id="loginBtn">Entrar</button>
+<!-- ============================================================ -->
+<!-- MODAL: CONFIRMAR EXCLUSÃO -->
+<!-- ============================================================ -->
+<div id="deleteModal" class="modal-overlay hidden">
+    <div class="modal-panel modal-panel-sm">
+        <div class="modal-body">
+            <h3>⚠️ Cancelar postagem?</h3>
+            <p>Esta ação não pode ser desfeita. A postagem será removida da fila.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelDeleteBtn">Voltar</button>
+            <button class="btn btn-danger" id="confirmDeleteBtn">Sim, remover</button>
         </div>
     </div>
 </div>
 
-<!-- MODAL DE CONFIRMACAO DE EXCLUSAO -->
-<div id="deleteModal" class="modal hidden">
-    <div class="modal-content">
-        <h3>⚠️ Cancelar Post?</h3>
-        <p>Esta ação não pode ser desfeita. O post será removido da fila.</p>
-        <div class="modal-actions">
-            <button class="btn btn-secondary" id="cancelDeleteBtn">Voltar</button>
-            <button class="btn btn-danger" id="confirmDeleteBtn">Sim, Remover</button>
-        </div>
-    </div>
-</div>
+<!-- TOASTS -->
+<div id="toastContainer" class="toast-container"></div>
 
 <script src="app.js"></script>
 </body>
