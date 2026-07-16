@@ -1082,6 +1082,65 @@ input, textarea, select {
     padding: 1px 0;
 }
 
+.photo-preview-wrapper {
+    position: relative;
+}
+
+.filter-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-select-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-dark);
+    white-space: nowrap;
+}
+
+.filter-select {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--gray-border);
+    border-radius: var(--radius);
+    background: var(--white);
+    font-size: 13px;
+    color: var(--gray-dark);
+    cursor: pointer;
+}
+
+.filter-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-slider-label {
+    font-size: 12px;
+    color: var(--gray-text);
+    white-space: nowrap;
+}
+
+.filter-slider {
+    flex: 1;
+    height: 4px;
+    accent-color: var(--primary);
+}
+
+.filter-slider-value {
+    font-size: 12px;
+    color: var(--gray-text);
+    min-width: 36px;
+    text-align: right;
+}
+
 .new-post-fields-col {
     display: flex;
     flex-direction: column;

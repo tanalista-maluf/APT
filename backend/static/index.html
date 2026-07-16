@@ -254,11 +254,44 @@
 
         <div class="modal-body">
             <div class="new-post-photo-col">
-                <img id="newPostImage" class="new-post-image" src="" alt="Foto">
+                <div class="photo-preview-wrapper">
+                    <img id="newPostImage" class="new-post-image" src="" alt="Foto">
+                    <canvas id="filterCanvas" class="new-post-image" style="display:none"></canvas>
+                </div>
                 <div class="exif-box">
                     <p id="exifCamera">—</p>
                     <p id="exifLocationLine"></p>
                     <p id="exifDate"></p>
+                </div>
+                <div class="filter-controls">
+                    <div class="filter-select-row">
+                        <label class="filter-label">LUT:</label>
+                        <select id="filterSelect" class="filter-select">
+                            <option value="none">Original</option>
+                        <option value="azul">Azul</option>
+                        <option value="branco">Branco</option>
+                        <option value="cafe">Café</option>
+                        <option value="cinematic">Cinematic</option>
+                        <option value="claro">Claro</option>
+                        <option value="comida">Comida</option>
+                        <option value="contraste">Contraste</option>
+                        <option value="golden_hour">Golden Hour</option>
+                        <option value="neon">Neon</option>
+                        <option value="pb">P&B</option>
+                        <option value="pastel">Pastel</option>
+                        <option value="perfil">Perfil</option>
+                        <option value="praia">Praia</option>
+                        <option value="rosa">Rosa</option>
+                        <option value="sepia">Sépia</option>
+                        <option value="verde">Verde</option>
+                            <option value="vermelho">Vermelho</option>
+                        </select>
+                    </div>
+                    <div class="filter-slider-row">
+                        <span class="filter-slider-label">Intensidade</span>
+                        <input type="range" id="filterIntensity" min="0" max="100" value="100" class="filter-slider">
+                        <span id="filterIntensityValue" class="filter-slider-value">100%</span>
+                    </div>
                 </div>
             </div>
 

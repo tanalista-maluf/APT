@@ -15,6 +15,91 @@ const MOODS = [
     { id: "romantica", label: "❤️ Romântica" },
 ];
 
+const PHOTO_FILTERS = {
+    none: { name: "Foto Natural" },
+    azul: {
+        name: "Azul", brightness: 1.01, contrast: 1.0, saturate: 0.85,
+        temperature: 3, shadows: { h: 221, s: 18 }, highlights: { h: 51, s: 23 },
+        vignette: 0.11, clarity: 0.13
+    },
+    branco: {
+        name: "Branco", brightness: 1.0, contrast: 0.97, saturate: 0.55,
+        blacks: 0.5, highlights: -0.39, shadows: 0.41, whites: 0.35,
+        vignette: 0.19, clarity: 0.14
+    },
+    cafe: {
+        name: "Café", brightness: 1.0, contrast: 1.27, saturate: 0.57,
+        shadows: 0.66, highlights: -0.23, clarity: 0.23,
+        tint: { r: 180, g: 140, b: 100, a: 0.08 }
+    },
+    cinematic: {
+        name: "Cinematic", brightness: 1.05, contrast: 1.0, saturate: 0.72,
+        temperature: 15, shadows: 0.54, highlights: -0.30,
+        tint: { r: 80, g: 120, b: 90, a: 0.06 }
+    },
+    claro: {
+        name: "Claro", brightness: 1.0, contrast: 0.63, saturate: 0.6,
+        temperature: 19, shadows: 0.17, highlights: -0.40, clarity: 0.21,
+        tint: { r: 255, g: 220, b: 180, a: 0.05 }
+    },
+    comida: {
+        name: "Comida", brightness: 1.0, contrast: 1.07, saturate: 1.06,
+        temperature: 11, shadows: -0.43, blacks: -0.37, clarity: 0.16
+    },
+    contraste: {
+        name: "Contraste", brightness: 1.02, contrast: 1.56, saturate: 0.75,
+        vibrance: 0.58, shadows: 0.72, highlights: -0.37, vignette: 0.15, clarity: 0.15
+    },
+    golden_hour: {
+        name: "Golden Hour", brightness: 1.0, contrast: 1.15, saturate: 1.0,
+        temperature: 15, highlights: -0.57, blacks: 0.41, clarity: 0.19,
+        tint: { r: 255, g: 180, b: 60, a: 0.06 }
+    },
+    neon: {
+        name: "Neon", brightness: 1.15, contrast: 1.47, saturate: 1.5,
+        vibrance: 0.31, shadows: 0.64, highlights: 0.27, clarity: 0.04
+    },
+    pb: {
+        name: "P&B", brightness: 0.85, contrast: 1.86, saturate: 0.0,
+        grayscale: true, shadows: 0.55, highlights: -0.52, grain: 10
+    },
+    pastel: {
+        name: "Pastel", brightness: 1.0, contrast: 1.17, saturate: 0.85,
+        temperature: -12, shadows: 0.13, vignette: 0.20, clarity: 0.06,
+        tint: { r: 255, g: 220, b: 170, a: 0.12 }
+    },
+    perfil: {
+        name: "Perfil", brightness: 1.10, contrast: 1.0, saturate: 0.75,
+        temperature: 19, shadows: 0.45, highlights: -0.73, clarity: 0.41, dehaze: 0.08,
+        tint: { r: 200, g: 160, b: 130, a: 0.05 }
+    },
+    praia: {
+        name: "Praia", brightness: 0.88, contrast: 0.79, saturate: 0.80,
+        temperature: 10, shadows: 0.61, highlights: -0.48, whites: 0.37, blacks: 0.33,
+        clarity: 0.20, tint: { r: 230, g: 190, b: 140, a: 0.06 }
+    },
+    rosa: {
+        name: "Rosa", brightness: 1.07, contrast: 1.04, saturate: 0.82,
+        temperature: 19, shadows: 0.52, highlights: -0.70, clarity: 0.28,
+        tint: { r: 220, g: 160, b: 170, a: 0.07 }
+    },
+    sepia: {
+        name: "Sépia", brightness: 1.0, contrast: 1.58, saturate: 0.50,
+        vibrance: 0.17, shadows: 0.27, highlights: -0.45, blacks: 0.44,
+        tint: { r: 180, g: 140, b: 90, a: 0.12 }
+    },
+    verde: {
+        name: "Verde", brightness: 1.0, contrast: 1.25, saturate: 0.85,
+        vibrance: 0.31, shadows: 0.70, whites: 0.39,
+        tint: { r: 100, g: 160, b: 100, a: 0.06 }
+    },
+    vermelho: {
+        name: "Vermelho", brightness: 1.05, contrast: 0.96, saturate: 0.72,
+        temperature: 10, shadows: 0.43, highlights: -0.58, blacks: 0.58,
+        tint: { r: 200, g: 120, b: 100, a: 0.06 }
+    }
+};
+
 const PAGE_TITLES = {
     dashboard: "Dashboard",
     content: "Conteúdo",
@@ -463,6 +548,141 @@ async function processPhotoOnServer(photo) {
 }
 
 // ============================================================
+// FILTROS DE FOTO (Canvas API)
+// ============================================================
+
+let _filterOriginalImage = null;
+
+function applyPhotoFilter() {
+    const filterKey = document.getElementById("filterSelect").value;
+    const intensity = parseInt(document.getElementById("filterIntensity").value) / 100;
+    document.getElementById("filterIntensityValue").textContent = Math.round(intensity * 100) + "%";
+
+    const photo = getCurrentPhoto();
+    if (!photo) return;
+
+    photo.filterKey = filterKey;
+    photo.filterIntensity = Math.round(intensity * 100);
+
+    if (filterKey === "none" || intensity === 0) {
+        document.getElementById("newPostImage").style.display = "";
+        document.getElementById("filterCanvas").style.display = "none";
+        return;
+    }
+
+    if (!_filterOriginalImage) return;
+
+    const filter = PHOTO_FILTERS[filterKey];
+    if (!filter) return;
+
+    const canvas = document.getElementById("filterCanvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const img = _filterOriginalImage;
+
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+
+    const b = 1 + ((filter.brightness || 1) - 1) * intensity;
+    const c = 1 + ((filter.contrast || 1) - 1) * intensity;
+    const s = filter.grayscale
+        ? 1 - intensity
+        : 1 + ((filter.saturate || 1) - 1) * intensity;
+
+    let cssFilter = `brightness(${b}) contrast(${c}) saturate(${s})`;
+    if (filter.grayscale) {
+        cssFilter += ` grayscale(${intensity})`;
+    }
+    if (filter.temperature) {
+        const hueShift = filter.temperature * 0.5 * intensity;
+        cssFilter += ` hue-rotate(${hueShift}deg)`;
+    }
+
+    ctx.filter = cssFilter;
+    ctx.drawImage(img, 0, 0);
+    ctx.filter = "none";
+
+    if (filter.tint) {
+        const t = filter.tint;
+        ctx.fillStyle = `rgba(${t.r},${t.g},${t.b},${(t.a || 0.05) * intensity})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    if (filter.clarity && filter.clarity > 0) {
+        ctx.globalCompositeOperation = "overlay";
+        ctx.globalAlpha = filter.clarity * intensity * 0.3;
+        ctx.drawImage(canvas, 0, 0);
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1.0;
+    }
+
+    if (filter.vignette && filter.vignette > 0) {
+        const cx = canvas.width / 2, cy = canvas.height / 2;
+        const r = Math.max(cx, cy);
+        const grad = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 1.2);
+        grad.addColorStop(0, "rgba(0,0,0,0)");
+        grad.addColorStop(1, `rgba(0,0,0,${filter.vignette * intensity})`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    document.getElementById("newPostImage").style.display = "none";
+    canvas.style.display = "";
+}
+
+function getFilteredBase64(photo) {
+    if (!photo.filterKey || photo.filterKey === "none" || !photo.filterIntensity) {
+        return photo.base64;
+    }
+    return new Promise((resolve) => {
+        const filter = PHOTO_FILTERS[photo.filterKey];
+        if (!filter) { resolve(photo.base64); return; }
+        const intensity = (photo.filterIntensity || 100) / 100;
+        const img = new Image();
+        img.onload = () => {
+            const c = document.createElement("canvas");
+            c.width = img.naturalWidth;
+            c.height = img.naturalHeight;
+            const ctx = c.getContext("2d");
+
+            const b = 1 + ((filter.brightness || 1) - 1) * intensity;
+            const co = 1 + ((filter.contrast || 1) - 1) * intensity;
+            const s = filter.grayscale ? 1 - intensity : 1 + ((filter.saturate || 1) - 1) * intensity;
+            let cssF = `brightness(${b}) contrast(${co}) saturate(${s})`;
+            if (filter.grayscale) cssF += ` grayscale(${intensity})`;
+            if (filter.temperature) cssF += ` hue-rotate(${filter.temperature * 0.5 * intensity}deg)`;
+
+            ctx.filter = cssF;
+            ctx.drawImage(img, 0, 0);
+            ctx.filter = "none";
+
+            if (filter.tint) {
+                const t = filter.tint;
+                ctx.fillStyle = `rgba(${t.r},${t.g},${t.b},${(t.a || 0.05) * intensity})`;
+                ctx.fillRect(0, 0, c.width, c.height);
+            }
+            if (filter.clarity && filter.clarity > 0) {
+                ctx.globalCompositeOperation = "overlay";
+                ctx.globalAlpha = filter.clarity * intensity * 0.3;
+                ctx.drawImage(c, 0, 0);
+                ctx.globalCompositeOperation = "source-over";
+                ctx.globalAlpha = 1.0;
+            }
+            if (filter.vignette && filter.vignette > 0) {
+                const cx = c.width / 2, cy = c.height / 2;
+                const r = Math.max(cx, cy);
+                const grad = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 1.2);
+                grad.addColorStop(0, "rgba(0,0,0,0)");
+                grad.addColorStop(1, `rgba(0,0,0,${filter.vignette * intensity})`);
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, c.width, c.height);
+            }
+            resolve(c.toDataURL("image/jpeg", 0.95));
+        };
+        img.src = photo.base64;
+    });
+}
+
+// ============================================================
 // MODAL: NOVA POSTAGEM (revisão foto a foto)
 // ============================================================
 
@@ -498,6 +718,9 @@ function setupNewPostModal() {
 
     document.getElementById("regenHashtagsBtn").addEventListener("click", regenerateHashtags);
 
+    document.getElementById("filterSelect").addEventListener("change", applyPhotoFilter);
+    document.getElementById("filterIntensity").addEventListener("input", applyPhotoFilter);
+
     document.getElementById("reviewScheduleBtn").addEventListener("click", () => {
         saveCurrentReviewFields();
         openScheduleModal();
@@ -519,6 +742,17 @@ function renderNewPostCard() {
 
     document.getElementById("newPostPosition").textContent = `${currentModalIndex + 1} de ${selectedPhotos.length}`;
     document.getElementById("newPostImage").src = photo.base64;
+    document.getElementById("newPostImage").style.display = "";
+    document.getElementById("filterCanvas").style.display = "none";
+
+    _filterOriginalImage = new Image();
+    _filterOriginalImage.onload = () => {
+        document.getElementById("filterSelect").value = photo.filterKey || "none";
+        document.getElementById("filterIntensity").value = photo.filterIntensity || 100;
+        document.getElementById("filterIntensityValue").textContent = (photo.filterIntensity || 100) + "%";
+        if (photo.filterKey && photo.filterKey !== "none") applyPhotoFilter();
+    };
+    _filterOriginalImage.src = photo.base64;
 
     if (photo.exif) {
         const settings = [
@@ -679,6 +913,8 @@ function saveCurrentReviewFields() {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
+    photo.filterKey = document.getElementById("filterSelect").value;
+    photo.filterIntensity = parseInt(document.getElementById("filterIntensity").value);
 }
 
 // ============================================================
@@ -747,7 +983,7 @@ async function confirmAndSchedule() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    photo: photo.base64,
+                    photo: await getFilteredBase64(photo),
                     caption: photo.caption || "",
                     hashtags: photo.hashtags || [],
                     location: photo.location || "",
