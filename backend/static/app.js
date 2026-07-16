@@ -5,14 +5,12 @@
 const API_BASE = window.location.origin + "/api";
 
 const MOODS = [
-    { id: "alegre", label: "😄 Alegre" },
-    { id: "triste", label: "😢 Triste" },
-    { id: "engracada", label: "😂 Engraçada" },
-    { id: "quinta_serie", label: "🤪 5ª Série" },
-    { id: "pensativa", label: "🤔 Pensativa" },
-    { id: "motivacional", label: "💪 Motivacional" },
-    { id: "sarcastica", label: "😏 Sarcástica" },
-    { id: "romantica", label: "❤️ Romântica" },
+    { id: "espirituosa", label: "Espirituosa" },
+    { id: "seca", label: "Seca" },
+    { id: "ironica", label: "Irônica" },
+    { id: "storyteller", label: "Storyteller" },
+    { id: "zoeira", label: "Zoeira" },
+    { id: "cronica", label: "Crônica" },
 ];
 
 const PHOTO_FILTERS = {

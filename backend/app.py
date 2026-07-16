@@ -474,14 +474,16 @@ def analyze_image():
         prompt = f"""Analise esta foto para um post de Instagram.
 {context_block}
 Crie EXATAMENTE 3 opções de legenda em português do Brasil, cada uma com um estilo diferente:
-1. style "Criativa" — poética/inspirada, com emojis
-2. style "Curta e direta" — no máximo 1 frase, com no máximo 1 emoji
-3. style "Storytelling" — 2-3 frases contando uma pequena história ou curiosidade
+1. style "Espirituosa" — tom autêntico, levemente engraçada, com uma sacada inteligente ou ironia sutil. Como alguém perspicaz e bem-humorado postaria.
+2. style "Curta e direta" — no máximo 1 frase certeira, sem emoji. Atitude, não poesia.
+3. style "Storytelling" — 2-3 frases contando algo real ou uma observação interessante sobre o momento. Sem melodrama.
 
 Regras das legendas:
 - Sem hashtags dentro das legendas
 - Se houver local conhecido, pode mencioná-lo naturalmente
-- Naturais, como um usuário real escreveria (nada de clichê de propaganda)
+- Tom de pessoa real: autêntico, esperto, com atitude. NUNCA piegas, motivacional ou poético forçado.
+- Emojis: no máximo 1 por legenda, e só se fizer sentido. Zero é melhor que forçar.
+- Proibido: frases tipo "momento especial", "coração cheio", "gratidão", "alma lavada", "sem palavras", "que fase". Fuja de clichês de Instagram.
 
 Depois crie de 8 a 12 hashtags baseadas no conteúdo da foto e nas legendas:
 {location_rule}
@@ -610,14 +612,12 @@ CAPTION_SCHEMA = {
 # Cada mood e um botao na tela de revisao - a legenda atual e reescrita
 # no tom escolhido, mantendo o assunto original.
 MOOD_PROMPTS = {
-    "alegre": "alegre e animada, transbordando energia positiva",
-    "triste": "nostálgica e melancólica, tom introspectivo e saudoso",
-    "engracada": "engraçada, com humor leve e espontâneo",
-    "quinta_serie": "descontraída e zoeira, tipo brincadeira de grupo de amigos de escola",
-    "pensativa": "pensativa e reflexiva, quase filosófica",
-    "motivacional": "motivacional e inspiradora, como uma pequena lição de vida",
-    "sarcastica": "sarcástica e irônica, com deboche leve e bem-humorado",
-    "romantica": "romântica e apaixonada",
+    "espirituosa": "autêntica, alegre e espirituosa — levemente engraçada, perspicaz, com uma ponta de ironia. Como alguém inteligente e bem-humorado escreveria. Sem melodrama, sem poesia barata, sem emoji forçado",
+    "seca": "seca e certeira — poucas palavras, atitude, zero emoji. Como quem posta e não precisa explicar",
+    "ironica": "irônica e afiada — deboche inteligente, sarcasmo elegante. Nunca grosseira, sempre esperta",
+    "storyteller": "narrativa envolvente — conta o que aconteceu de verdade, com uma observação interessante ou um detalhe inesperado. Sem romantizar",
+    "zoeira": "zoeira de grupo de amigos — descontraída, engraçada, sem filtro (mas com classe). Piada de quem estava lá",
+    "cronica": "crônica urbana — tom de cronista brasileiro, observação afiada do cotidiano com humor sutil. Pense em Luis Fernando Verissimo ou Tati Bernardi",
 }
 
 
@@ -647,7 +647,9 @@ def rewrite_caption():
             parts.append(f"Local da foto: {location}")
         parts.append(
             "Mantenha o mesmo assunto/contexto, apenas mude o tom. "
-            "Sem hashtags. No máximo 3 frases curtas. Pode usar emojis com moderação."
+            "Sem hashtags. No máximo 3 frases curtas. "
+            "Emojis: no máximo 1, e só se fizer sentido — zero é melhor que forçar. "
+            "Proibido: frases piegas, clichês motivacionais, poesia barata, melodrama."
         )
 
         message = client.messages.create(
