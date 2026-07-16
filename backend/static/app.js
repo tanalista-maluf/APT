@@ -52,8 +52,6 @@ let deletingPostId = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     initAuth();
-    checkConnection();
-    setInterval(checkConnection, 15000);
 
     setupLogin();
     setupSidebar();
@@ -64,6 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupDeleteModal();
     setupPublishModal();
     setupFilters();
+    setupAccountSwitcher();
     loadClubLink();
     loadIgAccounts();
 });
@@ -221,24 +220,6 @@ async function logout() {
 // ============================================================
 // CONEXAO COM BACKEND (status pill)
 // ============================================================
-
-async function checkConnection() {
-    const dot = document.getElementById("statusDot");
-    const text = document.getElementById("statusText");
-
-    try {
-        const res = await fetch(`${API_BASE}/health`);
-        if (res.ok) {
-            dot.classList.add("connected");
-            text.textContent = "Operação Tabajara: ONLINE";
-        } else {
-            throw new Error("offline");
-        }
-    } catch (e) {
-        dot.classList.remove("connected");
-        text.textContent = "Operação Tabajara: OFFLINE";
-    }
-}
 
 // ============================================================
 // SIDEBAR / NAVEGACAO ENTRE PAGINAS
@@ -1298,6 +1279,55 @@ function updateAvatar() {
         img.style.display = "none";
         text.style.display = "";
     }
+    renderAccountDropdown();
+}
+
+function renderAccountDropdown() {
+    const dropdown = document.getElementById("accountDropdown");
+    if (!dropdown) return;
+    if (_igAccounts.length === 0) {
+        dropdown.innerHTML = '<div class="account-dropdown-item" style="opacity:0.5;cursor:default">Nenhuma conta conectada</div>';
+        return;
+    }
+    dropdown.innerHTML = _igAccounts.map(a => {
+        const avatar = a.profile_picture_url
+            ? `<img src="${a.profile_picture_url}" alt="@${a.username}">`
+            : `<span class="acct-initials">${(a.username || "?").substring(0, 2).toUpperCase()}</span>`;
+        return `<button class="account-dropdown-item ${a.is_default ? 'active' : ''}" data-account-id="${a.id}">
+            ${avatar}
+            <span class="acct-name">@${a.username || a.ig_user_id}</span>
+            ${a.is_default ? '<span class="acct-check">✓</span>' : ''}
+        </button>`;
+    }).join("");
+
+    dropdown.querySelectorAll("[data-account-id]").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const id = parseInt(btn.dataset.accountId);
+            const acct = _igAccounts.find(a => a.id === id);
+            if (acct && acct.is_default) {
+                dropdown.classList.add("hidden");
+                return;
+            }
+            await setDefaultAccount(id);
+            dropdown.classList.add("hidden");
+        });
+    });
+}
+
+function setupAccountSwitcher() {
+    const avatarBtn = document.getElementById("userAvatarBtn");
+    const dropdown = document.getElementById("accountDropdown");
+    if (!avatarBtn || !dropdown) return;
+
+    avatarBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle("hidden");
+    });
+
+    document.addEventListener("click", () => {
+        dropdown.classList.add("hidden");
+    });
 }
 
 async function loadInstagramStatus() {
