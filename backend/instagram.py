@@ -82,12 +82,13 @@ def get_account_info(ig_user_id, access_token):
     """
     data = _get(
         f"{GRAPH_BASE}/{ig_user_id}",
-        {"fields": "username,name", "access_token": access_token},
+        {"fields": "username,name,profile_picture_url", "access_token": access_token},
     )
     return {
         "id": str(data.get("id", ig_user_id)),
         "username": data.get("username", ""),
         "name": data.get("name", ""),
+        "profile_picture_url": data.get("profile_picture_url", ""),
     }
 
 

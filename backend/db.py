@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS ig_accounts (
     access_token    TEXT NOT NULL DEFAULT '',
     token_expires_at TEXT,
     is_default      INTEGER NOT NULL DEFAULT 0,
-    added_at        TEXT
+    added_at        TEXT,
+    profile_picture_url TEXT NOT NULL DEFAULT ''
 );
 """
 
@@ -107,6 +108,11 @@ def init_db():
         for col, decl in _POST_EXTRA_COLUMNS.items():
             if col not in existing:
                 conn.execute(f"ALTER TABLE posts ADD COLUMN {col} {decl}")
+
+    with _connect() as conn:
+        ig_cols = {r["name"] for r in conn.execute("PRAGMA table_info(ig_accounts)")}
+        if "profile_picture_url" not in ig_cols:
+            conn.execute("ALTER TABLE ig_accounts ADD COLUMN profile_picture_url TEXT NOT NULL DEFAULT ''")
 
     _migrate_legacy_queue()
     migrate_single_ig_to_multi()
@@ -310,6 +316,7 @@ def delete_settings(keys):
 # ============================================================
 
 def _row_to_ig_account(row):
+    keys = row.keys()
     return {
         "id": row["id"],
         "ig_user_id": row["ig_user_id"],
@@ -318,6 +325,7 @@ def _row_to_ig_account(row):
         "token_expires_at": row["token_expires_at"],
         "is_default": bool(row["is_default"]),
         "added_at": row["added_at"],
+        "profile_picture_url": row["profile_picture_url"] if "profile_picture_url" in keys else "",
     }
 
 
@@ -341,23 +349,23 @@ def get_default_ig_account():
     return _row_to_ig_account(row) if row else None
 
 
-def add_ig_account(ig_user_id, username, access_token, token_expires_at=None):
+def add_ig_account(ig_user_id, username, access_token, token_expires_at=None, profile_picture_url=""):
     from datetime import datetime
     with _connect() as conn:
         existing = conn.execute("SELECT id FROM ig_accounts WHERE ig_user_id = ?", (ig_user_id,)).fetchone()
         if existing:
             conn.execute(
-                "UPDATE ig_accounts SET username=?, access_token=?, token_expires_at=? WHERE ig_user_id=?",
-                (username, access_token, token_expires_at, ig_user_id),
+                "UPDATE ig_accounts SET username=?, access_token=?, token_expires_at=?, profile_picture_url=? WHERE ig_user_id=?",
+                (username, access_token, token_expires_at, profile_picture_url, ig_user_id),
             )
             return get_ig_account(existing["id"])
 
         has_any = conn.execute("SELECT 1 FROM ig_accounts LIMIT 1").fetchone()
         is_default = 0 if has_any else 1
         conn.execute(
-            "INSERT INTO ig_accounts (ig_user_id, username, access_token, token_expires_at, is_default, added_at) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (ig_user_id, username, access_token, token_expires_at, is_default, datetime.utcnow().isoformat()),
+            "INSERT INTO ig_accounts (ig_user_id, username, access_token, token_expires_at, is_default, added_at, profile_picture_url) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (ig_user_id, username, access_token, token_expires_at, is_default, datetime.utcnow().isoformat(), profile_picture_url),
         )
         row = conn.execute("SELECT * FROM ig_accounts WHERE ig_user_id = ?", (ig_user_id,)).fetchone()
     return _row_to_ig_account(row)

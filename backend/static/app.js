@@ -1280,7 +1280,24 @@ async function loadIgAccounts() {
         const data = await res.json();
         _igAccounts = data.accounts || [];
         populateAccountSelectors();
+        updateAvatar();
     } catch (e) { /* silently fail */ }
+}
+
+function updateAvatar() {
+    const defaultAcct = _igAccounts.find(a => a.is_default) || _igAccounts[0];
+    const img = document.getElementById("userAvatarImg");
+    const text = document.getElementById("userAvatarText");
+    if (!img || !text) return;
+    if (defaultAcct && defaultAcct.profile_picture_url) {
+        img.src = defaultAcct.profile_picture_url;
+        img.alt = "@" + (defaultAcct.username || "");
+        img.style.display = "";
+        text.style.display = "none";
+    } else {
+        img.style.display = "none";
+        text.style.display = "";
+    }
 }
 
 async function loadInstagramStatus() {
@@ -1311,6 +1328,7 @@ async function loadInstagramStatus() {
         }
 
         populateAccountSelectors();
+        updateAvatar();
     } catch (e) {
         warn.textContent = "Não foi possível verificar o status do Instagram.";
     }

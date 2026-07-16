@@ -765,7 +765,7 @@ def publish_post(post):
 def instagram_accounts():
     accounts = db.list_ig_accounts()
     safe = [{"id": a["id"], "ig_user_id": a["ig_user_id"], "username": a["username"],
-             "is_default": a["is_default"]} for a in accounts]
+             "is_default": a["is_default"], "profile_picture_url": a.get("profile_picture_url", "")} for a in accounts]
     return jsonify({
         "accounts": safe,
         "public_base_url_set": bool(PUBLIC_BASE_URL),
@@ -784,7 +784,7 @@ def instagram_status():
         "public_base_url_set": bool(PUBLIC_BASE_URL),
         "meta_app_configured": bool(META_APP_ID and META_APP_SECRET),
         "accounts": [{"id": a["id"], "ig_user_id": a["ig_user_id"], "username": a["username"],
-                       "is_default": a["is_default"]} for a in accounts],
+                       "is_default": a["is_default"], "profile_picture_url": a.get("profile_picture_url", "")} for a in accounts],
     })
 
 
@@ -819,10 +819,12 @@ def instagram_connect():
         username=info.get("username", ""),
         access_token=access_token,
         token_expires_at=token_expires_at,
+        profile_picture_url=info.get("profile_picture_url", ""),
     )
 
     return jsonify({"success": True, "username": info.get("username", ""), "account": {
-        "id": acct["id"], "ig_user_id": acct["ig_user_id"], "username": acct["username"], "is_default": acct["is_default"]
+        "id": acct["id"], "ig_user_id": acct["ig_user_id"], "username": acct["username"],
+        "is_default": acct["is_default"], "profile_picture_url": acct.get("profile_picture_url", "")
     }})
 
 
