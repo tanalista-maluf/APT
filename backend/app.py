@@ -708,9 +708,15 @@ def patch_settings():
 # preenchidas pela tela de Configuracoes. O token e sensivel; fica no banco
 # (fora do git, no volume persistente do deploy).
 
-def _ig_credentials():
-    s = db.get_settings()
-    return s.get("ig_user_id", ""), s.get("ig_access_token", "")
+def _ig_credentials(account_id=None):
+    """Retorna (ig_user_id, access_token) da conta especificada ou da padrao."""
+    if account_id:
+        acct = db.get_ig_account(account_id)
+    else:
+        acct = db.get_default_ig_account()
+    if not acct:
+        return "", ""
+    return acct["ig_user_id"], acct["access_token"]
 
 
 def _public_photo_url(post):
@@ -730,7 +736,7 @@ def publish_post(post):
     Usada tanto pelo agendador quanto pelo botao 'publicar agora'.
     Levanta InstagramError em caso de falha (e registra o erro no post).
     """
-    ig_user_id, access_token = _ig_credentials()
+    ig_user_id, access_token = _ig_credentials(post.get("ig_account_id"))
     if not ig_user_id or not access_token:
         raise instagram.InstagramError("Conecte uma conta do Instagram nas Configurações.")
 
@@ -755,16 +761,30 @@ def publish_post(post):
     return media_id
 
 
-@app.route("/api/instagram/status", methods=["GET"])
-def instagram_status():
-    ig_user_id, access_token = _ig_credentials()
-    s = db.get_settings()
+@app.route("/api/instagram/accounts", methods=["GET"])
+def instagram_accounts():
+    accounts = db.list_ig_accounts()
+    safe = [{"id": a["id"], "ig_user_id": a["ig_user_id"], "username": a["username"],
+             "is_default": a["is_default"]} for a in accounts]
     return jsonify({
-        "connected": bool(ig_user_id and access_token),
-        "username": s.get("ig_username", ""),
-        "ig_user_id": ig_user_id,
+        "accounts": safe,
         "public_base_url_set": bool(PUBLIC_BASE_URL),
         "meta_app_configured": bool(META_APP_ID and META_APP_SECRET),
+    })
+
+
+@app.route("/api/instagram/status", methods=["GET"])
+def instagram_status():
+    accounts = db.list_ig_accounts()
+    default = next((a for a in accounts if a["is_default"]), accounts[0] if accounts else None)
+    return jsonify({
+        "connected": bool(default),
+        "username": default["username"] if default else "",
+        "ig_user_id": default["ig_user_id"] if default else "",
+        "public_base_url_set": bool(PUBLIC_BASE_URL),
+        "meta_app_configured": bool(META_APP_ID and META_APP_SECRET),
+        "accounts": [{"id": a["id"], "ig_user_id": a["ig_user_id"], "username": a["username"],
+                       "is_default": a["is_default"]} for a in accounts],
     })
 
 
@@ -777,8 +797,6 @@ def instagram_connect():
     if not ig_user_id or not access_token:
         return jsonify({"error": "Informe o ID da conta e o token de acesso."}), 400
 
-    # Se o token for de curta duracao e tivermos app id/secret, tenta troca-lo
-    # por um de longa duracao (opcional, nao bloqueia se falhar).
     if META_APP_ID and META_APP_SECRET:
         try:
             access_token, expires_in = instagram.exchange_long_lived_token(META_APP_ID, META_APP_SECRET, access_token)
@@ -792,22 +810,41 @@ def instagram_connect():
     except instagram.InstagramError as e:
         return jsonify({"error": str(e)}), 502
 
-    settings_update = {
-        "ig_user_id": info["id"],
-        "ig_access_token": access_token,
-        "ig_username": info.get("username", ""),
-    }
+    token_expires_at = None
     if expires_in:
-        expires_at = (datetime.utcnow() + timedelta(seconds=int(expires_in))).isoformat()
-        settings_update["ig_token_expires_at"] = expires_at
-    db.update_settings(settings_update)
+        token_expires_at = (datetime.utcnow() + timedelta(seconds=int(expires_in))).isoformat()
 
-    return jsonify({"success": True, "username": info.get("username", ""), "name": info.get("name", "")})
+    acct = db.add_ig_account(
+        ig_user_id=info["id"],
+        username=info.get("username", ""),
+        access_token=access_token,
+        token_expires_at=token_expires_at,
+    )
+
+    return jsonify({"success": True, "username": info.get("username", ""), "account": {
+        "id": acct["id"], "ig_user_id": acct["ig_user_id"], "username": acct["username"], "is_default": acct["is_default"]
+    }})
 
 
 @app.route("/api/instagram/disconnect", methods=["POST"])
 def instagram_disconnect():
-    db.delete_settings(["ig_user_id", "ig_access_token", "ig_username", "ig_token_expires_at"])
+    data = request.json or {}
+    account_id = data.get("account_id")
+    if account_id:
+        db.remove_ig_account(int(account_id))
+    else:
+        for acct in db.list_ig_accounts():
+            db.remove_ig_account(acct["id"])
+    return jsonify({"success": True})
+
+
+@app.route("/api/instagram/set-default", methods=["POST"])
+def instagram_set_default():
+    data = request.json or {}
+    account_id = data.get("account_id")
+    if not account_id:
+        return jsonify({"error": "Informe account_id."}), 400
+    db.set_default_ig_account(int(account_id))
     return jsonify({"success": True})
 
 
@@ -818,6 +855,11 @@ def publish_now(post_id):
         return jsonify({"error": "Post não encontrado"}), 404
     if post["status"] == "posted":
         return jsonify({"error": "Este post já foi publicado."}), 400
+
+    data = request.json or {}
+    if data.get("ig_account_id"):
+        db.update_post(post_id, {"ig_account_id": int(data["ig_account_id"])})
+        post = db.get_post(post_id)
 
     try:
         media_id = publish_post(post)
@@ -853,36 +895,34 @@ def public_media(token):
 SCHEDULER_ENABLED = os.getenv("ENABLE_SCHEDULER", "1").lower() in ("1", "true")
 
 
-def _maybe_refresh_ig_token():
-    """Renova o token do Instagram automaticamente quando falta menos de 7 dias."""
+def _maybe_refresh_ig_tokens():
+    """Renova tokens de todas as contas do Instagram quando faltam menos de 7 dias."""
     if not META_APP_ID or not META_APP_SECRET:
         return
-    settings = db.get_settings()
-    expires_at = settings.get("ig_token_expires_at", "")
-    current_token = settings.get("ig_access_token", "")
-    if not expires_at or not current_token:
-        return
-    try:
-        expiry = datetime.fromisoformat(expires_at)
-        days_left = (expiry - datetime.utcnow()).total_seconds() / 86400
-        if days_left > 7:
-            return
-        new_token, new_expires = instagram.refresh_long_lived_token(
-            META_APP_ID, META_APP_SECRET, current_token
-        )
-        update = {"ig_access_token": new_token}
-        if new_expires:
-            new_expiry = (datetime.utcnow() + timedelta(seconds=int(new_expires))).isoformat()
-            update["ig_token_expires_at"] = new_expiry
-        db.update_settings(update)
-        app.logger.info("Token do Instagram renovado automaticamente")
-    except Exception as e:
-        app.logger.warning(f"Falha ao renovar token do Instagram: {e}")
+    for acct in db.list_ig_accounts():
+        expires_at = acct.get("token_expires_at", "")
+        if not expires_at or not acct["access_token"]:
+            continue
+        try:
+            expiry = datetime.fromisoformat(expires_at)
+            days_left = (expiry - datetime.utcnow()).total_seconds() / 86400
+            if days_left > 7:
+                continue
+            new_token, new_expires = instagram.refresh_long_lived_token(
+                META_APP_ID, META_APP_SECRET, acct["access_token"]
+            )
+            new_expiry = None
+            if new_expires:
+                new_expiry = (datetime.utcnow() + timedelta(seconds=int(new_expires))).isoformat()
+            db.update_ig_account_token(acct["ig_user_id"], new_token, new_expiry)
+            print(f"[instagram] token renovado para @{acct['username']}")
+        except Exception as e:
+            print(f"[instagram] falha ao renovar token de @{acct['username']}: {e}")
 
 
 def _get_due_and_refresh():
     """Wrapper que verifica renovacao do token antes de buscar posts."""
-    _maybe_refresh_ig_token()
+    _maybe_refresh_ig_tokens()
     return db.get_due_posts(datetime.now().isoformat())
 
 
@@ -994,9 +1034,15 @@ def create_post():
         location = data.get("location", "")
         tagged_people = data.get("tagged_people", [])
         schedule_date = data.get("schedule_date", datetime.now().isoformat())
+        ig_account_id = data.get("ig_account_id")
 
         if not photo_base64:
             return jsonify({"error": "Foto e obrigatoria"}), 400
+
+        if not ig_account_id:
+            default = db.get_default_ig_account()
+            if default:
+                ig_account_id = default["id"]
 
         post_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         image_bytes = decode_base64_image(photo_base64)
@@ -1020,6 +1066,8 @@ def create_post():
         }
 
         db.add_post(post)
+        if ig_account_id:
+            db.update_post(post_id, {"ig_account_id": ig_account_id})
 
         return jsonify({
             "success": True,

@@ -36,6 +36,16 @@ CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL DEFAULT ''
 );
+
+CREATE TABLE IF NOT EXISTS ig_accounts (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    ig_user_id      TEXT NOT NULL UNIQUE,
+    username        TEXT NOT NULL DEFAULT '',
+    access_token    TEXT NOT NULL DEFAULT '',
+    token_expires_at TEXT,
+    is_default      INTEGER NOT NULL DEFAULT 0,
+    added_at        TEXT
+);
 """
 
 
@@ -73,6 +83,7 @@ def _row_to_post(row):
         "publish_error": row["publish_error"] if "publish_error" in keys else "",
         "ig_media_id": row["ig_media_id"] if "ig_media_id" in keys else "",
         "attempts": row["attempts"] if "attempts" in keys else 0,
+        "ig_account_id": row["ig_account_id"] if "ig_account_id" in keys else None,
     }
 
 
@@ -83,6 +94,7 @@ _POST_EXTRA_COLUMNS = {
     "media_token": "TEXT NOT NULL DEFAULT ''",
     "ig_media_id": "TEXT NOT NULL DEFAULT ''",
     "attempts": "INTEGER NOT NULL DEFAULT 0",
+    "ig_account_id": "INTEGER",
 }
 
 
@@ -97,6 +109,7 @@ def init_db():
                 conn.execute(f"ALTER TABLE posts ADD COLUMN {col} {decl}")
 
     _migrate_legacy_queue()
+    migrate_single_ig_to_multi()
 
 
 def _migrate_legacy_queue():
@@ -238,6 +251,7 @@ def update_post(post_id, fields):
         "publish_error": lambda v: v,
         "ig_media_id": lambda v: v,
         "attempts": lambda v: int(v),
+        "ig_account_id": lambda v: int(v) if v else None,
     }
 
     sets, values = [], []
@@ -289,3 +303,104 @@ def delete_settings(keys):
         for key in keys:
             conn.execute("DELETE FROM settings WHERE key = ?", (key,))
     return get_settings()
+
+
+# ============================================================
+# Contas do Instagram (multiplas)
+# ============================================================
+
+def _row_to_ig_account(row):
+    return {
+        "id": row["id"],
+        "ig_user_id": row["ig_user_id"],
+        "username": row["username"],
+        "access_token": row["access_token"],
+        "token_expires_at": row["token_expires_at"],
+        "is_default": bool(row["is_default"]),
+        "added_at": row["added_at"],
+    }
+
+
+def list_ig_accounts():
+    with _connect() as conn:
+        rows = conn.execute("SELECT * FROM ig_accounts ORDER BY is_default DESC, added_at").fetchall()
+    return [_row_to_ig_account(r) for r in rows]
+
+
+def get_ig_account(account_id):
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM ig_accounts WHERE id = ?", (account_id,)).fetchone()
+    return _row_to_ig_account(row) if row else None
+
+
+def get_default_ig_account():
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM ig_accounts WHERE is_default = 1").fetchone()
+        if not row:
+            row = conn.execute("SELECT * FROM ig_accounts ORDER BY added_at LIMIT 1").fetchone()
+    return _row_to_ig_account(row) if row else None
+
+
+def add_ig_account(ig_user_id, username, access_token, token_expires_at=None):
+    from datetime import datetime
+    with _connect() as conn:
+        existing = conn.execute("SELECT id FROM ig_accounts WHERE ig_user_id = ?", (ig_user_id,)).fetchone()
+        if existing:
+            conn.execute(
+                "UPDATE ig_accounts SET username=?, access_token=?, token_expires_at=? WHERE ig_user_id=?",
+                (username, access_token, token_expires_at, ig_user_id),
+            )
+            return get_ig_account(existing["id"])
+
+        has_any = conn.execute("SELECT 1 FROM ig_accounts LIMIT 1").fetchone()
+        is_default = 0 if has_any else 1
+        conn.execute(
+            "INSERT INTO ig_accounts (ig_user_id, username, access_token, token_expires_at, is_default, added_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (ig_user_id, username, access_token, token_expires_at, is_default, datetime.utcnow().isoformat()),
+        )
+        row = conn.execute("SELECT * FROM ig_accounts WHERE ig_user_id = ?", (ig_user_id,)).fetchone()
+    return _row_to_ig_account(row)
+
+
+def remove_ig_account(account_id):
+    with _connect() as conn:
+        was_default = conn.execute("SELECT is_default FROM ig_accounts WHERE id = ?", (account_id,)).fetchone()
+        conn.execute("DELETE FROM ig_accounts WHERE id = ?", (account_id,))
+        if was_default and was_default["is_default"]:
+            conn.execute("UPDATE ig_accounts SET is_default = 1 WHERE id = (SELECT MIN(id) FROM ig_accounts)")
+        return conn.execute("SELECT COUNT(*) as c FROM ig_accounts").fetchone()["c"]
+
+
+def set_default_ig_account(account_id):
+    with _connect() as conn:
+        conn.execute("UPDATE ig_accounts SET is_default = 0")
+        conn.execute("UPDATE ig_accounts SET is_default = 1 WHERE id = ?", (account_id,))
+
+
+def update_ig_account_token(ig_user_id, access_token, token_expires_at=None):
+    with _connect() as conn:
+        conn.execute(
+            "UPDATE ig_accounts SET access_token=?, token_expires_at=? WHERE ig_user_id=?",
+            (access_token, token_expires_at, ig_user_id),
+        )
+
+
+def migrate_single_ig_to_multi():
+    """Migra a conta unica (settings) para a tabela ig_accounts."""
+    s = get_settings()
+    ig_user_id = s.get("ig_user_id", "")
+    access_token = s.get("ig_access_token", "")
+    if not ig_user_id or not access_token:
+        return
+    with _connect() as conn:
+        exists = conn.execute("SELECT 1 FROM ig_accounts WHERE ig_user_id = ?", (ig_user_id,)).fetchone()
+        if exists:
+            return
+    add_ig_account(
+        ig_user_id=ig_user_id,
+        username=s.get("ig_username", ""),
+        access_token=access_token,
+        token_expires_at=s.get("ig_token_expires_at"),
+    )
+    delete_settings(["ig_user_id", "ig_access_token", "ig_username", "ig_token_expires_at"])

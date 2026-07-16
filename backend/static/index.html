@@ -198,32 +198,31 @@
             </div>
 
             <div class="card">
-                <h3>Conta do Instagram</h3>
+                <h3>Contas do Instagram</h3>
+                <p class="muted-text" style="margin-bottom:14px">
+                    Conecte uma ou mais contas Profissionais do Instagram.
+                    A conta padrão é usada quando nenhuma é escolhida ao postar.
+                </p>
 
-                <!-- Estado: conectado -->
-                <div id="igConnected" class="hidden">
-                    <p class="muted-text">Conectado como <strong id="igUsername">—</strong> (ID <span id="igUserIdLabel">—</span>).</p>
-                    <button class="btn btn-secondary" id="igDisconnectBtn">Desconectar</button>
-                </div>
+                <!-- Lista de contas conectadas -->
+                <div id="igAccountsList"></div>
 
-                <!-- Estado: desconectado (formulário) -->
-                <div id="igDisconnected">
-                    <p class="muted-text" style="margin-bottom:14px">
-                        Conecte sua conta Profissional do Instagram para publicar automaticamente.
-                        Precisa do <strong>ID da conta</strong> e de um <strong>token de acesso</strong>
-                        gerados no painel de apps da Meta.
-                    </p>
-                    <div class="field-block" style="margin-bottom:12px">
-                        <label class="field-label" for="igUserIdInput">ID da conta do Instagram</label>
-                        <input type="text" id="igUserIdInput" placeholder="ex: 17841400000000000">
+                <!-- Formulário para adicionar conta -->
+                <details id="igAddForm" style="margin-top:14px">
+                    <summary class="btn btn-secondary" style="cursor:pointer">+ Adicionar conta</summary>
+                    <div style="margin-top:12px">
+                        <div class="field-block" style="margin-bottom:12px">
+                            <label class="field-label" for="igUserIdInput">ID da conta do Instagram</label>
+                            <input type="text" id="igUserIdInput" placeholder="ex: 17841400000000000">
+                        </div>
+                        <div class="field-block" style="margin-bottom:12px">
+                            <label class="field-label" for="igTokenInput">Token de acesso</label>
+                            <input type="password" id="igTokenInput" placeholder="EAAG... (token de longa duração)">
+                        </div>
+                        <button class="btn btn-primary" id="igConnectBtn">Conectar e validar</button>
+                        <p class="muted-text" id="igConnectHint" style="margin-top:10px"></p>
                     </div>
-                    <div class="field-block" style="margin-bottom:12px">
-                        <label class="field-label" for="igTokenInput">Token de acesso</label>
-                        <input type="password" id="igTokenInput" placeholder="EAAG... (token de longa duração)">
-                    </div>
-                    <button class="btn btn-primary" id="igConnectBtn">Conectar e validar</button>
-                    <p class="muted-text" id="igConnectHint" style="margin-top:10px"></p>
-                </div>
+                </details>
 
                 <p class="muted-text" id="igPublicUrlWarn" style="margin-top:12px"></p>
             </div>
@@ -347,6 +346,11 @@
                 <label class="field-label">Quando começar?</label>
                 <input type="datetime-local" id="startDateInput" class="date-input">
             </div>
+
+            <div class="field-block" id="scheduleAccountBlock" style="display:none">
+                <label class="field-label">Publicar em qual conta?</label>
+                <select id="scheduleAccountSelect" class="date-input"></select>
+            </div>
         </div>
 
         <div class="modal-footer">
@@ -413,6 +417,10 @@
         <div class="modal-body">
             <h3>📤 Publicar agora no Instagram?</h3>
             <p>Isto vai publicar esta foto <strong>imediatamente</strong> no seu perfil do Instagram. Não dá para desfazer pelo app.</p>
+            <div class="field-block" id="publishAccountBlock" style="display:none;margin-top:12px">
+                <label class="field-label">Publicar em qual conta?</label>
+                <select id="publishAccountSelect" class="date-input"></select>
+            </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" id="cancelPublishBtn">Voltar</button>

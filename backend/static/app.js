@@ -65,6 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupPublishModal();
     setupFilters();
     loadClubLink();
+    loadIgAccounts();
 });
 
 // Ajusta o link "voltar ao 30ºS" conforme a config do servidor (CLUB_URL).
@@ -726,6 +727,7 @@ function openScheduleModal() {
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById("startDateInput").value = now.toISOString().slice(0, 16);
 
+    populateAccountSelectors();
     updateScheduleSummary();
 }
 
@@ -769,7 +771,8 @@ async function confirmAndSchedule() {
                     hashtags: photo.hashtags || [],
                     location: photo.location || "",
                     tagged_people: photo.taggedPeople || [],
-                    schedule_date: scheduledDate.toISOString()
+                    schedule_date: scheduledDate.toISOString(),
+                    ig_account_id: _igAccounts.length > 1 ? parseInt(document.getElementById("scheduleAccountSelect").value) : undefined
                 })
             });
             const data = await res.json();
@@ -1204,6 +1207,7 @@ function setupPublishModal() {
 
 function openPublishModal(postId) {
     publishingPostId = postId;
+    populateAccountSelectors();
     document.getElementById("publishModal").classList.remove("hidden");
 }
 
@@ -1213,8 +1217,17 @@ async function confirmPublishNow() {
     btn.disabled = true;
     btn.textContent = "Publicando...";
 
+    const body = {};
+    if (_igAccounts.length > 1) {
+        body.ig_account_id = parseInt(document.getElementById("publishAccountSelect").value);
+    }
+
     try {
-        const res = await apiFetch(`/queue/${publishingPostId}/publish-now`, { method: "POST" });
+        const res = await apiFetch(`/queue/${publishingPostId}/publish-now`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
         const data = await res.json();
         if (data.success) {
             showToast("Publicado no Instagram! 🎉", "success");
@@ -1259,33 +1272,92 @@ async function loadSettingsPage() {
 // Instagram: conexão / desconexão nas Configurações
 // ------------------------------------------------------------
 
+let _igAccounts = [];
+
+async function loadIgAccounts() {
+    try {
+        const res = await apiFetch(`/instagram/accounts`);
+        const data = await res.json();
+        _igAccounts = data.accounts || [];
+        populateAccountSelectors();
+    } catch (e) { /* silently fail */ }
+}
+
 async function loadInstagramStatus() {
-    const connected = document.getElementById("igConnected");
-    const disconnected = document.getElementById("igDisconnected");
+    const listEl = document.getElementById("igAccountsList");
     const warn = document.getElementById("igPublicUrlWarn");
 
     try {
         const res = await apiFetch(`/instagram/status`);
         const data = await res.json();
+        _igAccounts = data.accounts || [];
 
-        if (data.connected) {
-            connected.classList.remove("hidden");
-            disconnected.classList.add("hidden");
-            document.getElementById("igUsername").textContent = data.username ? "@" + data.username : "conta conectada";
-            document.getElementById("igUserIdLabel").textContent = data.ig_user_id || "—";
+        if (_igAccounts.length === 0) {
+            listEl.innerHTML = '<p class="muted-text">Nenhuma conta conectada.</p>';
         } else {
-            connected.classList.add("hidden");
-            disconnected.classList.remove("hidden");
+            listEl.innerHTML = _igAccounts.map(a => `
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.08)">
+                    <strong>@${a.username || a.ig_user_id}</strong>
+                    ${a.is_default ? '<span style="background:var(--green);color:#fff;padding:2px 8px;border-radius:10px;font-size:0.75rem">padrão</span>' : `<button class="btn btn-secondary" style="font-size:0.75rem;padding:2px 8px" onclick="setDefaultAccount(${a.id})">definir padrão</button>`}
+                    <button class="btn btn-secondary" style="font-size:0.75rem;padding:2px 8px;margin-left:auto" onclick="removeAccount(${a.id}, '@${a.username}')">remover</button>
+                </div>
+            `).join("");
         }
 
-        // Aviso: sem URL pública, a publicação real (agendada ou "agora") não funciona
         if (!data.public_base_url_set) {
-            warn.textContent = "⚠️ A publicação automática só funciona com o app publicado na internet (falta definir o endereço público). Localmente você consegue conectar e testar a configuração, mas não publicar de verdade.";
+            warn.textContent = "⚠️ A publicação automática só funciona com o app publicado na internet (falta definir o endereço público).";
         } else {
             warn.textContent = "";
         }
+
+        populateAccountSelectors();
     } catch (e) {
         warn.textContent = "Não foi possível verificar o status do Instagram.";
+    }
+}
+
+function populateAccountSelectors() {
+    ["scheduleAccountSelect", "publishAccountSelect"].forEach(selId => {
+        const sel = document.getElementById(selId);
+        if (!sel) return;
+        const block = sel.closest("[id$=AccountBlock]");
+        if (_igAccounts.length <= 1) {
+            if (block) block.style.display = "none";
+            return;
+        }
+        if (block) block.style.display = "";
+        sel.innerHTML = _igAccounts.map(a =>
+            `<option value="${a.id}" ${a.is_default ? "selected" : ""}>@${a.username || a.ig_user_id}</option>`
+        ).join("");
+    });
+}
+
+async function setDefaultAccount(accountId) {
+    try {
+        await apiFetch(`/instagram/set-default`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ account_id: accountId })
+        });
+        showToast("Conta padrão atualizada!", "success");
+        loadInstagramStatus();
+    } catch (e) {
+        showToast("Erro ao definir conta padrão.", "error");
+    }
+}
+
+async function removeAccount(accountId, username) {
+    if (!confirm(`Remover ${username} do app?`)) return;
+    try {
+        await apiFetch(`/instagram/disconnect`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ account_id: accountId })
+        });
+        showToast(`${username} removida.`, "success");
+        loadInstagramStatus();
+    } catch (e) {
+        showToast("Erro ao remover conta.", "error");
     }
 }
 
@@ -1317,8 +1389,10 @@ function wireInstagramButtons() {
             });
             const data = await res.json();
             if (data.success) {
-                showToast(`Instagram conectado${data.username ? " como @" + data.username : ""}! 🎉`, "success");
+                showToast(`Instagram conectado como @${data.username}! 🎉`, "success");
+                document.getElementById("igUserIdInput").value = "";
                 document.getElementById("igTokenInput").value = "";
+                document.getElementById("igAddForm").removeAttribute("open");
                 loadInstagramStatus();
             } else {
                 hint.textContent = data.error || "Não foi possível conectar.";
@@ -1328,16 +1402,6 @@ function wireInstagramButtons() {
         } finally {
             btn.disabled = false;
             btn.textContent = "Conectar e validar";
-        }
-    });
-
-    document.getElementById("igDisconnectBtn").addEventListener("click", async () => {
-        try {
-            await apiFetch(`/instagram/disconnect`, { method: "POST" });
-            showToast("Instagram desconectado.", "success");
-            loadInstagramStatus();
-        } catch (e) {
-            showToast("Erro ao desconectar.", "error");
         }
     });
 }
