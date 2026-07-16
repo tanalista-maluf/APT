@@ -781,27 +781,33 @@ def instagram_connect():
     # por um de longa duracao (opcional, nao bloqueia se falhar).
     if META_APP_ID and META_APP_SECRET:
         try:
-            access_token = instagram.exchange_long_lived_token(META_APP_ID, META_APP_SECRET, access_token)
+            access_token, expires_in = instagram.exchange_long_lived_token(META_APP_ID, META_APP_SECRET, access_token)
         except instagram.InstagramError:
-            pass  # segue com o token informado
+            expires_in = None
+    else:
+        expires_in = None
 
     try:
         info = instagram.get_account_info(ig_user_id, access_token)
     except instagram.InstagramError as e:
         return jsonify({"error": str(e)}), 502
 
-    db.update_settings({
+    settings_update = {
         "ig_user_id": info["id"],
         "ig_access_token": access_token,
         "ig_username": info.get("username", ""),
-    })
+    }
+    if expires_in:
+        expires_at = (datetime.utcnow() + timedelta(seconds=int(expires_in))).isoformat()
+        settings_update["ig_token_expires_at"] = expires_at
+    db.update_settings(settings_update)
 
     return jsonify({"success": True, "username": info.get("username", ""), "name": info.get("name", "")})
 
 
 @app.route("/api/instagram/disconnect", methods=["POST"])
 def instagram_disconnect():
-    db.delete_settings(["ig_user_id", "ig_access_token", "ig_username"])
+    db.delete_settings(["ig_user_id", "ig_access_token", "ig_username", "ig_token_expires_at"])
     return jsonify({"success": True})
 
 
@@ -847,11 +853,44 @@ def public_media(token):
 SCHEDULER_ENABLED = os.getenv("ENABLE_SCHEDULER", "1").lower() in ("1", "true")
 
 
+def _maybe_refresh_ig_token():
+    """Renova o token do Instagram automaticamente quando falta menos de 7 dias."""
+    if not META_APP_ID or not META_APP_SECRET:
+        return
+    settings = db.get_settings()
+    expires_at = settings.get("ig_token_expires_at", "")
+    current_token = settings.get("ig_access_token", "")
+    if not expires_at or not current_token:
+        return
+    try:
+        expiry = datetime.fromisoformat(expires_at)
+        days_left = (expiry - datetime.utcnow()).total_seconds() / 86400
+        if days_left > 7:
+            return
+        new_token, new_expires = instagram.refresh_long_lived_token(
+            META_APP_ID, META_APP_SECRET, current_token
+        )
+        update = {"ig_access_token": new_token}
+        if new_expires:
+            new_expiry = (datetime.utcnow() + timedelta(seconds=int(new_expires))).isoformat()
+            update["ig_token_expires_at"] = new_expiry
+        db.update_settings(update)
+        app.logger.info("Token do Instagram renovado automaticamente")
+    except Exception as e:
+        app.logger.warning(f"Falha ao renovar token do Instagram: {e}")
+
+
+def _get_due_and_refresh():
+    """Wrapper que verifica renovacao do token antes de buscar posts."""
+    _maybe_refresh_ig_token()
+    return db.get_due_posts(datetime.now().isoformat())
+
+
 @app.before_request
 def _ensure_scheduler_started():
     if SCHEDULER_ENABLED:
         scheduler.start(
-            get_due_fn=lambda: db.get_due_posts(datetime.now().isoformat()),
+            get_due_fn=_get_due_and_refresh,
             publish_fn=publish_post,
             interval=int(os.getenv("SCHEDULER_INTERVAL", "60")),
         )

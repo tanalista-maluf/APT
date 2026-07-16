@@ -143,6 +143,7 @@ def exchange_long_lived_token(app_id, app_secret, short_token):
     """Troca um token de curta duracao por um de longa duracao (~60 dias).
 
     Opcional - util quando o usuario cola um token curto do Explorer da Meta.
+    Retorna (novo_token, expires_in_seconds | None).
     """
     data = _get(
         f"{GRAPH_BASE}/oauth/access_token",
@@ -153,4 +154,23 @@ def exchange_long_lived_token(app_id, app_secret, short_token):
             "fb_exchange_token": short_token,
         },
     )
-    return data.get("access_token", short_token)
+    return data.get("access_token", short_token), data.get("expires_in")
+
+
+def refresh_long_lived_token(app_id, app_secret, current_token):
+    """Renova um token de longa duracao por mais ~60 dias.
+
+    A API da Meta permite renovar tokens de longa duracao que ainda nao
+    expiraram. O token precisa ter pelo menos 24h de vida restante.
+    Retorna (novo_token, expires_in_seconds | None).
+    """
+    data = _get(
+        f"{GRAPH_BASE}/oauth/access_token",
+        {
+            "grant_type": "fb_exchange_token",
+            "client_id": app_id,
+            "client_secret": app_secret,
+            "fb_exchange_token": current_token,
+        },
+    )
+    return data.get("access_token", current_token), data.get("expires_in")
