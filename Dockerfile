@@ -11,9 +11,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
 
-# Dados (banco SQLite + fotos) ficam fora do codigo, num volume persistente
+# Dados (banco SQLite + fotos) ficam em /data. No Railway isso vira um
+# "Railway Volume" montado nesse caminho (adicionado pela interface).
+# NAO usar a instrucao Docker VOLUME aqui: o builder do Railway a rejeita.
+# Para rodar via Docker puro, monte com: -v autopost_data:/data
 ENV DATA_DIR=/data
-VOLUME ["/data"]
 
 EXPOSE 8080
 
