@@ -1353,30 +1353,78 @@ input, textarea, select {
    RESPONSIVO
    ============================================================ */
 
+/* Hamburger button — hidden on desktop */
+.hamburger-btn {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px 8px;
+    color: var(--ink);
+}
+
+/* Mobile overlay for sidebar */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+}
+.sidebar-overlay.active { display: block; }
+
 @media (max-width: 900px) {
     .app-shell {
         flex-direction: column;
     }
 
+    .hamburger-btn {
+        display: block;
+    }
+
     .sidebar {
-        width: 100%;
-        flex-direction: row;
-        align-items: center;
-        padding: 10px 14px;
-        overflow-x: auto;
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 260px;
+        height: 100dvh;
+        z-index: 1000;
+        transition: left 0.25s ease;
+        flex-direction: column;
+        padding: 12px 16px 20px;
+        overflow-y: auto;
+    }
+
+    .sidebar.open {
+        left: 0;
     }
 
     .sidebar .stamp-logo {
-        padding: 6px;
+        padding: 8px 6px;
+    }
+
+    .sidebar .stamp-logo-main {
+        font-size: 16px;
+        padding: 3px 10px;
+        border-width: 2px;
+    }
+
+    .sidebar .stamp-logo-top {
+        font-size: 12px;
+    }
+
+    .sidebar .stamp-logo-tag {
+        font-size: 8px;
     }
 
     .side-nav {
-        flex-direction: row;
-        margin-top: 0;
+        flex-direction: column;
+        margin-top: 8px;
     }
 
     .side-nav-item span:last-child {
-        display: none;
+        display: inline;
     }
 
     .sticky-note {
@@ -1384,16 +1432,50 @@ input, textarea, select {
     }
 
     .main-content {
-        padding: 20px;
+        padding: 14px;
+    }
+
+    .topbar {
+        gap: 8px;
+    }
+
+    .topbar h1 {
+        font-size: 22px;
     }
 
     .dashboard-grid {
         grid-template-columns: 1fr;
+        gap: 14px;
     }
 
     .next-posts-card {
         grid-column: 1;
         grid-row: auto;
+    }
+
+    .dropzone-card {
+        grid-column: 1;
+    }
+
+    .dropzone-inner {
+        padding: 20px 16px;
+    }
+
+    .dropzone-icon {
+        font-size: 24px;
+        margin-bottom: 4px;
+    }
+
+    .dropzone-text {
+        font-size: 13px;
+    }
+
+    .mini-calendar-card {
+        grid-column: 1;
+    }
+
+    .last-post-card {
+        grid-column: 1;
     }
 
     .new-post-modal .modal-body {
@@ -1402,5 +1484,14 @@ input, textarea, select {
 
     .edit-modal-body {
         grid-template-columns: 1fr;
+    }
+
+    .modal-panel {
+        margin: 8px;
+        max-height: calc(100dvh - 16px);
+    }
+
+    .freq-btn-group {
+        flex-wrap: wrap;
     }
 }

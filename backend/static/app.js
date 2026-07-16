@@ -308,9 +308,24 @@ async function logout() {
 // SIDEBAR / NAVEGACAO ENTRE PAGINAS
 // ============================================================
 
+function closeMobileMenu() {
+    document.querySelector(".sidebar").classList.remove("open");
+    document.getElementById("sidebarOverlay").classList.remove("active");
+}
+
 function setupSidebar() {
+    document.getElementById("hamburgerBtn").addEventListener("click", () => {
+        document.querySelector(".sidebar").classList.toggle("open");
+        document.getElementById("sidebarOverlay").classList.toggle("active");
+    });
+
+    document.getElementById("sidebarOverlay").addEventListener("click", closeMobileMenu);
+
     document.querySelectorAll(".side-nav-item[data-page]").forEach((btn) => {
-        btn.addEventListener("click", () => switchPage(btn.dataset.page));
+        btn.addEventListener("click", () => {
+            switchPage(btn.dataset.page);
+            closeMobileMenu();
+        });
     });
 
     document.querySelectorAll(".link-btn[data-page]").forEach((btn) => {
@@ -318,6 +333,7 @@ function setupSidebar() {
     });
 
     document.getElementById("navNewPost").addEventListener("click", () => {
+        closeMobileMenu();
         document.getElementById("photoInput").click();
     });
 
