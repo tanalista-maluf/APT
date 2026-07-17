@@ -1222,6 +1222,7 @@ function setupScheduleModal() {
     document.getElementById("backToReviewBtn").addEventListener("click", backToReview);
     document.getElementById("closeScheduleBtn").addEventListener("click", backToReview);
     document.getElementById("confirmScheduleBtn").addEventListener("click", confirmAndSchedule);
+    setupTimeWindowListeners();
 }
 
 function openScheduleModal() {
@@ -1250,6 +1251,11 @@ function updateScheduleSummary() {
     document.getElementById("summaryFrequency").textContent = `${selectedFrequency}x/dia`;
 }
 
+function setupTimeWindowListeners() {
+    document.getElementById("windowStartTime").addEventListener("change", updateScheduleSummary);
+    document.getElementById("windowEndTime").addEventListener("change", updateScheduleSummary);
+}
+
 async function confirmAndSchedule() {
     const total = selectedPhotos.length;
     const confirmBtn = document.getElementById("confirmScheduleBtn");
@@ -1258,13 +1264,47 @@ async function confirmAndSchedule() {
 
     const startDateValue = document.getElementById("startDateInput").value;
     const startDate = startDateValue ? new Date(startDateValue) : new Date();
-    const hoursBetween = 24 / selectedFrequency;
+
+    const winStart = document.getElementById("windowStartTime").value || "08:00";
+    const winEnd = document.getElementById("windowEndTime").value || "22:00";
+    const [wsH, wsM] = winStart.split(":").map(Number);
+    const [weH, weM] = winEnd.split(":").map(Number);
+    const windowMinutes = (weH * 60 + weM) - (wsH * 60 + wsM);
+    const slotMinutes = selectedFrequency > 1
+        ? Math.floor(windowMinutes / (selectedFrequency - 1))
+        : 0;
+
+    function getSlotTime(index) {
+        const slotsPerDay = selectedFrequency;
+        const dayOffset = Math.floor(index / slotsPerDay);
+        const slotInDay = index % slotsPerDay;
+
+        const day = new Date(startDate);
+        day.setDate(day.getDate() + dayOffset);
+
+        if (dayOffset === 0 && slotInDay === 0) {
+            const startH = startDate.getHours();
+            const startM = startDate.getMinutes();
+            if (startH * 60 + startM >= wsH * 60 + wsM && startH * 60 + startM <= weH * 60 + weM) {
+                return new Date(startDate);
+            }
+        }
+
+        const d = new Date(day);
+        if (slotsPerDay === 1) {
+            d.setHours(wsH, wsM, 0, 0);
+        } else {
+            const mins = wsH * 60 + wsM + slotMinutes * slotInDay;
+            d.setHours(Math.floor(mins / 60), mins % 60, 0, 0);
+        }
+        return d;
+    }
 
     let postedCount = 0;
 
     for (let i = 0; i < selectedPhotos.length; i++) {
         const photo = selectedPhotos[i];
-        const scheduledDate = new Date(startDate.getTime() + hoursBetween * i * 3600 * 1000);
+        const scheduledDate = getSlotTime(i);
 
         try {
             const res = await apiFetch(`/create-post`, {

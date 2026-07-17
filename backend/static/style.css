@@ -1400,6 +1400,26 @@ input, textarea, select {
     color: var(--white);
 }
 
+.time-window-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.time-window-label {
+    font-size: 13px;
+    color: var(--gray-text);
+}
+
+.time-input {
+    padding: 8px 10px;
+    border: 2px solid var(--gray-border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    background: var(--white);
+    color: var(--gray-dark);
+}
+
 .edit-modal-body {
     display: grid;
     grid-template-columns: 120px 1fr;

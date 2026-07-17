@@ -396,6 +396,16 @@
                 <input type="datetime-local" id="startDateInput" class="date-input">
             </div>
 
+            <div class="field-block">
+                <label class="field-label">Janela de postagem (horários permitidos)</label>
+                <div class="time-window-row">
+                    <span class="time-window-label">Das</span>
+                    <input type="time" id="windowStartTime" value="08:00" class="time-input">
+                    <span class="time-window-label">às</span>
+                    <input type="time" id="windowEndTime" value="22:00" class="time-input">
+                </div>
+            </div>
+
             <div class="field-block" id="scheduleAccountBlock" style="display:none">
                 <label class="field-label">Publicar em qual conta?</label>
                 <select id="scheduleAccountSelect" class="date-input"></select>
