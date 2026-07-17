@@ -14,88 +14,107 @@ const MOODS = [
 ];
 
 const PHOTO_FILTERS = {
-    none: { name: "Foto Natural" },
-    azul: {
-        name: "Azul", brightness: 1.01, contrast: 1.0, saturate: 0.85,
-        temperature: 3, shadows: { h: 221, s: 18 }, highlights: { h: 51, s: 23 },
-        vignette: 0.11, clarity: 0.13
-    },
-    branco: {
-        name: "Branco", brightness: 1.0, contrast: 0.97, saturate: 0.55,
-        blacks: 0.5, highlights: -0.39, shadows: 0.41, whites: 0.35,
-        vignette: 0.19, clarity: 0.14
-    },
-    cafe: {
-        name: "Café", brightness: 1.0, contrast: 1.27, saturate: 0.57,
-        shadows: 0.66, highlights: -0.23, clarity: 0.23,
-        tint: { r: 180, g: 140, b: 100, a: 0.08 }
-    },
-    cinematic: {
-        name: "Cinematic", brightness: 1.05, contrast: 1.0, saturate: 0.72,
-        temperature: 15, shadows: 0.54, highlights: -0.30,
-        tint: { r: 80, g: 120, b: 90, a: 0.06 }
-    },
-    claro: {
-        name: "Claro", brightness: 1.0, contrast: 0.63, saturate: 0.6,
-        temperature: 19, shadows: 0.17, highlights: -0.40, clarity: 0.21,
-        tint: { r: 255, g: 220, b: 180, a: 0.05 }
-    },
-    comida: {
-        name: "Comida", brightness: 1.0, contrast: 1.07, saturate: 1.06,
-        temperature: 11, shadows: -0.43, blacks: -0.37, clarity: 0.16
-    },
-    contraste: {
-        name: "Contraste", brightness: 1.02, contrast: 1.56, saturate: 0.75,
-        vibrance: 0.58, shadows: 0.72, highlights: -0.37, vignette: 0.15, clarity: 0.15
-    },
-    golden_hour: {
-        name: "Golden Hour", brightness: 1.0, contrast: 1.15, saturate: 1.0,
-        temperature: 15, highlights: -0.57, blacks: 0.41, clarity: 0.19,
-        tint: { r: 255, g: 180, b: 60, a: 0.06 }
-    },
-    neon: {
-        name: "Neon", brightness: 1.15, contrast: 1.47, saturate: 1.5,
-        vibrance: 0.31, shadows: 0.64, highlights: 0.27, clarity: 0.04
-    },
-    pb: {
-        name: "P&B", brightness: 0.85, contrast: 1.86, saturate: 0.0,
-        grayscale: true, shadows: 0.55, highlights: -0.52, grain: 10
-    },
-    pastel: {
-        name: "Pastel", brightness: 1.0, contrast: 1.17, saturate: 0.85,
-        temperature: -12, shadows: 0.13, vignette: 0.20, clarity: 0.06,
-        tint: { r: 255, g: 220, b: 170, a: 0.12 }
-    },
-    perfil: {
-        name: "Perfil", brightness: 1.10, contrast: 1.0, saturate: 0.75,
-        temperature: 19, shadows: 0.45, highlights: -0.73, clarity: 0.41, dehaze: 0.08,
-        tint: { r: 200, g: 160, b: 130, a: 0.05 }
-    },
-    praia: {
-        name: "Praia", brightness: 0.88, contrast: 0.79, saturate: 0.80,
-        temperature: 10, shadows: 0.61, highlights: -0.48, whites: 0.37, blacks: 0.33,
-        clarity: 0.20, tint: { r: 230, g: 190, b: 140, a: 0.06 }
-    },
-    rosa: {
-        name: "Rosa", brightness: 1.07, contrast: 1.04, saturate: 0.82,
-        temperature: 19, shadows: 0.52, highlights: -0.70, clarity: 0.28,
-        tint: { r: 220, g: 160, b: 170, a: 0.07 }
-    },
-    sepia: {
-        name: "Sépia", brightness: 1.0, contrast: 1.58, saturate: 0.50,
-        vibrance: 0.17, shadows: 0.27, highlights: -0.45, blacks: 0.44,
-        tint: { r: 180, g: 140, b: 90, a: 0.12 }
-    },
-    verde: {
-        name: "Verde", brightness: 1.0, contrast: 1.25, saturate: 0.85,
-        vibrance: 0.31, shadows: 0.70, whites: 0.39,
-        tint: { r: 100, g: 160, b: 100, a: 0.06 }
-    },
-    vermelho: {
-        name: "Vermelho", brightness: 1.05, contrast: 0.96, saturate: 0.72,
-        temperature: 10, shadows: 0.43, highlights: -0.58, blacks: 0.58,
-        tint: { r: 200, g: 120, b: 100, a: 0.06 }
-    }
+    none: { label: "Original" },
+    "amazing-beach-01": { label: "Amazing Beach 01", brightness: 1.0, contrast: 1.0, saturate: 0.995, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-beach-02": { label: "Amazing Beach 02", brightness: 0.912, contrast: 0.975, saturate: 0.984, temperature: -12.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-beach-03": { label: "Amazing Beach 03", brightness: 0.839, contrast: 0.895, saturate: 0.928, temperature: 15.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-beach-04": { label: "Amazing Beach 04", brightness: 1.052, contrast: 1.135, saturate: 0.91, temperature: 0.0, tint: null, vignette: 0.06, clarity: 0, grayscale: 0 },
+    "amazing-beach-05": { label: "Amazing Beach 05", brightness: 1.0, contrast: 1.035, saturate: 1.0, temperature: 4.5, tint: null, vignette: 0.01, clarity: 0, grayscale: 0 },
+    "amazing-beauty-01": { label: "Amazing Beauty 01", brightness: 1.035, contrast: 1.0, saturate: 1.004, temperature: 18.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-beauty-02": { label: "Amazing Beauty 02", brightness: 1.07, contrast: 1.0, saturate: 1.02, temperature: 28.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-beauty-03": { label: "Amazing Beauty 03", brightness: 1.0, contrast: 0.935, saturate: 0.913, temperature: 27.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-black-01": { label: "Amazing Black 01", brightness: 1.018, contrast: 1.28, saturate: 1.041, temperature: 0.0, tint: null, vignette: 0.15, clarity: 0, grayscale: 0 },
+    "amazing-black-02": { label: "Amazing Black 02", brightness: 1.0, contrast: 1.31, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-black-03": { label: "Amazing Black 03", brightness: 1.123, contrast: 1.44, saturate: 0.953, temperature: 0.0, tint: null, vignette: 0.15, clarity: 0, grayscale: 0 },
+    "amazing-black-04": { label: "Amazing Black 04", brightness: 1.0, contrast: 1.155, saturate: 0.98, temperature: 0.0, tint: null, vignette: 0.15, clarity: 0, grayscale: 0 },
+    "amazing-black-05": { label: "Amazing Black 05", brightness: 1.0, contrast: 1.06, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-black-white-01": { label: "Amazing Black White 01", brightness: 0.79, contrast: 1.43, saturate: 1.0, temperature: -13.5, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 1.0 },
+    "amazing-black-white-02": { label: "Amazing Black White 02", brightness: 1.105, contrast: 1.29, saturate: 1.0, temperature: -3.0, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 1.0 },
+    "amazing-black-white-03": { label: "Amazing Black White 03", brightness: 0.948, contrast: 1.185, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 1.0 },
+    "amazing-black-white-04": { label: "Amazing Black White 04", brightness: 1.105, contrast: 1.185, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 1.0 },
+    "amazing-black-white-05": { label: "Amazing Black White 05", brightness: 1.0, contrast: 1.095, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.01, clarity: 0, grayscale: 1.0 },
+    "amazing-blue-01": { label: "Amazing Blue 01", brightness: 1.087, contrast: 1.005, saturate: 0.907, temperature: 15.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-blue-02": { label: "Amazing Blue 02", brightness: 1.0, contrast: 1.0, saturate: 0.941, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-blue-03": { label: "Amazing Blue 03", brightness: 1.0, contrast: 1.0, saturate: 1.0, temperature: -22.5, tint: null, vignette: 0.11, clarity: 0, grayscale: 0 },
+    "amazing-blue-04": { label: "Amazing Blue 04", brightness: 1.01, contrast: 1.0, saturate: 0.963, temperature: 4.5, tint: null, vignette: 0.11, clarity: 0, grayscale: 0 },
+    "amazing-blue-05": { label: "Amazing Blue 05", brightness: 0.948, contrast: 1.14, saturate: 0.89, temperature: 7.5, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-blue-06": { label: "Amazing Blue 06", brightness: 1.0, contrast: 0.965, saturate: 1.176, temperature: 6.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.08, clarity: 0, grayscale: 0 },
+    "amazing-blue-07": { label: "Amazing Blue 07", brightness: 1.0, contrast: 1.0, saturate: 1.048, temperature: 15.0, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-blue-08": { label: "Amazing Blue 08", brightness: 1.0, contrast: 1.0, saturate: 0.813, temperature: 0.0, tint: null, vignette: 0.1, clarity: 0, grayscale: 0 },
+    "amazing-blue-09": { label: "Amazing Blue 09", brightness: 1.0, contrast: 1.0, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-blue-10": { label: "Amazing Blue 10", brightness: 1.0, contrast: 1.0, saturate: 1.02, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-boho-01": { label: "Amazing Boho 01", brightness: 1.042, contrast: 1.175, saturate: 0.912, temperature: 4.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-boho-02": { label: "Amazing Boho 02", brightness: 1.042, contrast: 1.175, saturate: 0.96, temperature: 9.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-boho-03": { label: "Amazing Boho 03", brightness: 0.948, contrast: 1.105, saturate: 0.919, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-cinematic-01": { label: "Amazing Cinematic 01", brightness: 1.035, contrast: 1.225, saturate: 1.113, temperature: 0.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-cinematic-02": { label: "Amazing Cinematic 02", brightness: 1.042, contrast: 1.0, saturate: 0.817, temperature: 22.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-cinematic-03": { label: "Amazing Cinematic 03", brightness: 1.0, contrast: 1.115, saturate: 1.097, temperature: 0.0, tint: null, vignette: 0.11, clarity: 0, grayscale: 0 },
+    "amazing-city-01": { label: "Amazing City 01", brightness: 1.098, contrast: 1.0, saturate: 0.88, temperature: -6.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-city-02": { label: "Amazing City 02", brightness: 0.72, contrast: 1.0, saturate: 0.983, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-city-03": { label: "Amazing City 03", brightness: 1.123, contrast: 1.115, saturate: 0.768, temperature: -6.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-city-04": { label: "Amazing City 04", brightness: 1.105, contrast: 1.235, saturate: 1.351, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-city-05": { label: "Amazing City 05", brightness: 1.01, contrast: 1.0, saturate: 1.193, temperature: 0.0, tint: null, vignette: 0.11, clarity: 0, grayscale: 0 },
+    "amazing-coffee-01": { label: "Amazing Coffee 01", brightness: 1.014, contrast: 1.055, saturate: 0.805, temperature: 21.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-coffee-02": { label: "Amazing Coffee 02", brightness: 1.0, contrast: 1.135, saturate: 0.656, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-coffee-03": { label: "Amazing Coffee 03", brightness: 1.231, contrast: 1.185, saturate: 1.03, temperature: 0.0, tint: null, vignette: 0.15, clarity: 0, grayscale: 0 },
+    "amazing-color-01": { label: "Amazing Color 01", brightness: 1.287, contrast: 1.09, saturate: 0.96, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-color-02": { label: "Amazing Color 02", brightness: 1.063, contrast: 1.0, saturate: 0.984, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-color-03": { label: "Amazing Color 03", brightness: 1.101, contrast: 1.105, saturate: 1.0, temperature: 7.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-color-04": { label: "Amazing Color 04", brightness: 1.0, contrast: 1.255, saturate: 1.109, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-color-05": { label: "Amazing Color 05", brightness: 1.0, contrast: 1.055, saturate: 0.945, temperature: 6.0, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-color-06": { label: "Amazing Color 06", brightness: 1.0, contrast: 1.0, saturate: 1.05, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-color-07": { label: "Amazing Color 07", brightness: 1.0, contrast: 1.0, saturate: 0.881, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-color-09": { label: "Amazing Color 09", brightness: 1.123, contrast: 1.11, saturate: 1.183, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-color-10": { label: "Amazing Color 10", brightness: 1.035, contrast: 1.055, saturate: 1.15, temperature: 0.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-food-01": { label: "Amazing Food 01", brightness: 1.0, contrast: 1.0, saturate: 1.071, temperature: 7.5, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-food-02": { label: "Amazing Food 02", brightness: 1.0, contrast: 1.035, saturate: 1.048, temperature: 16.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-food-03": { label: "Amazing Food 03", brightness: 1.129, contrast: 1.165, saturate: 1.261, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-food-04": { label: "Amazing Food 04", brightness: 1.0, contrast: 1.23, saturate: 1.063, temperature: 4.5, tint: null, vignette: 0.01, clarity: 0, grayscale: 0 },
+    "amazing-food-05": { label: "Amazing Food 05", brightness: 1.0, contrast: 1.0, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-forest-01": { label: "Amazing Forest 01", brightness: 0.912, contrast: 0.975, saturate: 0.984, temperature: -12.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-forest-02": { label: "Amazing Forest 02", brightness: 1.123, contrast: 0.965, saturate: 0.859, temperature: 0.0, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-forest-03": { label: "Amazing Forest 03", brightness: 1.0, contrast: 1.125, saturate: 1.103, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-forest-04": { label: "Amazing Forest 04", brightness: 0.912, contrast: 0.965, saturate: 1.201, temperature: 10.5, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-forest-05": { label: "Amazing Forest 05", brightness: 1.196, contrast: 1.0, saturate: 0.88, temperature: 7.5, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-golden-hour-01": { label: "Amazing Golden Hour 01", brightness: 1.123, contrast: 0.825, saturate: 1.111, temperature: 42.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-golden-hour-02": { label: "Amazing Golden Hour 02", brightness: 1.0, contrast: 1.075, saturate: 1.01, temperature: 22.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-golden-hour-03": { label: "Amazing Golden Hour 03", brightness: 1.123, contrast: 0.825, saturate: 1.111, temperature: 22.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-golden-hour-04": { label: "Amazing Golden Hour 04", brightness: 0.878, contrast: 1.0, saturate: 0.72, temperature: 37.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.03, clarity: 0, grayscale: 0 },
+    "amazing-golden-hour-05": { label: "Amazing Golden Hour 05", brightness: 1.262, contrast: 1.225, saturate: 1.083, temperature: 22.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-neon-01": { label: "Amazing Neon 01", brightness: 1.105, contrast: 1.145, saturate: 1.491, temperature: -24.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-neon-02": { label: "Amazing Neon 02", brightness: 0.878, contrast: 1.165, saturate: 1.571, temperature: -25.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-neon-03": { label: "Amazing Neon 03", brightness: 1.0, contrast: 1.26, saturate: 1.459, temperature: -52.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-nude-01": { label: "Amazing Nude 01", brightness: 1.0, contrast: 0.9, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-nude-02": { label: "Amazing Nude 02", brightness: 1.024, contrast: 0.945, saturate: 1.003, temperature: 15.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-nude-03": { label: "Amazing Nude 03", brightness: 1.01, contrast: 0.865, saturate: 0.963, temperature: 19.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.11, clarity: 0, grayscale: 0 },
+    "amazing-nude-04": { label: "Amazing Nude 04", brightness: 1.0, contrast: 0.815, saturate: 0.816, temperature: 28.5, tint: null, vignette: 0.03, clarity: 0, grayscale: 0 },
+    "amazing-nude-05": { label: "Amazing Nude 05", brightness: 1.024, contrast: 0.94, saturate: 0.857, temperature: 34.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-pastel-01": { label: "Amazing Pastel 01", brightness: 1.0, contrast: 1.045, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.2, clarity: 0, grayscale: 0 },
+    "amazing-pastel-02": { label: "Amazing Pastel 02", brightness: 1.0, contrast: 1.085, saturate: 1.0, temperature: -18.0, tint: null, vignette: 0.2, clarity: 0, grayscale: 0 },
+    "amazing-pastel-03": { label: "Amazing Pastel 03", brightness: 1.0, contrast: 1.045, saturate: 1.0, temperature: 0.0, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.2, clarity: 0, grayscale: 0 },
+    "amazing-pets-01": { label: "Amazing Pets 01", brightness: 1.0, contrast: 1.165, saturate: 0.943, temperature: 37.5, tint: null, vignette: 0.02, clarity: 0, grayscale: 0 },
+    "amazing-pets-02": { label: "Amazing Pets 02", brightness: 1.161, contrast: 1.0, saturate: 0.807, temperature: 15.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-pets-03": { label: "Amazing Pets 03", brightness: 1.115, contrast: 1.05, saturate: 1.013, temperature: 0.0, tint: null, vignette: 0.05, clarity: 0, grayscale: 0 },
+    "amazing-portrait-01": { label: "Amazing Portrait 01", brightness: 1.07, contrast: 1.095, saturate: 1.037, temperature: 0.0, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-portrait-02": { label: "Amazing Portrait 02", brightness: 1.01, contrast: 1.0, saturate: 0.963, temperature: 22.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.11, clarity: 0, grayscale: 0 },
+    "amazing-portrait-03": { label: "Amazing Portrait 03", brightness: 1.0, contrast: 1.0, saturate: 1.13, temperature: 0.0, tint: null, vignette: 0.11, clarity: 0, grayscale: 0 },
+    "amazing-red-01": { label: "Amazing Red 01", brightness: 1.042, contrast: 0.98, saturate: 0.807, temperature: 15.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-red-03": { label: "Amazing Red 03", brightness: 1.018, contrast: 1.135, saturate: 0.907, temperature: 0.0, tint: null, vignette: 0.11, clarity: 0, grayscale: 0 },
+    "amazing-rose-01": { label: "Amazing Rose 01", brightness: 0.983, contrast: 1.065, saturate: 1.077, temperature: 0.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-rose-02": { label: "Amazing Rose 02", brightness: 1.052, contrast: 0.935, saturate: 0.913, temperature: 34.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-rose-03": { label: "Amazing Rose 03", brightness: 1.049, contrast: 1.02, saturate: 0.913, temperature: 28.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-rose-04": { label: "Amazing Rose 04", brightness: 1.0, contrast: 0.755, saturate: 0.626, temperature: 31.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-rose-05": { label: "Amazing Rose 05", brightness: 1.231, contrast: 1.095, saturate: 0.863, temperature: 22.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-teal-orange-01": { label: "Amazing Teal Orange 01", brightness: 1.123, contrast: 1.0, saturate: 0.737, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-teal-orange-02": { label: "Amazing Teal Orange 02", brightness: 1.123, contrast: 1.0, saturate: 0.737, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-teal-orange-03": { label: "Amazing Teal Orange 03", brightness: 1.0, contrast: 1.175, saturate: 0.947, temperature: 0.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-wedding-01": { label: "Amazing Wedding 01", brightness: 1.0, contrast: 1.16, saturate: 0.695, temperature: 19.5, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-wedding-02": { label: "Amazing Wedding 02", brightness: 1.042, contrast: 1.125, saturate: 0.912, temperature: 4.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-wedding-03": { label: "Amazing Wedding 03", brightness: 1.0, contrast: 1.29, saturate: 0.729, temperature: 0.0, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-wedding-04": { label: "Amazing Wedding 04", brightness: 1.0, contrast: 0.795, saturate: 0.608, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-white-01": { label: "Amazing White 01", brightness: 1.14, contrast: 1.055, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    "amazing-white-02": { label: "Amazing White 02", brightness: 1.0, contrast: 0.985, saturate: 0.834, temperature: 0.0, tint: null, vignette: 0.19, clarity: 0, grayscale: 0 },
+    "amazing-white-03": { label: "Amazing White 03", brightness: 1.0, contrast: 1.27, saturate: 1.007, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
 };
 
 const PAGE_TITLES = {
@@ -567,6 +586,190 @@ async function processPhotoOnServer(photo) {
 
 let _filterOriginalImage = null;
 
+// ============================================================
+// CROP / ROTATION / ZOOM
+// ============================================================
+
+const ASPECT_RATIOS = {
+    "free": null,
+    "1:1": 1,
+    "4:5": 4 / 5,
+    "1.91:1": 1.91,
+};
+
+let _cropState = { panX: 0, panY: 0, zoom: 100, rotation: 0, aspect: "4:5" };
+let _isDragging = false;
+let _dragStart = { x: 0, y: 0, panX: 0, panY: 0 };
+
+function getCropState() {
+    const photo = getCurrentPhoto();
+    if (!photo) return _cropState;
+    if (!photo.cropState) {
+        photo.cropState = { panX: 0, panY: 0, zoom: 100, rotation: 0, aspect: "4:5" };
+    }
+    return photo.cropState;
+}
+
+function updateViewportAspect() {
+    const state = getCropState();
+    const viewport = document.getElementById("cropViewport");
+    const ratio = ASPECT_RATIOS[state.aspect];
+    if (!ratio) {
+        if (_filterOriginalImage) {
+            const isRotated = state.rotation % 180 !== 0;
+            const w = isRotated ? _filterOriginalImage.naturalHeight : _filterOriginalImage.naturalWidth;
+            const h = isRotated ? _filterOriginalImage.naturalWidth : _filterOriginalImage.naturalHeight;
+            viewport.style.aspectRatio = `${w / h}`;
+        } else {
+            viewport.style.aspectRatio = "1";
+        }
+    } else {
+        viewport.style.aspectRatio = `${ratio}`;
+    }
+}
+
+function updateCropTransform() {
+    const state = getCropState();
+    const img = document.getElementById("newPostImage");
+    const canvas = document.getElementById("filterCanvas");
+    const viewport = document.getElementById("cropViewport");
+
+    if (!_filterOriginalImage) return;
+
+    const vw = viewport.clientWidth;
+    const vh = viewport.clientHeight;
+    const isRotated = state.rotation % 180 !== 0;
+    const natW = _filterOriginalImage.naturalWidth;
+    const natH = _filterOriginalImage.naturalHeight;
+    const imgW = isRotated ? natH : natW;
+    const imgH = isRotated ? natW : natH;
+
+    const scaleToFit = Math.max(vw / imgW, vh / imgH);
+    const zoom = state.zoom / 100;
+    const finalScale = scaleToFit * zoom;
+
+    const displayW = natW * finalScale;
+    const displayH = natH * finalScale;
+
+    const maxPanX = Math.max(0, ((isRotated ? displayH : displayW) - vw) / 2);
+    const maxPanY = Math.max(0, ((isRotated ? displayW : displayH) - vh) / 2);
+    state.panX = Math.max(-maxPanX, Math.min(maxPanX, state.panX));
+    state.panY = Math.max(-maxPanY, Math.min(maxPanY, state.panY));
+
+    state._viewportW = vw;
+    state._viewportH = vh;
+
+    const transform = `translate(${state.panX}px, ${state.panY}px) rotate(${state.rotation}deg) scale(${finalScale})`;
+
+    [img, canvas].forEach(el => {
+        el.style.width = `${natW}px`;
+        el.style.height = `${natH}px`;
+        el.style.transform = transform;
+        el.style.left = `${(vw - natW) / 2}px`;
+        el.style.top = `${(vh - natH) / 2}px`;
+    });
+}
+
+function clampPan() {
+    updateCropTransform();
+}
+
+function setupCropControls() {
+    const viewport = document.getElementById("cropViewport");
+
+    document.getElementById("rotateLeftBtn").addEventListener("click", () => {
+        const state = getCropState();
+        state.rotation = (state.rotation - 90 + 360) % 360;
+        state.panX = 0;
+        state.panY = 0;
+        updateCropTransform();
+    });
+
+    document.getElementById("rotateRightBtn").addEventListener("click", () => {
+        const state = getCropState();
+        state.rotation = (state.rotation + 90) % 360;
+        state.panX = 0;
+        state.panY = 0;
+        updateCropTransform();
+    });
+
+    document.getElementById("aspectRatioSelect").addEventListener("change", (e) => {
+        const state = getCropState();
+        state.aspect = e.target.value;
+        state.panX = 0;
+        state.panY = 0;
+        updateViewportAspect();
+        updateCropTransform();
+    });
+
+    document.getElementById("cropZoom").addEventListener("input", (e) => {
+        const state = getCropState();
+        state.zoom = parseInt(e.target.value);
+        document.getElementById("cropZoomValue").textContent = state.zoom + "%";
+        updateCropTransform();
+    });
+
+    document.getElementById("cropResetBtn").addEventListener("click", () => {
+        const photo = getCurrentPhoto();
+        if (photo) {
+            photo.cropState = { panX: 0, panY: 0, zoom: 100, rotation: 0, aspect: "4:5" };
+        }
+        document.getElementById("cropZoom").value = 100;
+        document.getElementById("cropZoomValue").textContent = "100%";
+        document.getElementById("aspectRatioSelect").value = "4:5";
+        updateViewportAspect();
+        updateCropTransform();
+    });
+
+    // Pan via mouse
+    viewport.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        _isDragging = true;
+        const state = getCropState();
+        _dragStart = { x: e.clientX, y: e.clientY, panX: state.panX, panY: state.panY };
+    });
+
+    window.addEventListener("mousemove", (e) => {
+        if (!_isDragging) return;
+        const state = getCropState();
+        state.panX = _dragStart.panX + (e.clientX - _dragStart.x);
+        state.panY = _dragStart.panY + (e.clientY - _dragStart.y);
+        updateCropTransform();
+    });
+
+    window.addEventListener("mouseup", () => { _isDragging = false; });
+
+    // Pan via touch
+    viewport.addEventListener("touchstart", (e) => {
+        if (e.touches.length === 1) {
+            _isDragging = true;
+            const t = e.touches[0];
+            const state = getCropState();
+            _dragStart = { x: t.clientX, y: t.clientY, panX: state.panX, panY: state.panY };
+        }
+    }, { passive: true });
+
+    viewport.addEventListener("touchmove", (e) => {
+        if (!_isDragging || e.touches.length !== 1) return;
+        e.preventDefault();
+        const t = e.touches[0];
+        const state = getCropState();
+        state.panX = _dragStart.panX + (t.clientX - _dragStart.x);
+        state.panY = _dragStart.panY + (t.clientY - _dragStart.y);
+        updateCropTransform();
+    }, { passive: false });
+
+    viewport.addEventListener("touchend", () => { _isDragging = false; });
+}
+
+function restoreCropUI() {
+    const state = getCropState();
+    document.getElementById("cropZoom").value = state.zoom;
+    document.getElementById("cropZoomValue").textContent = state.zoom + "%";
+    document.getElementById("aspectRatioSelect").value = state.aspect;
+    updateViewportAspect();
+}
+
 function applyPhotoFilter() {
     const filterKey = document.getElementById("filterSelect").value;
     const intensity = parseInt(document.getElementById("filterIntensity").value) / 100;
@@ -581,6 +784,7 @@ function applyPhotoFilter() {
     if (filterKey === "none" || intensity === 0) {
         document.getElementById("newPostImage").style.display = "";
         document.getElementById("filterCanvas").style.display = "none";
+        updateCropTransform();
         return;
     }
 
@@ -641,56 +845,101 @@ function applyPhotoFilter() {
 
     document.getElementById("newPostImage").style.display = "none";
     canvas.style.display = "";
+    updateCropTransform();
 }
 
 function getFilteredBase64(photo) {
-    if (!photo.filterKey || photo.filterKey === "none" || !photo.filterIntensity) {
+    const crop = photo.cropState || { panX: 0, panY: 0, zoom: 100, rotation: 0, aspect: "4:5" };
+    const hasFilter = photo.filterKey && photo.filterKey !== "none" && photo.filterIntensity;
+    const hasCrop = crop.zoom !== 100 || crop.rotation !== 0 || crop.panX !== 0 || crop.panY !== 0 || (crop.aspect && crop.aspect !== "free");
+
+    if (!hasFilter && !hasCrop) {
         return photo.base64;
     }
+
     return new Promise((resolve) => {
-        const filter = PHOTO_FILTERS[photo.filterKey];
-        if (!filter) { resolve(photo.base64); return; }
-        const intensity = (photo.filterIntensity || 100) / 100;
         const img = new Image();
         img.onload = () => {
+            const natW = img.naturalWidth;
+            const natH = img.naturalHeight;
+            const isRotated = crop.rotation % 180 !== 0;
+            const srcW = isRotated ? natH : natW;
+            const srcH = isRotated ? natW : natH;
+
+            const ratio = ASPECT_RATIOS[crop.aspect];
+            let outW, outH;
+            if (ratio) {
+                if (srcW / srcH > ratio) {
+                    outH = srcH;
+                    outW = Math.round(srcH * ratio);
+                } else {
+                    outW = srcW;
+                    outH = Math.round(srcW / ratio);
+                }
+            } else {
+                outW = srcW;
+                outH = srcH;
+            }
+
+            const zoom = crop.zoom / 100;
+            const scaleToFit = Math.max(outW / srcW, outH / srcH);
+            const finalScale = scaleToFit * zoom;
+
             const c = document.createElement("canvas");
-            c.width = img.naturalWidth;
-            c.height = img.naturalHeight;
+            c.width = outW;
+            c.height = outH;
             const ctx = c.getContext("2d");
 
-            const b = 1 + ((filter.brightness || 1) - 1) * intensity;
-            const co = 1 + ((filter.contrast || 1) - 1) * intensity;
-            const s = filter.grayscale ? 1 - intensity : 1 + ((filter.saturate || 1) - 1) * intensity;
-            let cssF = `brightness(${b}) contrast(${co}) saturate(${s})`;
-            if (filter.grayscale) cssF += ` grayscale(${intensity})`;
-            if (filter.temperature) cssF += ` hue-rotate(${filter.temperature * 0.5 * intensity}deg)`;
+            const filter = hasFilter ? PHOTO_FILTERS[photo.filterKey] : null;
+            if (filter) {
+                const intensity = (photo.filterIntensity || 100) / 100;
+                const b = 1 + ((filter.brightness || 1) - 1) * intensity;
+                const co = 1 + ((filter.contrast || 1) - 1) * intensity;
+                const s = filter.grayscale ? 1 - intensity : 1 + ((filter.saturate || 1) - 1) * intensity;
+                let cssF = `brightness(${b}) contrast(${co}) saturate(${s})`;
+                if (filter.grayscale) cssF += ` grayscale(${intensity})`;
+                if (filter.temperature) cssF += ` hue-rotate(${filter.temperature * 0.5 * intensity}deg)`;
+                ctx.filter = cssF;
+            }
 
-            ctx.filter = cssF;
-            ctx.drawImage(img, 0, 0);
+            const vpW = crop._viewportW || 400;
+            const vpH = crop._viewportH || 400;
+            const panXScaled = crop.panX * (outW / vpW);
+            const panYScaled = crop.panY * (outH / vpH);
+
+            ctx.save();
+            ctx.translate(outW / 2 + panXScaled, outH / 2 + panYScaled);
+            ctx.rotate((crop.rotation * Math.PI) / 180);
+            ctx.scale(finalScale, finalScale);
+            ctx.drawImage(img, -natW / 2, -natH / 2);
+            ctx.restore();
             ctx.filter = "none";
 
-            if (filter.tint) {
-                const t = filter.tint;
-                ctx.fillStyle = `rgba(${t.r},${t.g},${t.b},${(t.a || 0.05) * intensity})`;
-                ctx.fillRect(0, 0, c.width, c.height);
+            if (filter) {
+                const intensity = (photo.filterIntensity || 100) / 100;
+                if (filter.tint) {
+                    const t = filter.tint;
+                    ctx.fillStyle = `rgba(${t.r},${t.g},${t.b},${(t.a || 0.05) * intensity})`;
+                    ctx.fillRect(0, 0, c.width, c.height);
+                }
+                if (filter.clarity && filter.clarity > 0) {
+                    ctx.globalCompositeOperation = "overlay";
+                    ctx.globalAlpha = filter.clarity * intensity * 0.3;
+                    ctx.drawImage(c, 0, 0);
+                    ctx.globalCompositeOperation = "source-over";
+                    ctx.globalAlpha = 1.0;
+                }
+                if (filter.vignette && filter.vignette > 0) {
+                    const cx = c.width / 2, cy = c.height / 2;
+                    const r = Math.max(cx, cy);
+                    const grad = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 1.2);
+                    grad.addColorStop(0, "rgba(0,0,0,0)");
+                    grad.addColorStop(1, `rgba(0,0,0,${filter.vignette * intensity})`);
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, c.width, c.height);
+                }
             }
-            if (filter.clarity && filter.clarity > 0) {
-                ctx.globalCompositeOperation = "overlay";
-                ctx.globalAlpha = filter.clarity * intensity * 0.3;
-                ctx.drawImage(c, 0, 0);
-                ctx.globalCompositeOperation = "source-over";
-                ctx.globalAlpha = 1.0;
-            }
-            if (filter.vignette && filter.vignette > 0) {
-                const cx = c.width / 2, cy = c.height / 2;
-                const r = Math.max(cx, cy);
-                const grad = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 1.2);
-                grad.addColorStop(0, "rgba(0,0,0,0)");
-                grad.addColorStop(1, `rgba(0,0,0,${filter.vignette * intensity})`);
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, 0, c.width, c.height);
-            }
-            resolve(c.toDataURL("image/jpeg", 0.95));
+            resolve(c.toDataURL("image/jpeg", 1.0));
         };
         img.src = photo.base64;
     });
@@ -732,8 +981,31 @@ function setupNewPostModal() {
 
     document.getElementById("regenHashtagsBtn").addEventListener("click", regenerateHashtags);
 
-    document.getElementById("filterSelect").addEventListener("change", applyPhotoFilter);
+    // Populate filter dropdown with optgroups by category
+    const filterSelect = document.getElementById("filterSelect");
+    const groups = {};
+    for (const [key, f] of Object.entries(PHOTO_FILTERS)) {
+        if (key === "none") continue;
+        const parts = f.label.replace(/\s+\d+$/, "");
+        if (!groups[parts]) groups[parts] = [];
+        groups[parts].push({ key, label: f.label });
+    }
+    for (const [groupName, items] of Object.entries(groups)) {
+        const optgroup = document.createElement("optgroup");
+        optgroup.label = groupName;
+        for (const item of items) {
+            const opt = document.createElement("option");
+            opt.value = item.key;
+            opt.textContent = item.label;
+            optgroup.appendChild(opt);
+        }
+        filterSelect.appendChild(optgroup);
+    }
+
+    filterSelect.addEventListener("change", applyPhotoFilter);
     document.getElementById("filterIntensity").addEventListener("input", applyPhotoFilter);
+
+    setupCropControls();
 
     document.getElementById("reviewScheduleBtn").addEventListener("click", () => {
         saveCurrentReviewFields();
@@ -764,6 +1036,8 @@ function renderNewPostCard() {
         document.getElementById("filterSelect").value = photo.filterKey || "none";
         document.getElementById("filterIntensity").value = photo.filterIntensity || 100;
         document.getElementById("filterIntensityValue").textContent = (photo.filterIntensity || 100) + "%";
+        restoreCropUI();
+        updateCropTransform();
         if (photo.filterKey && photo.filterKey !== "none") applyPhotoFilter();
     };
     _filterOriginalImage.src = photo.base64;

@@ -263,37 +263,41 @@
 
         <div class="modal-body">
             <div class="new-post-photo-col">
-                <div class="photo-preview-wrapper">
-                    <img id="newPostImage" class="new-post-image" src="" alt="Foto">
-                    <canvas id="filterCanvas" class="new-post-image" style="display:none"></canvas>
+                <div class="photo-preview-wrapper" id="photoPreviewWrapper">
+                    <div class="crop-viewport" id="cropViewport">
+                        <img id="newPostImage" class="new-post-image crop-image" src="" alt="Foto">
+                        <canvas id="filterCanvas" class="new-post-image crop-image" style="display:none"></canvas>
+                    </div>
                 </div>
                 <div class="exif-box">
                     <p id="exifCamera">—</p>
                     <p id="exifLocationLine"></p>
                     <p id="exifDate"></p>
                 </div>
+                <div class="crop-controls">
+                    <div class="crop-toolbar">
+                        <button class="crop-btn" id="rotateLeftBtn" title="Girar 90° esquerda">↺</button>
+                        <button class="crop-btn" id="rotateRightBtn" title="Girar 90° direita">↻</button>
+                        <span class="crop-separator"></span>
+                        <select id="aspectRatioSelect" class="crop-select">
+                            <option value="free">Livre</option>
+                            <option value="1:1">1:1</option>
+                            <option value="4:5" selected>4:5 (Instagram)</option>
+                            <option value="1.91:1">1.91:1 (Paisagem)</option>
+                        </select>
+                        <button class="crop-btn crop-btn-text" id="cropResetBtn" title="Resetar">Reset</button>
+                    </div>
+                    <div class="crop-slider-row">
+                        <span class="crop-slider-label">Zoom</span>
+                        <input type="range" id="cropZoom" min="100" max="300" value="100" class="filter-slider">
+                        <span id="cropZoomValue" class="filter-slider-value">100%</span>
+                    </div>
+                </div>
                 <div class="filter-controls">
                     <div class="filter-select-row">
                         <label class="filter-label">LUT:</label>
                         <select id="filterSelect" class="filter-select">
                             <option value="none">Original</option>
-                        <option value="azul">Azul</option>
-                        <option value="branco">Branco</option>
-                        <option value="cafe">Café</option>
-                        <option value="cinematic">Cinematic</option>
-                        <option value="claro">Claro</option>
-                        <option value="comida">Comida</option>
-                        <option value="contraste">Contraste</option>
-                        <option value="golden_hour">Golden Hour</option>
-                        <option value="neon">Neon</option>
-                        <option value="pb">P&B</option>
-                        <option value="pastel">Pastel</option>
-                        <option value="perfil">Perfil</option>
-                        <option value="praia">Praia</option>
-                        <option value="rosa">Rosa</option>
-                        <option value="sepia">Sépia</option>
-                        <option value="verde">Verde</option>
-                            <option value="vermelho">Vermelho</option>
                         </select>
                     </div>
                     <div class="filter-slider-row">
