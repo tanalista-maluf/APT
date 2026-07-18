@@ -391,7 +391,7 @@ function switchPage(pageName) {
 
 function _startDashboardPoll() {
     _stopDashboardPoll();
-    _dashboardPollTimer = setInterval(loadQueue, 30000);
+    _dashboardPollTimer = setInterval(loadQueue, 600000);
 }
 
 function _stopDashboardPoll() {
@@ -411,6 +411,38 @@ document.addEventListener("visibilitychange", () => {
         _startDashboardPoll();
     }
 });
+
+(function setupPullToRefresh() {
+    let startY = 0;
+    let pulling = false;
+    const THRESHOLD = 80;
+    const ptr = document.getElementById("pullToRefresh");
+    const page = document.getElementById("page-dashboard");
+
+    page.addEventListener("touchstart", (e) => {
+        if (window.scrollY > 0 || !page.classList.contains("active")) return;
+        startY = e.touches[0].clientY;
+        pulling = true;
+    }, { passive: true });
+
+    page.addEventListener("touchmove", (e) => {
+        if (!pulling) return;
+        const dy = e.touches[0].clientY - startY;
+        if (dy > 10 && window.scrollY === 0) {
+            ptr.classList.add("visible");
+        }
+    }, { passive: true });
+
+    page.addEventListener("touchend", async () => {
+        if (!pulling) return;
+        pulling = false;
+        if (!ptr.classList.contains("visible")) return;
+        ptr.classList.remove("visible");
+        ptr.classList.add("refreshing");
+        await loadQueue();
+        ptr.classList.remove("refreshing");
+    });
+})();
 
 // ============================================================
 // UPLOAD DE FOTOS (dropzone + pipeline de processamento)
