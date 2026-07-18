@@ -123,7 +123,7 @@ def handle_server_error(e):
 # Autenticacao (ativa somente se APP_PASSWORD estiver definida)
 # ============================================================
 
-AUTH_PUBLIC_PATHS = {"/api/health", "/api/login", "/api/auth-status"}
+AUTH_PUBLIC_PATHS = {"/api/health", "/api/login", "/api/auth-status", "/auth/callback"}
 
 
 @app.before_request
@@ -850,6 +850,90 @@ def instagram_set_default():
         return jsonify({"error": "Informe account_id."}), 400
     db.set_default_ig_account(int(account_id))
     return jsonify({"success": True})
+
+
+@app.route("/auth/callback")
+def oauth_callback():
+    code = request.args.get("code")
+    if not code:
+        error = request.args.get("error_description", "Autorização negada.")
+        return f"<h2>Erro</h2><p>{error}</p>", 400
+
+    redirect_uri = (PUBLIC_BASE_URL or request.host_url.rstrip("/")) + "/auth/callback"
+
+    try:
+        resp = requests.get(f"https://graph.facebook.com/{instagram.GRAPH_VERSION}/oauth/access_token", params={
+            "client_id": META_APP_ID,
+            "client_secret": META_APP_SECRET,
+            "redirect_uri": redirect_uri,
+            "code": code,
+        }, timeout=15)
+        data = resp.json()
+    except Exception as e:
+        return f"<h2>Erro ao trocar código</h2><p>{e}</p>", 502
+
+    if "error" in data:
+        return f"<h2>Erro</h2><p>{data['error'].get('message', data['error'])}</p>", 400
+
+    short_token = data["access_token"]
+
+    try:
+        long_token, expires_in = instagram.exchange_long_lived_token(META_APP_ID, META_APP_SECRET, short_token)
+    except Exception:
+        long_token, expires_in = short_token, None
+
+    try:
+        pages_resp = requests.get(f"https://graph.facebook.com/{instagram.GRAPH_VERSION}/me/accounts", params={
+            "access_token": long_token,
+            "fields": "id,name,instagram_business_account{id,username,profile_picture_url}",
+        }, timeout=15)
+        pages_data = pages_resp.json()
+    except Exception as e:
+        return f"<h2>Erro ao buscar páginas</h2><p>{e}</p>", 502
+
+    connected = []
+    for page in pages_data.get("data", []):
+        ig = page.get("instagram_business_account")
+        if not ig:
+            continue
+        ig_id = ig["id"]
+        username = ig.get("username", "")
+        pic = ig.get("profile_picture_url", "")
+        page_token_resp = requests.get(f"https://graph.facebook.com/{instagram.GRAPH_VERSION}/{page['id']}", params={
+            "fields": "access_token",
+            "access_token": long_token,
+        }, timeout=15).json()
+        page_token = page_token_resp.get("access_token", long_token)
+        try:
+            ll_page_token, pg_expires = instagram.exchange_long_lived_token(META_APP_ID, META_APP_SECRET, page_token)
+        except Exception:
+            ll_page_token, pg_expires = page_token, expires_in
+        token_expires_at = None
+        if pg_expires:
+            token_expires_at = (datetime.utcnow() + timedelta(seconds=int(pg_expires))).isoformat()
+        db.add_ig_account(
+            ig_user_id=ig_id,
+            username=username,
+            access_token=ll_page_token,
+            token_expires_at=token_expires_at,
+            profile_picture_url=pic,
+        )
+        connected.append(f"@{username}" if username else ig_id)
+
+    if connected:
+        names = ", ".join(connected)
+        return f"""<html><body style="font-family:sans-serif;text-align:center;padding:40px">
+        <h2>✅ Conectado com sucesso!</h2>
+        <p>Contas vinculadas: <b>{names}</b></p>
+        <p><a href="/">Voltar ao AutoPost</a></p>
+        </body></html>"""
+    else:
+        return f"""<html><body style="font-family:sans-serif;text-align:center;padding:40px">
+        <h2>⚠️ Nenhuma conta Instagram encontrada</h2>
+        <p>Suas páginas do Facebook não têm contas Instagram Profissional vinculadas.</p>
+        <p>Verifique se a conta é Profissional (Criador ou Empresa) e está vinculada a uma Página.</p>
+        <p><a href="/">Voltar ao AutoPost</a></p>
+        </body></html>"""
 
 
 @app.route("/api/queue/<post_id>/publish-now", methods=["POST"])
