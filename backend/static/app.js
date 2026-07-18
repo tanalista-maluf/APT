@@ -141,6 +141,7 @@ let selectedFrequency = 1;
 let queueData = [];             // todos os posts vindos do backend
 let currentHistoryFilter = "all";
 let currentContentFilter = "all";
+let _dashboardPollTimer = null;
 
 let calendarViewDate = new Date();
 calendarViewDate.setDate(1);
@@ -278,6 +279,7 @@ function showApp() {
     document.getElementById("loginScreen").classList.add("hidden");
     document.getElementById("appShell").classList.remove("hidden");
     loadQueue();
+    _startDashboardPoll();
 }
 
 function setupLogin() {
@@ -378,7 +380,37 @@ function switchPage(pageName) {
     } else if (pageName === "settings") {
         loadSettingsPage();
     }
+
+    if (pageName === "dashboard") {
+        loadQueue();
+        _startDashboardPoll();
+    } else {
+        _stopDashboardPoll();
+    }
 }
+
+function _startDashboardPoll() {
+    _stopDashboardPoll();
+    _dashboardPollTimer = setInterval(loadQueue, 30000);
+}
+
+function _stopDashboardPoll() {
+    if (_dashboardPollTimer) {
+        clearInterval(_dashboardPollTimer);
+        _dashboardPollTimer = null;
+    }
+}
+
+document.addEventListener("visibilitychange", () => {
+    const onDashboard = document.getElementById("page-dashboard")?.classList.contains("active");
+    if (!onDashboard) return;
+    if (document.hidden) {
+        _stopDashboardPoll();
+    } else {
+        loadQueue();
+        _startDashboardPoll();
+    }
+});
 
 // ============================================================
 // UPLOAD DE FOTOS (dropzone + pipeline de processamento)
