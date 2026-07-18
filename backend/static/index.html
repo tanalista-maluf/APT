@@ -257,7 +257,11 @@
     <div class="modal-panel new-post-modal">
         <div class="modal-header">
             <h2>Nova Postagem</h2>
-            <span class="modal-position" id="newPostPosition">1 de 1</span>
+            <div class="modal-position-group">
+                <button class="reorder-btn" id="movePhotoUpBtn" title="Mover para antes">▲</button>
+                <span class="modal-position" id="newPostPosition">1 de 1</span>
+                <button class="reorder-btn" id="movePhotoDownBtn" title="Mover para depois">▼</button>
+            </div>
             <button class="modal-close" id="closeNewPostBtn">✕</button>
         </div>
 

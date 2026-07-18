@@ -955,6 +955,26 @@ function setupNewPostModal() {
         selectedPhotos = [];
     });
 
+    document.getElementById("movePhotoUpBtn").addEventListener("click", () => {
+        saveCurrentReviewFields();
+        if (currentModalIndex > 0) {
+            [selectedPhotos[currentModalIndex - 1], selectedPhotos[currentModalIndex]] =
+                [selectedPhotos[currentModalIndex], selectedPhotos[currentModalIndex - 1]];
+            currentModalIndex--;
+            renderNewPostCard();
+        }
+    });
+
+    document.getElementById("movePhotoDownBtn").addEventListener("click", () => {
+        saveCurrentReviewFields();
+        if (currentModalIndex < selectedPhotos.length - 1) {
+            [selectedPhotos[currentModalIndex], selectedPhotos[currentModalIndex + 1]] =
+                [selectedPhotos[currentModalIndex + 1], selectedPhotos[currentModalIndex]];
+            currentModalIndex++;
+            renderNewPostCard();
+        }
+    });
+
     document.getElementById("prevPhotoBtn").addEventListener("click", () => {
         saveCurrentReviewFields();
         if (currentModalIndex > 0) {
@@ -1027,6 +1047,8 @@ function renderNewPostCard() {
     if (!photo) return;
 
     document.getElementById("newPostPosition").textContent = `${currentModalIndex + 1} de ${selectedPhotos.length}`;
+    document.getElementById("movePhotoUpBtn").disabled = currentModalIndex === 0;
+    document.getElementById("movePhotoDownBtn").disabled = currentModalIndex >= selectedPhotos.length - 1;
     document.getElementById("newPostImage").src = photo.base64;
     document.getElementById("newPostImage").style.display = "";
     document.getElementById("filterCanvas").style.display = "none";

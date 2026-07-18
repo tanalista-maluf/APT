@@ -1011,6 +1011,12 @@ input, textarea, select {
     flex: 1;
 }
 
+.modal-position-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
 .modal-position {
     font-size: 12px;
     font-weight: 600;
@@ -1018,6 +1024,31 @@ input, textarea, select {
     background: var(--cream);
     padding: 4px 10px;
     border-radius: 999px;
+}
+
+.reorder-btn {
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--gray-border);
+    border-radius: 50%;
+    background: var(--white);
+    font-size: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-text);
+    transition: background 0.15s;
+}
+
+.reorder-btn:hover {
+    background: var(--cream-2);
+    color: var(--gray-dark);
+}
+
+.reorder-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
 }
 
 .modal-close {
