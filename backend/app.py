@@ -474,7 +474,7 @@ def analyze_image():
         prompt = f"""Analise esta foto para um post de Instagram.
 {context_block}
 Crie EXATAMENTE 3 opções de legenda em português do Brasil, cada uma com um estilo diferente:
-1. style "Espirituosa" — tom autêntico, levemente engraçada, com uma sacada inteligente ou ironia sutil. Como alguém perspicaz e bem-humorado postaria.
+1. style "Estilo Maluf" — tom conversacional e direto, humor autodepreciativo e leve, referências culturais quando cabe, mistura curiosidades do lugar com observações bem-humoradas, bairrismo gaúcho sutil. Frases curtas. Exemplos reais: "Vai lá gordinho, tira nossa foto aí… e não te amarra!" / "Pôr do sol quase tão bonito quanto o do Guaíba" / "O que tem dentro de um vulcão na Islândia? Um lago congelado, claro."
 2. style "Curta e direta" — no máximo 1 frase certeira, sem emoji. Atitude, não poesia.
 3. style "Storytelling" — 2-3 frases contando algo real ou uma observação interessante sobre o momento. Sem melodrama.
 
@@ -612,6 +612,24 @@ CAPTION_SCHEMA = {
 # Cada mood e um botao na tela de revisao - a legenda atual e reescrita
 # no tom escolhido, mantendo o assunto original.
 MOOD_PROMPTS = {
+    "maluf": (
+        "EXATAMENTE como o dono do perfil escreve. Estilo pessoal do Ricardo Maluf: "
+        "tom conversacional e direto, como se falasse com amigos próximos. "
+        "Humor autodepreciativo e leve ('tentei parecer natural mas só queria um café'). "
+        "Referências culturais e piadas internas quando cabe. "
+        "Mistura curiosidades históricas/geográficas do lugar com observações bem-humoradas. "
+        "Bairrismo gaúcho sutil quando possível. "
+        "Frases curtas — às vezes uma frase só basta. Máximo 2-3 frases. "
+        "Emoji só se for pra reforçar humor, e no máximo 1. Zero é melhor. "
+        "NUNCA piegas, motivacional ou poético. Tom de quem viaja muito e não precisa provar nada. "
+        "Exemplos reais do perfil para calibrar o tom: "
+        "'Vai lá gordinho, tira nossa foto aí… e não te amarra!' / "
+        "'Até tento ser sério, mas me transformam em meme.. fazer o que né?' / "
+        "'Pôr do sol quase tão bonito quanto o do Guaíba' / "
+        "'Rosslyn Chapel. Não encontrei o Sr. Langdon por lá..' / "
+        "'Vilarejos históricos! (Aqui, em 19 de julho de 1729 não aconteceu absolutamente nada)' / "
+        "'O que tem dentro de um vulcão na Islândia? Um lago congelado, claro.'"
+    ),
     "espirituosa": "autêntica, alegre e espirituosa — levemente engraçada, perspicaz, com uma ponta de ironia. Como alguém inteligente e bem-humorado escreveria. Sem melodrama, sem poesia barata, sem emoji forçado",
     "seca": "seca e certeira — poucas palavras, atitude, zero emoji. Como quem posta e não precisa explicar",
     "ironica": "irônica e afiada — deboche inteligente, sarcasmo elegante. Nunca grosseira, sempre esperta",

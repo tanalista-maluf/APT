@@ -5,6 +5,7 @@
 const API_BASE = window.location.origin + "/api";
 
 const MOODS = [
+    { id: "maluf", label: "✍️ Meu Estilo" },
     { id: "espirituosa", label: "Espirituosa" },
     { id: "seca", label: "Seca" },
     { id: "ironica", label: "Irônica" },
