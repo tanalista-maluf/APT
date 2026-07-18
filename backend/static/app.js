@@ -683,7 +683,7 @@ const ASPECT_RATIOS = {
     "1.91:1": 1.91,
 };
 
-let _cropState = { panX: 0, panY: 0, zoom: 100, rotation: 0, aspect: "4:5" };
+let _cropState = { panX: 0, panY: 0, zoom: 100, rotation: 0, aspect: "free" };
 let _isDragging = false;
 let _dragStart = { x: 0, y: 0, panX: 0, panY: 0 };
 
@@ -691,7 +691,7 @@ function getCropState() {
     const photo = getCurrentPhoto();
     if (!photo) return _cropState;
     if (!photo.cropState) {
-        photo.cropState = { panX: 0, panY: 0, zoom: 100, rotation: 0, aspect: "4:5" };
+        photo.cropState = { panX: 0, panY: 0, zoom: 100, rotation: 0, aspect: "free" };
     }
     return photo.cropState;
 }
@@ -747,13 +747,21 @@ function updateCropTransform() {
 
     const transform = `translate(${state.panX}px, ${state.panY}px) rotate(${state.rotation}deg) scale(${finalScale})`;
 
-    [img, canvas].forEach(el => {
-        el.style.width = `${natW}px`;
-        el.style.height = `${natH}px`;
-        el.style.transform = transform;
-        el.style.left = `${(vw - natW) / 2}px`;
-        el.style.top = `${(vh - natH) / 2}px`;
-    });
+    img.style.width = `${natW}px`;
+    img.style.height = `${natH}px`;
+    img.style.transform = transform;
+    img.style.left = `${(vw - natW) / 2}px`;
+    img.style.top = `${(vh - natH) / 2}px`;
+
+    const cw = canvas.width || natW;
+    const ch = canvas.height || natH;
+    const canvasScale = finalScale * (natW / cw);
+    const canvasTransform = `translate(${state.panX}px, ${state.panY}px) rotate(${state.rotation}deg) scale(${canvasScale})`;
+    canvas.style.width = `${cw}px`;
+    canvas.style.height = `${ch}px`;
+    canvas.style.transform = canvasTransform;
+    canvas.style.left = `${(vw - cw) / 2}px`;
+    canvas.style.top = `${(vh - ch) / 2}px`;
 }
 
 function clampPan() {
@@ -798,11 +806,11 @@ function setupCropControls() {
     document.getElementById("cropResetBtn").addEventListener("click", () => {
         const photo = getCurrentPhoto();
         if (photo) {
-            photo.cropState = { panX: 0, panY: 0, zoom: 100, rotation: 0, aspect: "4:5" };
+            photo.cropState = { panX: 0, panY: 0, zoom: 100, rotation: 0, aspect: "free" };
         }
         document.getElementById("cropZoom").value = 100;
         document.getElementById("cropZoomValue").textContent = "100%";
-        document.getElementById("aspectRatioSelect").value = "4:5";
+        document.getElementById("aspectRatioSelect").value = "free";
         updateViewportAspect();
         updateCropTransform();
     });
@@ -883,8 +891,15 @@ function applyPhotoFilter() {
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     const img = _filterOriginalImage;
 
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
+    const MAX_PREVIEW = 1200;
+    const natW = img.naturalWidth;
+    const natH = img.naturalHeight;
+    const previewScale = Math.min(1, MAX_PREVIEW / Math.max(natW, natH));
+    const pw = Math.round(natW * previewScale);
+    const ph = Math.round(natH * previewScale);
+
+    canvas.width = pw;
+    canvas.height = ph;
 
     const b = 1 + ((filter.brightness || 1) - 1) * intensity;
     const c = 1 + ((filter.contrast || 1) - 1) * intensity;
@@ -902,7 +917,7 @@ function applyPhotoFilter() {
     }
 
     ctx.filter = cssFilter;
-    ctx.drawImage(img, 0, 0);
+    ctx.drawImage(img, 0, 0, pw, ph);
     ctx.filter = "none";
 
     if (filter.tint) {
@@ -935,7 +950,7 @@ function applyPhotoFilter() {
 }
 
 function getFilteredBase64(photo) {
-    const crop = photo.cropState || { panX: 0, panY: 0, zoom: 100, rotation: 0, aspect: "4:5" };
+    const crop = photo.cropState || { panX: 0, panY: 0, zoom: 100, rotation: 0, aspect: "free" };
     const hasFilter = photo.filterKey && photo.filterKey !== "none" && photo.filterIntensity;
     const hasCrop = crop.zoom !== 100 || crop.rotation !== 0 || crop.panX !== 0 || crop.panY !== 0 || (crop.aspect && crop.aspect !== "free");
 
