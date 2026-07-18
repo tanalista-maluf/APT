@@ -245,7 +245,7 @@ function showToast(message, type = "success", duration = 4500) {
 
 // Wrapper de fetch: se o servidor pedir login (401), mostra a tela de senha.
 async function apiFetch(path, options = {}) {
-    const res = await fetch(`${API_BASE}${path}`, { credentials: "same-origin", ...options });
+    const res = await fetch(`${API_BASE}${path}`, { credentials: "same-origin", cache: "no-store", ...options });
     if (res.status === 401) {
         showLogin();
     }
