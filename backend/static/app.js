@@ -593,21 +593,26 @@ async function handleNewFiles(fileList) {
                     photo.caption = data.caption || "";
                     photo.hashtags = data.hashtags || [];
                     photo.contentType = data.content_type || "";
-                    if (photo.location) {
-                        try {
-                            const pinRes = await apiFetch(`/rewrite-caption`, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ caption: "", mood: "pin", location: photo.location })
-                            });
-                            const pinData = await pinRes.json();
-                            if (pinData.success && pinData.caption) {
-                                photo.captionOptions.unshift({ style: "📍 Só Local", text: pinData.caption });
-                                photo.caption = pinData.caption;
-                                photo.activeMood = "pin";
-                            }
-                        } catch (_) {}
-                    }
+                    const defaultMood = photo.location ? "pin" : "maluf";
+                    try {
+                        const moodRes = await apiFetch(`/rewrite-caption`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                caption: photo.caption,
+                                mood: defaultMood,
+                                location: photo.location || "",
+                                content_type: photo.contentType || ""
+                            })
+                        });
+                        const moodData = await moodRes.json();
+                        if (moodData.success && moodData.caption) {
+                            const label = defaultMood === "pin" ? "📍 Só Local" : "✍️ Meu Estilo";
+                            photo.captionOptions.unshift({ style: label, text: moodData.caption });
+                            photo.caption = moodData.caption;
+                            photo.activeMood = defaultMood;
+                        }
+                    } catch (_) {}
                 } else if (data.error) {
                     analysisErrors.push(data.error);
                 }
