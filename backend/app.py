@@ -474,7 +474,7 @@ def analyze_image():
         prompt = f"""Analise esta foto para um post de Instagram.
 {context_block}
 Crie EXATAMENTE 3 opções de legenda em português do Brasil, cada uma com um estilo diferente:
-1. style "Estilo Maluf" — NÃO descreva a foto. Encontre uma sacada: trocadilho, duplo sentido, observação meta, ângulo inesperado. Uma frase só, máximo duas. A graça vem da sutileza e inteligência, não da descrição. Sem emoji. Exemplos: foto de perfil (lado) → "A verdadeira foto 'de perfil'" / Rosslyn Chapel → "Não encontrei o Sr. Langdon por lá.." / vulcão → "O que tem dentro de um vulcão na Islândia? Um lago congelado, claro."
+1. style "Estilo Maluf" — Leia a foto, pinçe UM detalhe específico (pose, objeto, fundo, expressão, situação) e construa uma sacada perspicaz em cima dele: trocadilho, duplo sentido, ironia fina ou link inesperado. Uma frase, máximo duas. Tom conversacional. O teste: o dono diria "isso eu teria escrito". Ex: foto de lado → "A verdadeira foto 'de perfil'" / Rosslyn Chapel → "Não encontrei o Sr. Langdon por lá.."
 2. style "Curta e direta" — no máximo 1 frase certeira, sem emoji. Atitude, não poesia.
 3. style "Storytelling" — 2-3 frases contando algo real ou uma observação interessante sobre o momento. Sem melodrama.
 
@@ -613,21 +613,24 @@ CAPTION_SCHEMA = {
 # no tom escolhido, mantendo o assunto original.
 MOOD_PROMPTS = {
     "maluf": (
-        "estilo pessoal do dono do perfil. A regra de ouro: NUNCA descreva o que está na foto. "
-        "A legenda deve ser uma SACADA — um trocadilho, duplo sentido, observação meta, "
-        "ou um ângulo que ninguém esperava. A graça vem da inteligência e da sutileza, não da descrição. "
-        "Uma frase só, no máximo duas. Quanto mais curta, melhor. "
-        "NÃO mencione elementos visuais da foto (roupa, cenário, expressão, objetos). "
-        "NÃO descreva o lugar com dados turísticos ou históricos. "
-        "NÃO use emoji. NÃO seja piegas, motivacional ou poético. "
-        "O leitor deve olhar a legenda, olhar a foto, e sorrir pela conexão inesperada. "
-        "Exemplos reais que definem o nível: "
-        "Foto de perfil (lado do rosto) → 'A verdadeira foto de perfil' / "
+        "estilo pessoal do dono do perfil. Leia a foto com atenção — procure UM detalhe "
+        "específico (uma pose, algo no fundo, um objeto, uma expressão, uma situação, "
+        "um elemento em segundo plano) e construa a sacada em cima desse detalhe. "
+        "A sacada pode ser um trocadilho, duplo sentido, ironia fina, observação perspicaz "
+        "ou um link inesperado entre o que se vê e outra coisa. "
+        "Pode falar de qualquer elemento da foto — o importante é a NUANCE, a sutileza. "
+        "Não é descrever a cena toda — é pinçar o detalhe que vira a piada ou a sacada. "
+        "Uma frase só, no máximo duas. Tom conversacional, como quem fala com amigos. "
+        "Sem emoji (ou no máximo 1 se reforçar o humor). "
+        "NUNCA piegas, motivacional, poético ou turístico. "
+        "O teste final: o dono do perfil olharia e diria 'isso eu teria escrito'. "
+        "Exemplos reais que calibram o nível de sutileza: "
+        "Foto de lado (perfil do rosto) → 'A verdadeira foto de perfil' / "
         "Foto em Rosslyn Chapel → 'Não encontrei o Sr. Langdon por lá..' / "
-        "Vilarejo histórico → 'Aqui, em 19 de julho de 1729 não aconteceu absolutamente nada' / "
-        "Vulcão na Islândia → 'O que tem dentro de um vulcão na Islândia? Um lago congelado, claro.' / "
-        "Foto posando → 'Até tento ser sério, mas me transformam em meme.. fazer o que né?' / "
-        "Pôr do sol → 'Pôr do sol quase tão bonito quanto o do Guaíba'"
+        "Vilarejo sem história → 'Aqui, em 19 de julho de 1729 não aconteceu absolutamente nada' / "
+        "Dentro de vulcão com lago → 'O que tem dentro de um vulcão na Islândia? Um lago congelado, claro.' / "
+        "Foto tentando posar sério → 'Até tento ser sério, mas me transformam em meme.. fazer o que né?' / "
+        "Pôr do sol bonito → 'Pôr do sol quase tão bonito quanto o do Guaíba'"
     ),
     "espirituosa": "autêntica, alegre e espirituosa — levemente engraçada, perspicaz, com uma ponta de ironia. Como alguém inteligente e bem-humorado escreveria. Sem melodrama, sem poesia barata, sem emoji forçado",
     "seca": "seca e certeira — poucas palavras, atitude, zero emoji. Como quem posta e não precisa explicar",
