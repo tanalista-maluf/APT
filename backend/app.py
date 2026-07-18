@@ -474,7 +474,7 @@ def analyze_image():
         prompt = f"""Analise esta foto para um post de Instagram.
 {context_block}
 Crie EXATAMENTE 3 opções de legenda em português do Brasil, cada uma com um estilo diferente:
-1. style "Estilo Maluf" — Leia a foto, pinçe UM detalhe específico (pose, objeto, fundo, expressão, situação) e construa uma sacada perspicaz em cima dele: trocadilho, duplo sentido, ironia fina ou link inesperado. Uma frase, máximo duas. Tom conversacional. O teste: o dono diria "isso eu teria escrito". Ex: foto de lado → "A verdadeira foto 'de perfil'" / Rosslyn Chapel → "Não encontrei o Sr. Langdon por lá.."
+1. style "Estilo Maluf" — Pense em 3 camadas: o que está na foto, o contexto cultural/clichê esperado, e a subversão. A sacada pode ser trocadilho, duplo sentido, referência pop, ironia do clichê, ou resposta inesperada ao óbvio. Uma frase, máximo duas. O teste: "isso eu teria escrito". Ex: selfie de lado → "A verdadeira foto 'de perfil'" / frente ao Louvre sem 'segurar' a pirâmide → "Be different" / Rosslyn Chapel → "Não encontrei o Sr. Langdon por lá.."
 2. style "Curta e direta" — no máximo 1 frase certeira, sem emoji. Atitude, não poesia.
 3. style "Storytelling" — 2-3 frases contando algo real ou uma observação interessante sobre o momento. Sem melodrama.
 
@@ -613,24 +613,24 @@ CAPTION_SCHEMA = {
 # no tom escolhido, mantendo o assunto original.
 MOOD_PROMPTS = {
     "maluf": (
-        "estilo pessoal do dono do perfil. Leia a foto com atenção — procure UM detalhe "
-        "específico (uma pose, algo no fundo, um objeto, uma expressão, uma situação, "
-        "um elemento em segundo plano) e construa a sacada em cima desse detalhe. "
-        "A sacada pode ser um trocadilho, duplo sentido, ironia fina, observação perspicaz "
-        "ou um link inesperado entre o que se vê e outra coisa. "
-        "Pode falar de qualquer elemento da foto — o importante é a NUANCE, a sutileza. "
-        "Não é descrever a cena toda — é pinçar o detalhe que vira a piada ou a sacada. "
-        "Uma frase só, no máximo duas. Tom conversacional, como quem fala com amigos. "
-        "Sem emoji (ou no máximo 1 se reforçar o humor). "
-        "NUNCA piegas, motivacional, poético ou turístico. "
-        "O teste final: o dono do perfil olharia e diria 'isso eu teria escrito'. "
-        "Exemplos reais que calibram o nível de sutileza: "
-        "Foto de lado (perfil do rosto) → 'A verdadeira foto de perfil' / "
-        "Foto em Rosslyn Chapel → 'Não encontrei o Sr. Langdon por lá..' / "
-        "Vilarejo sem história → 'Aqui, em 19 de julho de 1729 não aconteceu absolutamente nada' / "
-        "Dentro de vulcão com lago → 'O que tem dentro de um vulcão na Islândia? Um lago congelado, claro.' / "
-        "Foto tentando posar sério → 'Até tento ser sério, mas me transformam em meme.. fazer o que né?' / "
-        "Pôr do sol bonito → 'Pôr do sol quase tão bonito quanto o do Guaíba'"
+        "estilo pessoal do dono do perfil. Pense em 3 camadas antes de escrever: "
+        "1) O que está na foto (detalhe, pose, cenário, objeto). "
+        "2) O contexto cultural invisível (o clichê que todo turista faz ali, a referência "
+        "pop que o lugar evoca, o que 'se espera' de uma foto assim, o óbvio que todos diriam). "
+        "3) A subversão — brinque com a expectativa, vire do avesso, faça o trocadilho "
+        "que conecta o literal com o figurado, ou simplesmente ironize o clichê. "
+        "A sacada pode vir de qualquer camada: um detalhe visual, um duplo sentido, "
+        "uma referência cultural, ou a subversão do que é esperado. "
+        "Uma frase só, no máximo duas. Tom conversacional. Sem emoji (máximo 1 se reforçar humor). "
+        "NUNCA: piegas, motivacional, poético, turístico, ou explicar a piada. "
+        "O teste: o dono olharia e diria 'isso eu teria escrito'. "
+        "Exemplos reais com a lógica por trás: "
+        "Selfie de lado → 'A verdadeira foto de perfil' (literal vs figurado) / "
+        "Em frente ao Louvre, braço levantado sem 'segurar' a pirâmide → 'Be different' (subverte o clichê) / "
+        "Rosslyn Chapel → 'Não encontrei o Sr. Langdon por lá..' (referência pop) / "
+        "Vilarejo qualquer → 'Aqui, em 19 de julho de 1729 não aconteceu absolutamente nada' (anti-turístico) / "
+        "Vulcão com lago dentro → 'O que tem dentro de um vulcão? Um lago congelado, claro.' (resposta óbvia inesperada) / "
+        "Pôr do sol → 'Quase tão bonito quanto o do Guaíba' (bairrismo irônico)"
     ),
     "espirituosa": "autêntica, alegre e espirituosa — levemente engraçada, perspicaz, com uma ponta de ironia. Como alguém inteligente e bem-humorado escreveria. Sem melodrama, sem poesia barata, sem emoji forçado",
     "seca": "seca e certeira — poucas palavras, atitude, zero emoji. Como quem posta e não precisa explicar",
