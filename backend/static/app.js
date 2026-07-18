@@ -5,6 +5,7 @@
 const API_BASE = window.location.origin + "/api";
 
 const MOODS = [
+    { id: "pin", label: "📍 Só Local" },
     { id: "maluf", label: "✍️ Meu Estilo" },
     { id: "espirituosa", label: "Espirituosa" },
     { id: "seca", label: "Seca" },
@@ -592,6 +593,21 @@ async function handleNewFiles(fileList) {
                     photo.caption = data.caption || "";
                     photo.hashtags = data.hashtags || [];
                     photo.contentType = data.content_type || "";
+                    if (photo.location) {
+                        try {
+                            const pinRes = await apiFetch(`/rewrite-caption`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ caption: "", mood: "pin", location: photo.location })
+                            });
+                            const pinData = await pinRes.json();
+                            if (pinData.success && pinData.caption) {
+                                photo.captionOptions.unshift({ style: "📍 Só Local", text: pinData.caption });
+                                photo.caption = pinData.caption;
+                                photo.activeMood = "pin";
+                            }
+                        } catch (_) {}
+                    }
                 } else if (data.error) {
                     analysisErrors.push(data.error);
                 }

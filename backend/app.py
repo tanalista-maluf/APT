@@ -614,6 +614,7 @@ CAPTION_SCHEMA = {
 # Cada mood e um botao na tela de revisao - a legenda atual e reescrita
 # no tom escolhido, mantendo o assunto original.
 MOOD_PROMPTS = {
+    "pin": None,
     "maluf": (
         "estilo pessoal do dono do perfil. Pense em 3 camadas antes de escrever: "
         "1) O que está na foto (detalhe, pose, cenário, objeto). "
@@ -656,10 +657,30 @@ def rewrite_caption():
         location = (data.get("location") or "").strip()
         content_type = (data.get("content_type") or "").strip()
 
-        mood_desc = MOOD_PROMPTS.get(mood)
-        if not mood_desc:
+        if mood not in MOOD_PROMPTS:
             return jsonify({"error": "Mood inválido."}), 400
 
+        if mood == "pin":
+            if not location:
+                return jsonify({"error": "Sem localização disponível para esta foto."}), 400
+            pin_prompt = (
+                f"Given this location info: \"{location}\"\n"
+                "Return ONLY the location formatted as: City/Region, Country (in English).\n"
+                "Use the most recognizable name for the place. Examples:\n"
+                "- \"Lofoten Islands, Norway\"\n"
+                "- \"Bergheim, France\"\n"
+                "- \"Kyoto, Japan\"\n"
+                "Respond with just the formatted location, nothing else."
+            )
+            message = client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=60,
+                messages=[{"role": "user", "content": pin_prompt}],
+            )
+            pin_location = next((b.text for b in message.content if b.type == "text"), location).strip()
+            return jsonify({"success": True, "caption": f"\U0001f4cd {pin_location}"})
+
+        mood_desc = MOOD_PROMPTS[mood]
         parts = [f"Reescreva esta legenda de Instagram em português do Brasil, em um tom {mood_desc}:"]
         if caption:
             parts.append(f'Legenda atual: "{caption}"')
