@@ -593,15 +593,33 @@ input, textarea, select {
 .next-posts-card {
     grid-column: 2;
     grid-row: 1 / 3;
+    align-self: stretch;
+}
+
+.dropzone-card-story {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+}
+
+.dropzone-card-story .dropzone-inner {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .stats-card {
-    grid-row: 4;
+    grid-column: 1;
+    grid-row: 3;
 }
 
 .last-post-card {
     grid-column: 1;
-    grid-row: 5;
+    grid-row: 4;
     display: flex;
     flex-direction: column;
     align-self: stretch;
@@ -616,12 +634,8 @@ input, textarea, select {
 
 .mini-calendar-card {
     grid-column: 2;
-    grid-row: 4 / 6;
-    align-self: stretch;
-}
-
-.stats-card {
-    grid-column: 1;
+    grid-row: 3;
+    align-self: start;
 }
 
 .stats-content {
