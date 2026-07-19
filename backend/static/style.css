@@ -953,12 +953,41 @@ input, textarea, select {
     background: var(--cream);
 }
 
+.mini-post-thumb {
+    position: relative;
+    flex-shrink: 0;
+}
+
 .mini-post-item img {
     width: 44px;
     height: 44px;
     border-radius: 8px;
     object-fit: cover;
     flex-shrink: 0;
+}
+
+.mini-post-type-dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 9px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--cream);
+}
+
+.dot-feed {
+    background: var(--red);
+}
+
+.dot-story {
+    background: #7c3aed;
 }
 
 .mini-post-item-info {

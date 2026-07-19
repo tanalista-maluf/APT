@@ -1526,13 +1526,16 @@ function buildMiniPostItem(post) {
     const div = document.createElement("div");
     div.className = "mini-post-item";
     const dateStr = formatDateBR(post.schedule_date);
+    const isStory = post.post_type === "story";
     div.innerHTML = `
-        <img src="/${post.photo_path}" alt="">
+        <div class="mini-post-thumb">
+            <img src="/${post.photo_path}" alt="">
+            <span class="mini-post-type-dot ${isStory ? "dot-story" : "dot-feed"}" title="${isStory ? "Story" : "Feed"}">${isStory ? "S" : "F"}</span>
+        </div>
         <div class="mini-post-item-info">
-            <p class="mini-post-item-caption">${escapeHtml(post.caption || "(sem legenda)")}</p>
+            <p class="mini-post-item-caption">${escapeHtml(post.caption || (isStory ? "Story" : "(sem legenda)"))}</p>
             <div class="mini-post-item-meta">
                 <span class="status-badge ${post.status}">${post.status === "posted" ? "Postado" : "Pendente"}</span>
-                ${post.post_type === "story" ? '<span class="type-badge story">Story</span>' : ""}
                 <span>${dateStr}</span>
             </div>
         </div>
