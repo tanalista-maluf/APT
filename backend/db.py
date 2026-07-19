@@ -229,8 +229,8 @@ def add_post(post):
         conn.execute(
             """INSERT INTO posts
                (id, photo_path, caption, hashtags, location, tagged_people,
-                schedule_date, status, created_at, posted_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                schedule_date, status, created_at, posted_at, post_type)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 post["id"],
                 post["photo_path"],
@@ -242,6 +242,7 @@ def add_post(post):
                 post.get("status", "pending"),
                 post.get("created_at"),
                 post.get("posted_at"),
+                post.get("post_type", "feed"),
             ),
         )
 
@@ -260,6 +261,7 @@ def update_post(post_id, fields):
         "ig_media_id": lambda v: v,
         "attempts": lambda v: int(v),
         "ig_account_id": lambda v: int(v) if v else None,
+        "post_type": lambda v: v,
     }
 
     sets, values = [], []

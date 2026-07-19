@@ -614,15 +614,15 @@ input, textarea, select {
 
 .stats-card {
     grid-column: 1;
-    grid-row: 3;
+    grid-row: 3 / 5;
 }
 
 .last-post-card {
-    grid-column: 1;
-    grid-row: 4;
+    grid-column: 2;
+    grid-row: 3;
     display: flex;
     flex-direction: column;
-    align-self: stretch;
+    align-self: start;
 }
 
 .last-post-card #lastPostBox {
@@ -634,7 +634,7 @@ input, textarea, select {
 
 .mini-calendar-card {
     grid-column: 2;
-    grid-row: 3;
+    grid-row: 4;
     align-self: start;
 }
 
