@@ -85,6 +85,7 @@ def _row_to_post(row):
         "ig_media_id": row["ig_media_id"] if "ig_media_id" in keys else "",
         "attempts": row["attempts"] if "attempts" in keys else 0,
         "ig_account_id": row["ig_account_id"] if "ig_account_id" in keys else None,
+        "post_type": row["post_type"] if "post_type" in keys else "feed",
     }
 
 
@@ -96,6 +97,7 @@ _POST_EXTRA_COLUMNS = {
     "ig_media_id": "TEXT NOT NULL DEFAULT ''",
     "attempts": "INTEGER NOT NULL DEFAULT 0",
     "ig_account_id": "INTEGER",
+    "post_type": "TEXT NOT NULL DEFAULT 'feed'",
 }
 
 

@@ -161,6 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupLogin();
     setupSidebar();
     setupDropzone();
+    setupStoryDropzone();
     setupNewPostModal();
     setupScheduleModal();
     setupEditModal();
@@ -1529,6 +1530,7 @@ function buildMiniPostItem(post) {
             <p class="mini-post-item-caption">${escapeHtml(post.caption || "(sem legenda)")}</p>
             <div class="mini-post-item-meta">
                 <span class="status-badge ${post.status}">${post.status === "posted" ? "Postado" : "Pendente"}</span>
+                ${post.post_type === "story" ? '<span class="type-badge story">Story</span>' : ""}
                 <span>${dateStr}</span>
             </div>
         </div>
@@ -2182,4 +2184,143 @@ function wireInstagramButtons() {
             btn.textContent = "Conectar e validar";
         }
     });
+}
+
+// ============================================================
+// STORY: dropzone, editor e agendamento
+// ============================================================
+
+let storyImageBase64 = null;
+
+function setupStoryDropzone() {
+    const input = document.getElementById("storyPhotoInput");
+    const inner = document.getElementById("storyDropzoneInner");
+    if (!inner || !input) return;
+
+    inner.addEventListener("click", () => input.click());
+
+    input.addEventListener("change", (e) => {
+        if (e.target.files.length > 0) handleStoryFile(e.target.files[0]);
+        input.value = "";
+    });
+
+    inner.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        inner.classList.add("drag-over");
+    });
+    inner.addEventListener("dragleave", () => inner.classList.remove("drag-over"));
+    inner.addEventListener("drop", (e) => {
+        e.preventDefault();
+        inner.classList.remove("drag-over");
+        if (e.dataTransfer.files.length > 0) handleStoryFile(e.dataTransfer.files[0]);
+    });
+
+    document.getElementById("closeStoryEditorBtn").addEventListener("click", closeStoryEditor);
+    document.getElementById("cancelStoryBtn").addEventListener("click", closeStoryEditor);
+    document.getElementById("confirmStoryBtn").addEventListener("click", submitStory);
+
+    const textInput = document.getElementById("storyTextOverlay");
+    if (textInput) textInput.addEventListener("input", renderStoryCanvas);
+    const locInput = document.getElementById("storyLocation");
+    if (locInput) locInput.addEventListener("input", renderStoryCanvas);
+}
+
+async function handleStoryFile(file) {
+    const base64 = await fileToBase64(file);
+    storyImageBase64 = base64;
+
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 30);
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    document.getElementById("storyScheduleDate").value = local;
+    document.getElementById("storyTextOverlay").value = "";
+    document.getElementById("storyLocation").value = "";
+
+    document.getElementById("storyEditorModal").classList.remove("hidden");
+    renderStoryCanvas();
+}
+
+function renderStoryCanvas() {
+    const canvas = document.getElementById("storyCanvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.onload = () => {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, 1080, 1920);
+
+        const scale = Math.max(1080 / img.width, 1920 / img.height);
+        const w = img.width * scale;
+        const h = img.height * scale;
+        const x = (1080 - w) / 2;
+        const y = (1920 - h) / 2;
+        ctx.drawImage(img, x, y, w, h);
+
+        const text = document.getElementById("storyTextOverlay").value.trim();
+        if (text) {
+            ctx.save();
+            ctx.font = "bold 64px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#fff";
+            ctx.shadowColor = "rgba(0,0,0,0.7)";
+            ctx.shadowBlur = 12;
+            ctx.fillText(text, 540, 1700, 1000);
+            ctx.restore();
+        }
+
+        const loc = document.getElementById("storyLocation").value.trim();
+        if (loc) {
+            ctx.save();
+            ctx.font = "500 42px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#fff";
+            ctx.shadowColor = "rgba(0,0,0,0.6)";
+            ctx.shadowBlur = 8;
+            ctx.fillText("\u{1F4CD} " + loc, 540, 120, 900);
+            ctx.restore();
+        }
+    };
+    img.src = storyImageBase64;
+}
+
+function closeStoryEditor() {
+    document.getElementById("storyEditorModal").classList.add("hidden");
+    storyImageBase64 = null;
+}
+
+async function submitStory() {
+    const canvas = document.getElementById("storyCanvas");
+    const finalBase64 = canvas.toDataURL("image/jpeg", 0.92);
+    const scheduleDate = document.getElementById("storyScheduleDate").value;
+
+    const btn = document.getElementById("confirmStoryBtn");
+    btn.disabled = true;
+    btn.textContent = "Agendando...";
+
+    try {
+        const res = await apiFetch("/create-post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                photo: finalBase64,
+                caption: "",
+                hashtags: [],
+                location: document.getElementById("storyLocation").value.trim(),
+                schedule_date: scheduleDate ? new Date(scheduleDate).toISOString() : new Date().toISOString(),
+                post_type: "story",
+            }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast("Story agendado com sucesso!", "success");
+            closeStoryEditor();
+            if (typeof loadNextPosts === "function") loadNextPosts();
+        } else {
+            showToast(data.error || "Erro ao agendar story", "error");
+        }
+    } catch (e) {
+        showToast("Erro de conexão", "error");
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Agendar Story";
+    }
 }

@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "autopost",
-      "runtimeExecutable": "/usr/bin/python3",
+      "runtimeExecutable": "python3",
       "runtimeArgs": ["backend/app.py"],
       "port": 1234
     }

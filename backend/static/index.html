@@ -107,11 +107,22 @@
             <div class="dashboard-grid">
 
                 <div class="card dropzone-card" id="dropzoneCard">
+                    <span class="dropzone-ribbon">FEED</span>
                     <input type="file" id="photoInput" accept="image/*" multiple hidden>
                     <div class="dropzone-inner" id="dropzoneInner">
                         <span class="dropzone-icon">☁️</span>
                         <p class="dropzone-text">Solte suas fotos aqui ou clique para enviar</p>
                         <p class="dropzone-hint">JPG, PNG, HEIC — pode escolher várias de uma vez</p>
+                    </div>
+                </div>
+
+                <div class="card dropzone-card dropzone-card-story" id="storyDropzoneCard">
+                    <span class="dropzone-ribbon ribbon-story">STORY</span>
+                    <input type="file" id="storyPhotoInput" accept="image/*" hidden>
+                    <div class="dropzone-inner" id="storyDropzoneInner">
+                        <span class="dropzone-icon">📱</span>
+                        <p class="dropzone-text">Story — arraste uma imagem</p>
+                        <p class="dropzone-hint">Será publicada em formato 9:16 (vertical)</p>
                     </div>
                 </div>
 
@@ -520,6 +531,32 @@
 </div>
 
 <!-- TOASTS -->
+<div id="storyEditorModal" class="modal-overlay hidden">
+    <div class="modal-panel story-editor-panel">
+        <div class="modal-header">
+            <h2>Editar Story</h2>
+            <button class="modal-close" id="closeStoryEditorBtn">✕</button>
+        </div>
+        <div class="modal-body story-editor-body">
+            <div class="story-preview-wrapper">
+                <canvas id="storyCanvas" width="1080" height="1920"></canvas>
+            </div>
+            <div class="story-controls">
+                <label class="story-control-label">Texto sobre a imagem</label>
+                <input type="text" id="storyTextOverlay" class="input" placeholder="Texto opcional...">
+                <label class="story-control-label">Localização</label>
+                <input type="text" id="storyLocation" class="input" placeholder="Ex: Paris, França">
+                <label class="story-control-label">Agendar para</label>
+                <input type="datetime-local" id="storyScheduleDate" class="input">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelStoryBtn">Cancelar</button>
+            <button class="btn btn-primary" id="confirmStoryBtn">Agendar Story</button>
+        </div>
+    </div>
+</div>
+
 <div id="toastContainer" class="toast-container"></div>
 
 <script src="app.js"></script>

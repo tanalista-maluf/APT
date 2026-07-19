@@ -787,8 +787,11 @@ def publish_post(post):
 
     try:
         image_url = _public_photo_url(post)
-        caption = instagram.build_caption(post.get("caption", ""), post.get("hashtags", []))
-        media_id = instagram.publish_photo(ig_user_id, access_token, image_url, caption)
+        if post.get("post_type") == "story":
+            media_id = instagram.publish_story(ig_user_id, access_token, image_url)
+        else:
+            caption = instagram.build_caption(post.get("caption", ""), post.get("hashtags", []))
+            media_id = instagram.publish_photo(ig_user_id, access_token, image_url, caption)
     except instagram.InstagramError as e:
         db.update_post(post["id"], {
             "publish_error": str(e),
@@ -1291,6 +1294,7 @@ def create_post():
         tagged_people = data.get("tagged_people", [])
         schedule_date = data.get("schedule_date", datetime.now().isoformat())
         ig_account_id = data.get("ig_account_id")
+        post_type = data.get("post_type", "feed")
 
         if not photo_base64:
             return jsonify({"error": "Foto e obrigatoria"}), 400
@@ -1318,7 +1322,8 @@ def create_post():
             "schedule_date": schedule_date,
             "status": "pending",
             "created_at": datetime.now().isoformat(),
-            "posted_at": None
+            "posted_at": None,
+            "post_type": post_type,
         }
 
         db.add_post(post)

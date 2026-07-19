@@ -140,6 +140,45 @@ def publish_photo(ig_user_id, access_token, image_url, caption, poll_seconds=25)
     return media_id
 
 
+def publish_story(ig_user_id, access_token, image_url, poll_seconds=25):
+    """Publica um Story (imagem) e devolve o id da midia publicada."""
+    if not ig_user_id or not access_token:
+        raise InstagramError("Conta do Instagram nao configurada.")
+    if not image_url or not image_url.startswith("http"):
+        raise InstagramError("A foto precisa estar num link publico (https).")
+
+    container = _post(
+        f"{GRAPH_BASE}/{ig_user_id}/media",
+        {"image_url": image_url, "media_type": "STORIES", "access_token": access_token},
+    )
+    creation_id = container.get("id")
+    if not creation_id:
+        raise InstagramError("O Instagram nao retornou o id do container de story.")
+
+    deadline = time.time() + poll_seconds
+    while time.time() < deadline:
+        status = _get(
+            f"{GRAPH_BASE}/{creation_id}",
+            {"fields": "status_code,status", "access_token": access_token},
+        )
+        code = status.get("status_code")
+        if code == "FINISHED":
+            break
+        if code == "ERROR":
+            raise InstagramError(f"O Instagram rejeitou o story: {status.get('status', 'erro')}.")
+        time.sleep(2)
+
+    published = _post(
+        f"{GRAPH_BASE}/{ig_user_id}/media_publish",
+        {"creation_id": creation_id, "access_token": access_token},
+    )
+    media_id = published.get("id")
+    if not media_id:
+        raise InstagramError("O Instagram nao confirmou a publicacao do story.")
+
+    return media_id
+
+
 def exchange_long_lived_token(app_id, app_secret, short_token):
     """Troca um token de curta duracao por um de longa duracao (~60 dias).
 
