@@ -1608,13 +1608,15 @@ function renderStatsPie() {
     ctx.clearRect(0, 0, 200, 200);
 
     const pending = queueData.filter((p) => p.status === "pending").length;
-    const posted = queueData.filter((p) => p.status === "posted").length;
+    const postedFeed = queueData.filter((p) => p.status === "posted" && p.post_type !== "story").length;
+    const postedStory = queueData.filter((p) => p.status === "posted" && p.post_type === "story").length;
     const failed = queueData.filter((p) => p.publish_error && p.status === "pending").length;
     const pendingClean = pending - failed;
     const total = queueData.length;
 
     const slices = [
-        { label: "Publicadas", count: posted, color: "#22c55e" },
+        { label: "Feed publicados", count: postedFeed, color: "#22c55e" },
+        { label: "Stories publicados", count: postedStory, color: "#7c3aed" },
         { label: "Agendadas", count: pendingClean, color: "#3b82f6" },
         { label: "Com erro", count: failed, color: "#ef4444" },
     ].filter((s) => s.count > 0);
@@ -1656,7 +1658,8 @@ function renderStatsPie() {
     const legend = document.getElementById("statsPieLegend");
     legend.innerHTML = "";
     [
-        { label: "Publicadas", count: posted, color: "#22c55e" },
+        { label: "Feed publicados", count: postedFeed, color: "#22c55e" },
+        { label: "Stories publicados", count: postedStory, color: "#7c3aed" },
         { label: "Agendadas", count: pendingClean, color: "#3b82f6" },
         { label: "Com erro", count: failed, color: "#ef4444" },
     ].forEach((s) => {
@@ -1687,16 +1690,19 @@ function renderStatsDailyChart() {
     const month = _statsMonth.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    const counts = new Array(daysInMonth).fill(0);
+    const feedCounts = new Array(daysInMonth).fill(0);
+    const storyCounts = new Array(daysInMonth).fill(0);
     queueData.forEach((p) => {
         if (p.status !== "posted") return;
         const d = new Date(p.posted_at || p.schedule_date);
         if (d.getFullYear() === year && d.getMonth() === month) {
-            counts[d.getDate() - 1]++;
+            if (p.post_type === "story") storyCounts[d.getDate() - 1]++;
+            else feedCounts[d.getDate() - 1]++;
         }
     });
 
-    const maxCount = Math.max(1, ...counts);
+    const totalCounts = feedCounts.map((f, i) => f + storyCounts[i]);
+    const maxCount = Math.max(1, ...totalCounts);
     const leftPad = 28;
     const barW = Math.max(3, (W - leftPad - 4) / daysInMonth - 1.5);
     const gap = (W - leftPad - 4 - barW * daysInMonth) / (daysInMonth - 1 || 1);
@@ -1723,16 +1729,24 @@ function renderStatsDailyChart() {
         }
     }
 
-    // Bars + X-axis labels (all days)
-    counts.forEach((count, i) => {
+    // Stacked bars (feed green + story purple) + X-axis labels
+    totalCounts.forEach((total, i) => {
         const x = leftPad + i * (barW + gap);
-        const h = count > 0 ? Math.max(3, ((chartH - 10) * count) / niceMax) : 0;
-        const y = baseY - h;
+        const feedH = feedCounts[i] > 0 ? Math.max(2, ((chartH - 10) * feedCounts[i]) / niceMax) : 0;
+        const storyH = storyCounts[i] > 0 ? Math.max(2, ((chartH - 10) * storyCounts[i]) / niceMax) : 0;
 
-        ctx.fillStyle = count > 0 ? "#22c55e" : "transparent";
-        ctx.beginPath();
-        ctx.roundRect(x, y, barW, h, 2);
-        ctx.fill();
+        if (feedH > 0) {
+            ctx.fillStyle = "#22c55e";
+            ctx.beginPath();
+            ctx.roundRect(x, baseY - feedH - storyH, barW, feedH, storyH > 0 ? 0 : 2);
+            ctx.fill();
+        }
+        if (storyH > 0) {
+            ctx.fillStyle = "#7c3aed";
+            ctx.beginPath();
+            ctx.roundRect(x, baseY - storyH, barW, storyH, 2);
+            ctx.fill();
+        }
 
         ctx.fillStyle = "#6b7280";
         ctx.font = "11px sans-serif";
