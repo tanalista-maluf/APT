@@ -595,12 +595,29 @@ input, textarea, select {
     grid-row: 1 / 3;
 }
 
+.stats-card {
+    grid-row: 4;
+}
+
 .last-post-card {
     grid-column: 1;
+    grid-row: 5;
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+}
+
+.last-post-card #lastPostBox {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .mini-calendar-card {
     grid-column: 2;
+    grid-row: 4 / 6;
+    align-self: stretch;
 }
 
 .stats-card {

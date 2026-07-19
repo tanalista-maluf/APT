@@ -1565,23 +1565,28 @@ function renderLastPost() {
         .filter((p) => p.status === "posted")
         .sort((a, b) => new Date(b.posted_at || b.schedule_date) - new Date(a.posted_at || a.schedule_date));
 
-    const last = posted[0];
     box.innerHTML = "";
-    if (!last) {
+    if (posted.length === 0) {
         box.innerHTML = '<p class="empty-state">Nenhuma postagem publicada ainda.</p>';
         return;
     }
 
-    const wrap = document.createElement("div");
-    wrap.className = "last-post-box";
-    wrap.innerHTML = `
-        <img src="/${last.photo_path}" alt="">
-        <div>
-            <p class="last-post-caption">${escapeHtml(last.caption || "(sem legenda)")}</p>
-            <p class="mini-post-item-meta">${formatDateBR(last.posted_at || last.schedule_date)}</p>
-        </div>
-    `;
-    box.appendChild(wrap);
+    posted.slice(0, 2).forEach((post) => {
+        const isStory = post.post_type === "story";
+        const wrap = document.createElement("div");
+        wrap.className = "last-post-box";
+        wrap.innerHTML = `
+            <div class="mini-post-thumb">
+                <img src="/${post.photo_path}" alt="">
+                <span class="mini-post-type-dot ${isStory ? "dot-story" : "dot-feed"}" title="${isStory ? "Story" : "Feed"}">${isStory ? "S" : "F"}</span>
+            </div>
+            <div>
+                <p class="last-post-caption">${escapeHtml(post.caption || (isStory ? "Story" : "(sem legenda)"))}</p>
+                <p class="mini-post-item-meta">${formatDateBR(post.posted_at || post.schedule_date)}</p>
+            </div>
+        `;
+        box.appendChild(wrap);
+    });
 }
 
 // ------------------------------------------------------------
