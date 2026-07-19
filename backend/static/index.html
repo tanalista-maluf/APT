@@ -544,9 +544,36 @@
                 <span id="storyCounter" class="story-counter">1 / 1</span>
                 <button class="btn btn-secondary btn-sm" id="storyNextBtn">Próximo →</button>
             </div>
-            <div class="story-preview-wrapper">
-                <canvas id="storyCanvas" width="1080" height="1920"></canvas>
+
+            <div class="story-viewport-wrapper">
+                <div class="story-crop-viewport" id="storyCropViewport">
+                    <img id="storyEditImage" draggable="false">
+                    <canvas id="storyFilterCanvas" style="display:none;position:absolute;"></canvas>
+                </div>
             </div>
+
+            <div class="story-edit-controls">
+                <div class="story-edit-row">
+                    <button class="btn btn-secondary btn-sm" id="storyRotateLeftBtn" title="Girar esquerda">↺</button>
+                    <button class="btn btn-secondary btn-sm" id="storyRotateRightBtn" title="Girar direita">↻</button>
+                    <button class="btn btn-secondary btn-sm" id="storyCropResetBtn" title="Resetar">Reset</button>
+                </div>
+                <div class="story-edit-row">
+                    <label class="story-control-label" style="margin:0">Zoom</label>
+                    <input type="range" id="storyZoom" min="100" max="300" value="100" class="range-input">
+                    <span id="storyZoomValue" class="range-value">100%</span>
+                </div>
+                <div class="story-edit-row">
+                    <label class="story-control-label" style="margin:0">Filtro</label>
+                    <select id="storyFilterSelect" class="input input-sm"></select>
+                </div>
+                <div class="story-edit-row" id="storyFilterIntensityRow" style="display:none">
+                    <label class="story-control-label" style="margin:0">Intensidade</label>
+                    <input type="range" id="storyFilterIntensity" min="0" max="100" value="80" class="range-input">
+                    <span id="storyFilterIntensityValue" class="range-value">80%</span>
+                </div>
+            </div>
+
             <div class="story-controls">
                 <label class="story-control-label">Texto sobre a imagem</label>
                 <input type="text" id="storyTextOverlay" class="input" placeholder="Texto opcional...">

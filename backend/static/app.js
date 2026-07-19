@@ -2187,11 +2187,21 @@ function wireInstagramButtons() {
 }
 
 // ============================================================
-// STORY: dropzone multi-foto, editor com thumbnails, agendamento em lote
+// STORY: dropzone multi-foto, editor com crop/zoom/rotação/filtros
 // ============================================================
 
 let storyItems = [];
 let currentStoryIndex = 0;
+let _storyDragging = false;
+let _storyDragStart = { x: 0, y: 0, panX: 0, panY: 0 };
+let _storyOrigImg = null;
+
+function _storyCrop() {
+    const item = storyItems[currentStoryIndex];
+    if (!item) return { panX: 0, panY: 0, zoom: 100, rotation: 0 };
+    if (!item.crop) item.crop = { panX: 0, panY: 0, zoom: 100, rotation: 0 };
+    return item.crop;
+}
 
 function setupStoryDropzone() {
     const input = document.getElementById("storyPhotoInput");
@@ -2199,20 +2209,14 @@ function setupStoryDropzone() {
     if (!inner || !input) return;
 
     inner.addEventListener("click", () => input.click());
-
     input.addEventListener("change", (e) => {
         if (e.target.files.length > 0) handleStoryFiles(e.target.files);
         input.value = "";
     });
-
-    inner.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        inner.classList.add("drag-over");
-    });
+    inner.addEventListener("dragover", (e) => { e.preventDefault(); inner.classList.add("drag-over"); });
     inner.addEventListener("dragleave", () => inner.classList.remove("drag-over"));
     inner.addEventListener("drop", (e) => {
-        e.preventDefault();
-        inner.classList.remove("drag-over");
+        e.preventDefault(); inner.classList.remove("drag-over");
         if (e.dataTransfer.files.length > 0) handleStoryFiles(e.dataTransfer.files);
     });
 
@@ -2224,12 +2228,200 @@ function setupStoryDropzone() {
 
     document.getElementById("storyTextOverlay").addEventListener("input", () => {
         storyItems[currentStoryIndex].text = document.getElementById("storyTextOverlay").value;
-        renderStoryCanvas();
     });
     document.getElementById("storyLocation").addEventListener("input", () => {
         storyItems[currentStoryIndex].location = document.getElementById("storyLocation").value;
-        renderStoryCanvas();
     });
+
+    // Crop controls
+    document.getElementById("storyRotateLeftBtn").addEventListener("click", () => {
+        const c = _storyCrop(); c.rotation = (c.rotation - 90 + 360) % 360; c.panX = 0; c.panY = 0;
+        updateStoryCropTransform();
+    });
+    document.getElementById("storyRotateRightBtn").addEventListener("click", () => {
+        const c = _storyCrop(); c.rotation = (c.rotation + 90) % 360; c.panX = 0; c.panY = 0;
+        updateStoryCropTransform();
+    });
+    document.getElementById("storyCropResetBtn").addEventListener("click", () => {
+        const item = storyItems[currentStoryIndex];
+        if (item) { item.crop = { panX: 0, panY: 0, zoom: 100, rotation: 0 }; item.filterKey = "none"; item.filterIntensity = 80; }
+        document.getElementById("storyZoom").value = 100;
+        document.getElementById("storyZoomValue").textContent = "100%";
+        document.getElementById("storyFilterSelect").value = "none";
+        document.getElementById("storyFilterIntensityRow").style.display = "none";
+        applyStoryFilter();
+        updateStoryCropTransform();
+    });
+    document.getElementById("storyZoom").addEventListener("input", (e) => {
+        const c = _storyCrop(); c.zoom = parseInt(e.target.value);
+        document.getElementById("storyZoomValue").textContent = c.zoom + "%";
+        updateStoryCropTransform();
+    });
+
+    // Filter controls
+    const filterSelect = document.getElementById("storyFilterSelect");
+    filterSelect.innerHTML = "";
+    for (const [key, f] of Object.entries(PHOTO_FILTERS)) {
+        const opt = document.createElement("option");
+        opt.value = key; opt.textContent = f.label;
+        filterSelect.appendChild(opt);
+    }
+    filterSelect.addEventListener("change", () => {
+        const item = storyItems[currentStoryIndex];
+        if (item) item.filterKey = filterSelect.value;
+        document.getElementById("storyFilterIntensityRow").style.display = filterSelect.value === "none" ? "none" : "";
+        applyStoryFilter();
+    });
+    document.getElementById("storyFilterIntensity").addEventListener("input", (e) => {
+        const item = storyItems[currentStoryIndex];
+        if (item) item.filterIntensity = parseInt(e.target.value);
+        document.getElementById("storyFilterIntensityValue").textContent = e.target.value + "%";
+        applyStoryFilter();
+    });
+
+    // Pan via mouse
+    const vp = document.getElementById("storyCropViewport");
+    vp.addEventListener("mousedown", (e) => {
+        e.preventDefault(); _storyDragging = true;
+        const c = _storyCrop();
+        _storyDragStart = { x: e.clientX, y: e.clientY, panX: c.panX, panY: c.panY };
+    });
+    window.addEventListener("mousemove", (e) => {
+        if (!_storyDragging) return;
+        const c = _storyCrop();
+        c.panX = _storyDragStart.panX + (e.clientX - _storyDragStart.x);
+        c.panY = _storyDragStart.panY + (e.clientY - _storyDragStart.y);
+        updateStoryCropTransform();
+    });
+    window.addEventListener("mouseup", () => { _storyDragging = false; });
+
+    // Pan via touch
+    vp.addEventListener("touchstart", (e) => {
+        if (e.touches.length === 1) {
+            _storyDragging = true;
+            const t = e.touches[0]; const c = _storyCrop();
+            _storyDragStart = { x: t.clientX, y: t.clientY, panX: c.panX, panY: c.panY };
+        }
+    }, { passive: true });
+    vp.addEventListener("touchmove", (e) => {
+        if (!_storyDragging || e.touches.length !== 1) return;
+        e.preventDefault();
+        const t = e.touches[0]; const c = _storyCrop();
+        c.panX = _storyDragStart.panX + (t.clientX - _storyDragStart.x);
+        c.panY = _storyDragStart.panY + (t.clientY - _storyDragStart.y);
+        updateStoryCropTransform();
+    }, { passive: false });
+    vp.addEventListener("touchend", () => { _storyDragging = false; });
+}
+
+function updateStoryCropTransform() {
+    const crop = _storyCrop();
+    const img = document.getElementById("storyEditImage");
+    const canvas = document.getElementById("storyFilterCanvas");
+    const vp = document.getElementById("storyCropViewport");
+    if (!_storyOrigImg) return;
+
+    const vw = vp.clientWidth;
+    const vh = vp.clientHeight;
+    const isRotated = crop.rotation % 180 !== 0;
+    const natW = _storyOrigImg.naturalWidth;
+    const natH = _storyOrigImg.naturalHeight;
+    const imgW = isRotated ? natH : natW;
+    const imgH = isRotated ? natW : natH;
+
+    const scaleToFit = Math.max(vw / imgW, vh / imgH);
+    const zoom = crop.zoom / 100;
+    const finalScale = scaleToFit * zoom;
+
+    const displayW = natW * finalScale;
+    const displayH = natH * finalScale;
+    const maxPanX = Math.max(0, ((isRotated ? displayH : displayW) - vw) / 2);
+    const maxPanY = Math.max(0, ((isRotated ? displayW : displayH) - vh) / 2);
+    crop.panX = Math.max(-maxPanX, Math.min(maxPanX, crop.panX));
+    crop.panY = Math.max(-maxPanY, Math.min(maxPanY, crop.panY));
+
+    crop._vpW = vw;
+    crop._vpH = vh;
+
+    const transform = `translate(${crop.panX}px, ${crop.panY}px) rotate(${crop.rotation}deg) scale(${finalScale})`;
+    img.style.width = `${natW}px`;
+    img.style.height = `${natH}px`;
+    img.style.transform = transform;
+    img.style.left = `${(vw - natW) / 2}px`;
+    img.style.top = `${(vh - natH) / 2}px`;
+
+    const cw = canvas.width || natW;
+    const ch = canvas.height || natH;
+    const canvasScale = finalScale * (natW / cw);
+    canvas.style.width = `${cw}px`;
+    canvas.style.height = `${ch}px`;
+    canvas.style.transform = `translate(${crop.panX}px, ${crop.panY}px) rotate(${crop.rotation}deg) scale(${canvasScale})`;
+    canvas.style.left = `${(vw - cw) / 2}px`;
+    canvas.style.top = `${(vh - ch) / 2}px`;
+}
+
+function applyStoryFilter() {
+    const item = storyItems[currentStoryIndex];
+    if (!item || !_storyOrigImg) return;
+    const filterKey = item.filterKey || "none";
+    const intensity = (item.filterIntensity || 80) / 100;
+    const img = document.getElementById("storyEditImage");
+    const canvas = document.getElementById("storyFilterCanvas");
+
+    if (filterKey === "none" || intensity === 0) {
+        img.style.display = "";
+        canvas.style.display = "none";
+        updateStoryCropTransform();
+        return;
+    }
+
+    const filter = PHOTO_FILTERS[filterKey];
+    if (!filter) return;
+
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const natW = _storyOrigImg.naturalWidth;
+    const natH = _storyOrigImg.naturalHeight;
+    const MAX = 1200;
+    const ps = Math.min(1, MAX / Math.max(natW, natH));
+    const pw = Math.round(natW * ps);
+    const ph = Math.round(natH * ps);
+    canvas.width = pw;
+    canvas.height = ph;
+
+    const b = 1 + ((filter.brightness || 1) - 1) * intensity;
+    const co = 1 + ((filter.contrast || 1) - 1) * intensity;
+    const s = filter.grayscale ? 1 - intensity : 1 + ((filter.saturate || 1) - 1) * intensity;
+    let cssF = `brightness(${b}) contrast(${co}) saturate(${s})`;
+    if (filter.grayscale) cssF += ` grayscale(${intensity})`;
+    if (filter.temperature) cssF += ` hue-rotate(${filter.temperature * 0.5 * intensity}deg)`;
+    ctx.filter = cssF;
+    ctx.drawImage(_storyOrigImg, 0, 0, pw, ph);
+    ctx.filter = "none";
+
+    if (filter.tint) {
+        const t = filter.tint;
+        ctx.fillStyle = `rgba(${t.r},${t.g},${t.b},${(t.a || 0.05) * intensity})`;
+        ctx.fillRect(0, 0, pw, ph);
+    }
+    if (filter.clarity && filter.clarity > 0) {
+        ctx.globalCompositeOperation = "overlay";
+        ctx.globalAlpha = filter.clarity * intensity * 0.3;
+        ctx.drawImage(canvas, 0, 0);
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1.0;
+    }
+    if (filter.vignette && filter.vignette > 0) {
+        const cx = pw / 2, cy = ph / 2, r = Math.max(cx, cy);
+        const grad = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 1.2);
+        grad.addColorStop(0, "rgba(0,0,0,0)");
+        grad.addColorStop(1, `rgba(0,0,0,${filter.vignette * intensity})`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, pw, ph);
+    }
+
+    img.style.display = "none";
+    canvas.style.display = "";
+    updateStoryCropTransform();
 }
 
 async function handleStoryFiles(fileList) {
@@ -2239,7 +2431,7 @@ async function handleStoryFiles(fileList) {
     storyItems = [];
     for (const file of files) {
         const base64 = await fileToBase64(file);
-        storyItems.push({ base64, text: "", location: "" });
+        storyItems.push({ base64, text: "", location: "", crop: { panX: 0, panY: 0, zoom: 100, rotation: 0 }, filterKey: "none", filterIntensity: 80 });
     }
 
     const now = new Date();
@@ -2250,9 +2442,35 @@ async function handleStoryFiles(fileList) {
     currentStoryIndex = 0;
     document.getElementById("storyEditorModal").classList.remove("hidden");
     renderStoryThumbnails();
-    loadStoryFields();
-    renderStoryCanvas();
+    loadStoryEditorForCurrent();
     updateStoryNav();
+}
+
+function loadStoryEditorForCurrent() {
+    const item = storyItems[currentStoryIndex];
+    document.getElementById("storyTextOverlay").value = item.text || "";
+    document.getElementById("storyLocation").value = item.location || "";
+
+    const crop = _storyCrop();
+    document.getElementById("storyZoom").value = crop.zoom;
+    document.getElementById("storyZoomValue").textContent = crop.zoom + "%";
+    document.getElementById("storyFilterSelect").value = item.filterKey || "none";
+    document.getElementById("storyFilterIntensity").value = item.filterIntensity || 80;
+    document.getElementById("storyFilterIntensityValue").textContent = (item.filterIntensity || 80) + "%";
+    document.getElementById("storyFilterIntensityRow").style.display = (item.filterKey && item.filterKey !== "none") ? "" : "none";
+
+    const img = document.getElementById("storyEditImage");
+    _storyOrigImg = new Image();
+    _storyOrigImg.onload = () => {
+        img.src = _storyOrigImg.src;
+        img.style.display = "";
+        document.getElementById("storyFilterCanvas").style.display = "none";
+        requestAnimationFrame(() => {
+            applyStoryFilter();
+            updateStoryCropTransform();
+        });
+    };
+    _storyOrigImg.src = item.base64;
 }
 
 function renderStoryThumbnails() {
@@ -2266,8 +2484,7 @@ function renderStoryThumbnails() {
             saveCurrentStoryFields();
             currentStoryIndex = i;
             renderStoryThumbnails();
-            loadStoryFields();
-            renderStoryCanvas();
+            loadStoryEditorForCurrent();
             updateStoryNav();
         });
 
@@ -2280,8 +2497,7 @@ function renderStoryThumbnails() {
             if (storyItems.length === 0) { closeStoryEditor(); return; }
             if (currentStoryIndex >= storyItems.length) currentStoryIndex = storyItems.length - 1;
             renderStoryThumbnails();
-            loadStoryFields();
-            renderStoryCanvas();
+            loadStoryEditorForCurrent();
             updateStoryNav();
         });
         thumb.appendChild(removeBtn);
@@ -2293,12 +2509,6 @@ function saveCurrentStoryFields() {
     if (!storyItems[currentStoryIndex]) return;
     storyItems[currentStoryIndex].text = document.getElementById("storyTextOverlay").value;
     storyItems[currentStoryIndex].location = document.getElementById("storyLocation").value;
-}
-
-function loadStoryFields() {
-    const item = storyItems[currentStoryIndex];
-    document.getElementById("storyTextOverlay").value = item.text || "";
-    document.getElementById("storyLocation").value = item.location || "";
 }
 
 function updateStoryNav() {
@@ -2314,60 +2524,111 @@ function navigateStory(dir) {
     saveCurrentStoryFields();
     currentStoryIndex = Math.max(0, Math.min(storyItems.length - 1, currentStoryIndex + dir));
     renderStoryThumbnails();
-    loadStoryFields();
-    renderStoryCanvas();
+    loadStoryEditorForCurrent();
     updateStoryNav();
 }
 
-function renderStoryCanvas() {
-    const canvas = document.getElementById("storyCanvas");
-    const ctx = canvas.getContext("2d");
-    const item = storyItems[currentStoryIndex];
-    if (!item) return;
+function renderStoryFinalCanvas(item) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            const c = document.createElement("canvas");
+            c.width = 1080; c.height = 1920;
+            const ctx = c.getContext("2d");
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, 1080, 1920);
 
-    const img = new Image();
-    img.onload = () => {
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, 1080, 1920);
+            const crop = item.crop || { panX: 0, panY: 0, zoom: 100, rotation: 0 };
+            const isRotated = crop.rotation % 180 !== 0;
+            const natW = img.naturalWidth;
+            const natH = img.naturalHeight;
+            const imgW = isRotated ? natH : natW;
+            const imgH = isRotated ? natW : natH;
 
-        const scale = Math.max(1080 / img.width, 1920 / img.height);
-        const w = img.width * scale;
-        const h = img.height * scale;
-        const x = (1080 - w) / 2;
-        const y = (1920 - h) / 2;
-        ctx.drawImage(img, x, y, w, h);
+            const scaleToFit = Math.max(1080 / imgW, 1920 / imgH);
+            const zoom = crop.zoom / 100;
+            const finalScale = scaleToFit * zoom;
 
-        const text = (item.text || "").trim();
-        if (text) {
+            const vpW = crop._vpW || 270;
+            const vpH = crop._vpH || 480;
+            const panXScaled = crop.panX * (1080 / vpW);
+            const panYScaled = crop.panY * (1920 / vpH);
+
+            const filterKey = item.filterKey || "none";
+            const hasFilter = filterKey !== "none" && item.filterIntensity;
+            const filter = hasFilter ? PHOTO_FILTERS[filterKey] : null;
+
+            if (filter) {
+                const intensity = (item.filterIntensity || 80) / 100;
+                const b = 1 + ((filter.brightness || 1) - 1) * intensity;
+                const co = 1 + ((filter.contrast || 1) - 1) * intensity;
+                const s = filter.grayscale ? 1 - intensity : 1 + ((filter.saturate || 1) - 1) * intensity;
+                let cssF = `brightness(${b}) contrast(${co}) saturate(${s})`;
+                if (filter.grayscale) cssF += ` grayscale(${intensity})`;
+                if (filter.temperature) cssF += ` hue-rotate(${filter.temperature * 0.5 * intensity}deg)`;
+                ctx.filter = cssF;
+            }
+
             ctx.save();
-            ctx.font = "bold 64px sans-serif";
-            ctx.textAlign = "center";
-            ctx.fillStyle = "#fff";
-            ctx.shadowColor = "rgba(0,0,0,0.7)";
-            ctx.shadowBlur = 12;
-            ctx.fillText(text, 540, 1700, 1000);
+            ctx.translate(1080 / 2 + panXScaled, 1920 / 2 + panYScaled);
+            ctx.rotate((crop.rotation * Math.PI) / 180);
+            ctx.scale(finalScale, finalScale);
+            ctx.drawImage(img, -natW / 2, -natH / 2);
             ctx.restore();
-        }
+            ctx.filter = "none";
 
-        const loc = (item.location || "").trim();
-        if (loc) {
-            ctx.save();
-            ctx.font = "500 42px sans-serif";
-            ctx.textAlign = "center";
-            ctx.fillStyle = "#fff";
-            ctx.shadowColor = "rgba(0,0,0,0.6)";
-            ctx.shadowBlur = 8;
-            ctx.fillText("\u{1F4CD} " + loc, 540, 120, 900);
-            ctx.restore();
-        }
-    };
-    img.src = item.base64;
+            if (filter) {
+                const intensity = (item.filterIntensity || 80) / 100;
+                if (filter.tint) {
+                    const t = filter.tint;
+                    ctx.fillStyle = `rgba(${t.r},${t.g},${t.b},${(t.a || 0.05) * intensity})`;
+                    ctx.fillRect(0, 0, 1080, 1920);
+                }
+                if (filter.vignette && filter.vignette > 0) {
+                    const cx = 540, cy = 960, r = Math.max(cx, cy);
+                    const grad = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 1.2);
+                    grad.addColorStop(0, "rgba(0,0,0,0)");
+                    grad.addColorStop(1, `rgba(0,0,0,${filter.vignette * intensity})`);
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, 1080, 1920);
+                }
+            }
+
+            const text = (item.text || "").trim();
+            if (text) {
+                ctx.save();
+                ctx.font = "bold 64px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#fff";
+                ctx.shadowColor = "rgba(0,0,0,0.7)";
+                ctx.shadowBlur = 12;
+                ctx.fillText(text, 540, 1700, 1000);
+                ctx.restore();
+            }
+
+            const loc = (item.location || "").trim();
+            if (loc) {
+                ctx.save();
+                ctx.font = "500 42px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#fff";
+                ctx.shadowColor = "rgba(0,0,0,0.6)";
+                ctx.shadowBlur = 8;
+                ctx.fillText("\u{1F4CD} " + loc, 540, 120, 900);
+                ctx.restore();
+            }
+
+            resolve(c.toDataURL("image/jpeg", 0.92));
+        };
+        img.src = item.base64;
+    });
 }
 
 function closeStoryEditor() {
     document.getElementById("storyEditorModal").classList.add("hidden");
     storyItems = [];
     currentStoryIndex = 0;
+    _storyOrigImg = null;
 }
 
 async function submitAllStories() {
@@ -2384,16 +2645,8 @@ async function submitAllStories() {
 
     for (let i = 0; i < storyItems.length; i++) {
         btn.textContent = `Agendando ${i + 1}/${total}...`;
-        currentStoryIndex = i;
-        loadStoryFields();
-        renderStoryCanvas();
-        renderStoryThumbnails();
 
-        await new Promise((r) => setTimeout(r, 100));
-
-        const canvas = document.getElementById("storyCanvas");
-        const finalBase64 = canvas.toDataURL("image/jpeg", 0.92);
-
+        const finalBase64 = await renderStoryFinalCanvas(storyItems[i]);
         const storyDate = new Date(scheduleDate);
         storyDate.setMinutes(storyDate.getMinutes() + i * 5);
 
