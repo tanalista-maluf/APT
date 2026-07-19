@@ -1670,9 +1670,17 @@ function renderStatsPie() {
 function renderStatsDailyChart() {
     const canvas = document.getElementById("statsDailyCanvas");
     if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = canvas.parentElement.clientWidth || 600;
+    const cssH = 200;
+    canvas.width = cssW * dpr;
+    canvas.height = cssH * dpr;
+    canvas.style.width = cssW + "px";
+    canvas.style.height = cssH + "px";
     const ctx = canvas.getContext("2d");
-    const W = canvas.width;
-    const H = canvas.height;
+    ctx.scale(dpr, dpr);
+    const W = cssW;
+    const H = cssH;
     ctx.clearRect(0, 0, W, H);
 
     const year = _statsMonth.getFullYear();
@@ -1691,7 +1699,7 @@ function renderStatsDailyChart() {
     const maxCount = Math.max(1, ...counts);
     const barW = Math.max(4, (W - 40) / daysInMonth - 2);
     const gap = (W - 40 - barW * daysInMonth) / (daysInMonth - 1 || 1);
-    const chartH = H - 30;
+    const chartH = H - 40;
     const baseY = chartH;
 
     ctx.strokeStyle = "#e5e7eb";
@@ -1715,10 +1723,10 @@ function renderStatsDailyChart() {
         ctx.fill();
 
         if (i % Math.ceil(daysInMonth / 15) === 0 || i === daysInMonth - 1) {
-            ctx.fillStyle = "#9ca3af";
-            ctx.font = "10px sans-serif";
+            ctx.fillStyle = "#6b7280";
+            ctx.font = "bold 18px sans-serif";
             ctx.textAlign = "center";
-            ctx.fillText(i + 1, x + barW / 2, H - 2);
+            ctx.fillText(i + 1, x + barW / 2, H - 4);
         }
     });
 }
