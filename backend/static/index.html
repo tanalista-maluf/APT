@@ -219,9 +219,17 @@
                 <!-- Lista de contas conectadas -->
                 <div id="igAccountsList"></div>
 
-                <!-- Formulário para adicionar conta -->
+                <!-- Botão de conectar via Facebook Login -->
+                <button class="btn btn-primary" id="igFacebookLoginBtn" style="margin-top:14px">
+                    <span style="margin-right:6px">📎</span> Conectar Instagram via Facebook
+                </button>
+                <p class="muted-text" id="igConnectHint" style="margin-top:10px">
+                    A conta deve ser Profissional (Criador ou Empresa) e vinculada a uma Página do Facebook.
+                </p>
+
+                <!-- Formulário manual (avançado) -->
                 <details id="igAddForm" style="margin-top:14px">
-                    <summary class="btn btn-secondary" style="cursor:pointer">+ Adicionar conta</summary>
+                    <summary class="muted-text" style="cursor:pointer;font-size:0.8rem">Conexão manual (avançado)</summary>
                     <div style="margin-top:12px">
                         <div class="field-block" style="margin-bottom:12px">
                             <label class="field-label" for="igUserIdInput">ID da conta do Instagram</label>
@@ -232,7 +240,6 @@
                             <input type="password" id="igTokenInput" placeholder="EAAG... (token de longa duração)">
                         </div>
                         <button class="btn btn-primary" id="igConnectBtn">Conectar e validar</button>
-                        <p class="muted-text" id="igConnectHint" style="margin-top:10px"></p>
                     </div>
                 </details>
 

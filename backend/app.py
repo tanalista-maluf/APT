@@ -12,7 +12,7 @@ Local:    python3 app.py            -> http://localhost:1234
 Producao: gunicorn app:app          -> porta definida pela variavel PORT
 """
 
-from flask import Flask, request, jsonify, send_from_directory, session
+from flask import Flask, request, jsonify, send_from_directory, session, redirect
 from werkzeug.exceptions import HTTPException
 from dotenv import load_dotenv
 import anthropic
@@ -125,7 +125,7 @@ def handle_server_error(e):
 # Autenticacao (ativa somente se APP_PASSWORD estiver definida)
 # ============================================================
 
-AUTH_PUBLIC_PATHS = {"/api/health", "/api/login", "/api/auth-status", "/auth/callback"}
+AUTH_PUBLIC_PATHS = {"/api/health", "/api/login", "/api/auth-status", "/auth/callback", "/privacy"}
 
 
 @app.before_request
@@ -895,6 +895,71 @@ def instagram_set_default():
     return jsonify({"success": True})
 
 
+@app.route("/api/instagram/auth-url", methods=["GET"])
+def instagram_auth_url():
+    if not META_APP_ID:
+        return jsonify({"error": "META_APP_ID não configurado."}), 503
+    redirect_uri = (PUBLIC_BASE_URL or request.host_url.rstrip("/")) + "/auth/callback"
+    scopes = "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management"
+    url = (
+        f"https://www.facebook.com/{instagram.GRAPH_VERSION}/dialog/oauth"
+        f"?client_id={META_APP_ID}"
+        f"&redirect_uri={redirect_uri}"
+        f"&scope={scopes}"
+        f"&response_type=code"
+    )
+    return jsonify({"url": url})
+
+
+@app.route("/privacy")
+def privacy_policy():
+    return """<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Política de Privacidade — AutoPost Tabajara</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:700px;margin:40px auto;padding:0 20px;line-height:1.7;color:#333}
+h1{font-size:1.5rem}h2{font-size:1.1rem;margin-top:2rem}a{color:#c0392b}
+</style></head>
+<body>
+<h1>Política de Privacidade</h1>
+<p><strong>AutoPost Tabajara</strong> — última atualização: julho de 2026.</p>
+
+<h2>1. Dados que coletamos</h2>
+<p>Quando você conecta sua conta do Instagram via Facebook Login, coletamos:</p>
+<ul>
+<li>ID e nome de usuário da conta Instagram Profissional</li>
+<li>Token de acesso para publicar conteúdo em seu nome</li>
+<li>Foto de perfil (para exibição no app)</li>
+</ul>
+<p>Também armazenamos as fotos e legendas que você envia para publicação.</p>
+
+<h2>2. Como usamos seus dados</h2>
+<p>Seus dados são usados exclusivamente para:</p>
+<ul>
+<li>Publicar fotos no Instagram conforme agendamento definido por você</li>
+<li>Gerar sugestões de legendas usando inteligência artificial</li>
+<li>Exibir informações da sua conta dentro do app</li>
+</ul>
+
+<h2>3. Compartilhamento</h2>
+<p>Não vendemos, compartilhamos ou transferimos seus dados para terceiros. Os dados são enviados apenas para:</p>
+<ul>
+<li><strong>Meta/Instagram</strong> — para publicar o conteúdo que você agendou</li>
+<li><strong>Anthropic (Claude)</strong> — para gerar sugestões de legenda (apenas o conteúdo visual da foto, sem dados pessoais)</li>
+</ul>
+
+<h2>4. Armazenamento e segurança</h2>
+<p>Seus dados são armazenados em servidor protegido na nuvem (Railway). Tokens de acesso são armazenados no banco de dados do servidor e não são expostos ao frontend.</p>
+
+<h2>5. Exclusão de dados</h2>
+<p>Você pode remover sua conta e todos os dados associados a qualquer momento nas Configurações do app. Ao desconectar uma conta, o token de acesso é apagado imediatamente.</p>
+
+<h2>6. Contato</h2>
+<p>Dúvidas sobre privacidade: <a href="mailto:r.maluf@gmail.com">r.maluf@gmail.com</a></p>
+</body></html>"""
+
+
 @app.route("/auth/callback")
 def oauth_callback():
     code = request.args.get("code")
@@ -965,18 +1030,10 @@ def oauth_callback():
 
     if connected:
         names = ", ".join(connected)
-        return f"""<html><body style="font-family:sans-serif;text-align:center;padding:40px">
-        <h2>✅ Conectado com sucesso!</h2>
-        <p>Contas vinculadas: <b>{names}</b></p>
-        <p><a href="/">Voltar ao AutoPost</a></p>
-        </body></html>"""
+        from urllib.parse import quote
+        return redirect(f"/?toast={quote('Conectado: ' + names)}")
     else:
-        return f"""<html><body style="font-family:sans-serif;text-align:center;padding:40px">
-        <h2>⚠️ Nenhuma conta Instagram encontrada</h2>
-        <p>Suas páginas do Facebook não têm contas Instagram Profissional vinculadas.</p>
-        <p>Verifique se a conta é Profissional (Criador ou Empresa) e está vinculada a uma Página.</p>
-        <p><a href="/">Voltar ao AutoPost</a></p>
-        </body></html>"""
+        return redirect("/?toast=Nenhuma+conta+Instagram+encontrada.+Verifique+se+a+conta+é+Profissional+e+está+vinculada+a+uma+Página.")
 
 
 @app.route("/api/queue/<post_id>/publish-now", methods=["POST"])

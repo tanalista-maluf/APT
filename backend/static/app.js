@@ -170,6 +170,15 @@ document.addEventListener("DOMContentLoaded", () => {
     setupAccountSwitcher();
     loadClubLink();
     loadIgAccounts();
+
+    const params = new URLSearchParams(window.location.search);
+    const toast = params.get("toast");
+    if (toast) {
+        showToast(toast, toast.includes("Nenhuma") ? "error" : "success", 6000);
+        window.history.replaceState({}, "", "/");
+        navigateTo("settings");
+        loadInstagramStatus();
+    }
 });
 
 // Ajusta o link "voltar ao 30ºS" conforme a config do servidor (CLUB_URL).
@@ -2100,6 +2109,27 @@ let _igButtonsWired = false;
 function wireInstagramButtons() {
     if (_igButtonsWired) return;
     _igButtonsWired = true;
+
+    document.getElementById("igFacebookLoginBtn").addEventListener("click", async () => {
+        const btn = document.getElementById("igFacebookLoginBtn");
+        btn.disabled = true;
+        btn.textContent = "Redirecionando...";
+        try {
+            const res = await apiFetch("/instagram/auth-url");
+            const data = await res.json();
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                showToast(data.error || "Erro ao gerar link de login.", "error");
+                btn.disabled = false;
+                btn.innerHTML = '<span style="margin-right:6px">📎</span> Conectar Instagram via Facebook';
+            }
+        } catch (e) {
+            showToast("Erro de conexão.", "error");
+            btn.disabled = false;
+            btn.innerHTML = '<span style="margin-right:6px">📎</span> Conectar Instagram via Facebook';
+        }
+    });
 
     document.getElementById("igConnectBtn").addEventListener("click", async () => {
         const ig_user_id = document.getElementById("igUserIdInput").value.trim();
