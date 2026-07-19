@@ -1697,24 +1697,36 @@ function renderStatsDailyChart() {
     });
 
     const maxCount = Math.max(1, ...counts);
-    const barW = Math.max(4, (W - 40) / daysInMonth - 2);
-    const gap = (W - 40 - barW * daysInMonth) / (daysInMonth - 1 || 1);
-    const chartH = H - 40;
+    const leftPad = 28;
+    const barW = Math.max(3, (W - leftPad - 4) / daysInMonth - 1.5);
+    const gap = (W - leftPad - 4 - barW * daysInMonth) / (daysInMonth - 1 || 1);
+    const chartH = H - 28;
     const baseY = chartH;
 
-    ctx.strokeStyle = "#e5e7eb";
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-        const y = baseY - (chartH - 10) * (i / 4);
+    // Y-axis: grid lines + labels
+    const niceMax = maxCount <= 5 ? maxCount : Math.ceil(maxCount / 5) * 5;
+    const steps = Math.min(niceMax, 5);
+    ctx.font = "11px sans-serif";
+    for (let i = 0; i <= steps; i++) {
+        const val = Math.round((niceMax / steps) * i);
+        const y = baseY - (chartH - 10) * (i / steps);
+        ctx.strokeStyle = "#e5e7eb";
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(30, y);
+        ctx.moveTo(leftPad, y);
         ctx.lineTo(W, y);
         ctx.stroke();
+        if (i > 0) {
+            ctx.fillStyle = "#9ca3af";
+            ctx.textAlign = "right";
+            ctx.fillText(val, leftPad - 4, y + 4);
+        }
     }
 
+    // Bars + X-axis labels (all days)
     counts.forEach((count, i) => {
-        const x = 30 + i * (barW + gap);
-        const h = count > 0 ? Math.max(4, ((chartH - 10) * count) / maxCount) : 0;
+        const x = leftPad + i * (barW + gap);
+        const h = count > 0 ? Math.max(3, ((chartH - 10) * count) / niceMax) : 0;
         const y = baseY - h;
 
         ctx.fillStyle = count > 0 ? "#22c55e" : "transparent";
@@ -1722,12 +1734,10 @@ function renderStatsDailyChart() {
         ctx.roundRect(x, y, barW, h, 2);
         ctx.fill();
 
-        if (i % Math.ceil(daysInMonth / 15) === 0 || i === daysInMonth - 1) {
-            ctx.fillStyle = "#6b7280";
-            ctx.font = "bold 18px sans-serif";
-            ctx.textAlign = "center";
-            ctx.fillText(i + 1, x + barW / 2, H - 4);
-        }
+        ctx.fillStyle = "#6b7280";
+        ctx.font = "11px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(i + 1, x + barW / 2, H - 4);
     });
 }
 
