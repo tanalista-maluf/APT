@@ -1951,12 +1951,19 @@ input, textarea, select {
         font-size: 13px;
     }
 
+    .stats-card {
+        grid-column: 1;
+        grid-row: auto;
+    }
+
     .mini-calendar-card {
         grid-column: 1;
+        grid-row: auto;
     }
 
     .last-post-card {
         grid-column: 1;
+        grid-row: auto;
     }
 
     .new-post-modal .modal-body {
