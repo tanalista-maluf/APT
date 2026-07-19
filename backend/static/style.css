@@ -615,6 +615,7 @@ input, textarea, select {
 .stats-card {
     grid-column: 1;
     grid-row: 3 / 5;
+    align-self: stretch;
 }
 
 .last-post-card {
@@ -714,7 +715,7 @@ input, textarea, select {
 .dropzone-inner {
     border: 2px dashed var(--gray-border);
     border-radius: var(--radius);
-    padding: 44px 20px;
+    padding: 54px 20px;
     text-align: center;
     cursor: pointer;
     transition: border-color 0.15s ease, background 0.15s ease;
