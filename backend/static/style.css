@@ -1152,6 +1152,7 @@ input, textarea, select {
 }
 
 .cal-dot {
+    display: inline-block;
     width: 7px;
     height: 7px;
     border-radius: 50%;
@@ -1171,6 +1172,28 @@ input, textarea, select {
 
 .cal-dot.story-posted {
     background: #166534;
+}
+
+.cal-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--gray-border);
+}
+
+.cal-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--gray-text);
+}
+
+.cal-legend-warn {
+    font-size: 12px;
+    line-height: 1;
 }
 
 .cal-error-badge {
