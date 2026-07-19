@@ -118,7 +118,7 @@
 
                 <div class="card dropzone-card dropzone-card-story" id="storyDropzoneCard">
                     <span class="dropzone-ribbon ribbon-story">STORY</span>
-                    <input type="file" id="storyPhotoInput" accept="image/*" hidden>
+                    <input type="file" id="storyPhotoInput" accept="image/*" multiple hidden>
                     <div class="dropzone-inner" id="storyDropzoneInner">
                         <span class="dropzone-icon">📱</span>
                         <p class="dropzone-text">Story — arraste uma imagem</p>
@@ -538,6 +538,12 @@
             <button class="modal-close" id="closeStoryEditorBtn">✕</button>
         </div>
         <div class="modal-body story-editor-body">
+            <div id="storyThumbnails" class="story-thumbnails"></div>
+            <div class="story-nav-row">
+                <button class="btn btn-secondary btn-sm" id="storyPrevBtn">← Anterior</button>
+                <span id="storyCounter" class="story-counter">1 / 1</span>
+                <button class="btn btn-secondary btn-sm" id="storyNextBtn">Próximo →</button>
+            </div>
             <div class="story-preview-wrapper">
                 <canvas id="storyCanvas" width="1080" height="1920"></canvas>
             </div>

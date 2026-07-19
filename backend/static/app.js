@@ -2187,10 +2187,11 @@ function wireInstagramButtons() {
 }
 
 // ============================================================
-// STORY: dropzone, editor e agendamento
+// STORY: dropzone multi-foto, editor com thumbnails, agendamento em lote
 // ============================================================
 
-let storyImageBase64 = null;
+let storyItems = [];
+let currentStoryIndex = 0;
 
 function setupStoryDropzone() {
     const input = document.getElementById("storyPhotoInput");
@@ -2200,7 +2201,7 @@ function setupStoryDropzone() {
     inner.addEventListener("click", () => input.click());
 
     input.addEventListener("change", (e) => {
-        if (e.target.files.length > 0) handleStoryFile(e.target.files[0]);
+        if (e.target.files.length > 0) handleStoryFiles(e.target.files);
         input.value = "";
     });
 
@@ -2212,37 +2213,118 @@ function setupStoryDropzone() {
     inner.addEventListener("drop", (e) => {
         e.preventDefault();
         inner.classList.remove("drag-over");
-        if (e.dataTransfer.files.length > 0) handleStoryFile(e.dataTransfer.files[0]);
+        if (e.dataTransfer.files.length > 0) handleStoryFiles(e.dataTransfer.files);
     });
 
     document.getElementById("closeStoryEditorBtn").addEventListener("click", closeStoryEditor);
     document.getElementById("cancelStoryBtn").addEventListener("click", closeStoryEditor);
-    document.getElementById("confirmStoryBtn").addEventListener("click", submitStory);
+    document.getElementById("confirmStoryBtn").addEventListener("click", submitAllStories);
+    document.getElementById("storyPrevBtn").addEventListener("click", () => navigateStory(-1));
+    document.getElementById("storyNextBtn").addEventListener("click", () => navigateStory(1));
 
-    const textInput = document.getElementById("storyTextOverlay");
-    if (textInput) textInput.addEventListener("input", renderStoryCanvas);
-    const locInput = document.getElementById("storyLocation");
-    if (locInput) locInput.addEventListener("input", renderStoryCanvas);
+    document.getElementById("storyTextOverlay").addEventListener("input", () => {
+        storyItems[currentStoryIndex].text = document.getElementById("storyTextOverlay").value;
+        renderStoryCanvas();
+    });
+    document.getElementById("storyLocation").addEventListener("input", () => {
+        storyItems[currentStoryIndex].location = document.getElementById("storyLocation").value;
+        renderStoryCanvas();
+    });
 }
 
-async function handleStoryFile(file) {
-    const base64 = await fileToBase64(file);
-    storyImageBase64 = base64;
+async function handleStoryFiles(fileList) {
+    const files = Array.from(fileList);
+    if (files.length === 0) return;
+
+    storyItems = [];
+    for (const file of files) {
+        const base64 = await fileToBase64(file);
+        storyItems.push({ base64, text: "", location: "" });
+    }
 
     const now = new Date();
     now.setMinutes(now.getMinutes() + 30);
     const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     document.getElementById("storyScheduleDate").value = local;
-    document.getElementById("storyTextOverlay").value = "";
-    document.getElementById("storyLocation").value = "";
 
+    currentStoryIndex = 0;
     document.getElementById("storyEditorModal").classList.remove("hidden");
+    renderStoryThumbnails();
+    loadStoryFields();
     renderStoryCanvas();
+    updateStoryNav();
+}
+
+function renderStoryThumbnails() {
+    const strip = document.getElementById("storyThumbnails");
+    strip.innerHTML = "";
+    storyItems.forEach((item, i) => {
+        const thumb = document.createElement("div");
+        thumb.className = "story-thumb" + (i === currentStoryIndex ? " active" : "");
+        thumb.innerHTML = `<img src="${item.base64}"><span class="story-thumb-num">${i + 1}</span>`;
+        thumb.addEventListener("click", () => {
+            saveCurrentStoryFields();
+            currentStoryIndex = i;
+            renderStoryThumbnails();
+            loadStoryFields();
+            renderStoryCanvas();
+            updateStoryNav();
+        });
+
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "story-thumb-remove";
+        removeBtn.textContent = "✕";
+        removeBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            storyItems.splice(i, 1);
+            if (storyItems.length === 0) { closeStoryEditor(); return; }
+            if (currentStoryIndex >= storyItems.length) currentStoryIndex = storyItems.length - 1;
+            renderStoryThumbnails();
+            loadStoryFields();
+            renderStoryCanvas();
+            updateStoryNav();
+        });
+        thumb.appendChild(removeBtn);
+        strip.appendChild(thumb);
+    });
+}
+
+function saveCurrentStoryFields() {
+    if (!storyItems[currentStoryIndex]) return;
+    storyItems[currentStoryIndex].text = document.getElementById("storyTextOverlay").value;
+    storyItems[currentStoryIndex].location = document.getElementById("storyLocation").value;
+}
+
+function loadStoryFields() {
+    const item = storyItems[currentStoryIndex];
+    document.getElementById("storyTextOverlay").value = item.text || "";
+    document.getElementById("storyLocation").value = item.location || "";
+}
+
+function updateStoryNav() {
+    const total = storyItems.length;
+    document.getElementById("storyPrevBtn").disabled = currentStoryIndex === 0;
+    document.getElementById("storyNextBtn").disabled = currentStoryIndex === total - 1;
+    document.getElementById("storyCounter").textContent = `${currentStoryIndex + 1} / ${total}`;
+    document.getElementById("confirmStoryBtn").textContent =
+        total > 1 ? `Agendar ${total} Stories` : "Agendar Story";
+}
+
+function navigateStory(dir) {
+    saveCurrentStoryFields();
+    currentStoryIndex = Math.max(0, Math.min(storyItems.length - 1, currentStoryIndex + dir));
+    renderStoryThumbnails();
+    loadStoryFields();
+    renderStoryCanvas();
+    updateStoryNav();
 }
 
 function renderStoryCanvas() {
     const canvas = document.getElementById("storyCanvas");
     const ctx = canvas.getContext("2d");
+    const item = storyItems[currentStoryIndex];
+    if (!item) return;
+
     const img = new Image();
     img.onload = () => {
         ctx.fillStyle = "#000";
@@ -2255,7 +2337,7 @@ function renderStoryCanvas() {
         const y = (1920 - h) / 2;
         ctx.drawImage(img, x, y, w, h);
 
-        const text = document.getElementById("storyTextOverlay").value.trim();
+        const text = (item.text || "").trim();
         if (text) {
             ctx.save();
             ctx.font = "bold 64px sans-serif";
@@ -2267,7 +2349,7 @@ function renderStoryCanvas() {
             ctx.restore();
         }
 
-        const loc = document.getElementById("storyLocation").value.trim();
+        const loc = (item.location || "").trim();
         if (loc) {
             ctx.save();
             ctx.font = "500 42px sans-serif";
@@ -2279,48 +2361,72 @@ function renderStoryCanvas() {
             ctx.restore();
         }
     };
-    img.src = storyImageBase64;
+    img.src = item.base64;
 }
 
 function closeStoryEditor() {
     document.getElementById("storyEditorModal").classList.add("hidden");
-    storyImageBase64 = null;
+    storyItems = [];
+    currentStoryIndex = 0;
 }
 
-async function submitStory() {
-    const canvas = document.getElementById("storyCanvas");
-    const finalBase64 = canvas.toDataURL("image/jpeg", 0.92);
+async function submitAllStories() {
+    saveCurrentStoryFields();
     const scheduleDate = document.getElementById("storyScheduleDate").value;
+    const total = storyItems.length;
 
     const btn = document.getElementById("confirmStoryBtn");
     btn.disabled = true;
-    btn.textContent = "Agendando...";
+    btn.textContent = `Agendando 0/${total}...`;
 
-    try {
-        const res = await apiFetch("/create-post", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                photo: finalBase64,
-                caption: "",
-                hashtags: [],
-                location: document.getElementById("storyLocation").value.trim(),
-                schedule_date: scheduleDate ? new Date(scheduleDate).toISOString() : new Date().toISOString(),
-                post_type: "story",
-            }),
-        });
-        const data = await res.json();
-        if (data.success) {
-            showToast("Story agendado com sucesso!", "success");
-            closeStoryEditor();
-            if (typeof loadNextPosts === "function") loadNextPosts();
-        } else {
-            showToast(data.error || "Erro ao agendar story", "error");
+    let success = 0;
+    let errors = 0;
+
+    for (let i = 0; i < storyItems.length; i++) {
+        btn.textContent = `Agendando ${i + 1}/${total}...`;
+        currentStoryIndex = i;
+        loadStoryFields();
+        renderStoryCanvas();
+        renderStoryThumbnails();
+
+        await new Promise((r) => setTimeout(r, 100));
+
+        const canvas = document.getElementById("storyCanvas");
+        const finalBase64 = canvas.toDataURL("image/jpeg", 0.92);
+
+        const storyDate = new Date(scheduleDate);
+        storyDate.setMinutes(storyDate.getMinutes() + i * 5);
+
+        try {
+            const res = await apiFetch("/create-post", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    photo: finalBase64,
+                    caption: "",
+                    hashtags: [],
+                    location: storyItems[i].location.trim(),
+                    schedule_date: storyDate.toISOString(),
+                    post_type: "story",
+                }),
+            });
+            const data = await res.json();
+            if (data.success) success++;
+            else errors++;
+        } catch (e) {
+            errors++;
         }
-    } catch (e) {
-        showToast("Erro de conexão", "error");
-    } finally {
-        btn.disabled = false;
-        btn.textContent = "Agendar Story";
     }
+
+    if (success > 0) {
+        showToast(`${success} stor${success > 1 ? "ies agendados" : "y agendado"} com sucesso!`, "success");
+        if (typeof loadNextPosts === "function") loadNextPosts();
+    }
+    if (errors > 0) {
+        showToast(`${errors} stor${errors > 1 ? "ies falharam" : "y falhou"}`, "error");
+    }
+
+    closeStoryEditor();
+    btn.disabled = false;
+    btn.textContent = "Agendar Story";
 }
