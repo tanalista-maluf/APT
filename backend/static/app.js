@@ -1821,19 +1821,41 @@ function renderCalendarGrid(container, monthDate, postsByDate, opts = {}) {
         el.appendChild(num);
 
         if (dayPosts.length > 0) {
+            const feedPosts = dayPosts.filter((p) => p.post_type !== "story");
+            const storyPosts = dayPosts.filter((p) => p.post_type === "story");
+            const errorPosts = dayPosts.filter((p) => p.publish_error);
+
             const dots = document.createElement("div");
             dots.className = "cal-dots";
-            if (dayPosts.some((p) => p.status === "pending")) {
+
+            if (feedPosts.length > 0) {
                 const d = document.createElement("span");
-                d.className = "cal-dot pending";
+                const allPosted = feedPosts.every((p) => p.status === "posted");
+                d.className = "cal-dot " + (allPosted ? "feed-posted" : "feed-pending");
                 dots.appendChild(d);
             }
-            if (dayPosts.some((p) => p.status === "posted")) {
+            if (storyPosts.length > 0) {
                 const d = document.createElement("span");
-                d.className = "cal-dot posted";
+                const allPosted = storyPosts.every((p) => p.status === "posted");
+                d.className = "cal-dot " + (allPosted ? "story-posted" : "story-pending");
                 dots.appendChild(d);
             }
             el.appendChild(dots);
+
+            if (errorPosts.length > 0) {
+                const warn = document.createElement("span");
+                warn.className = "cal-error-badge";
+                warn.textContent = "⚠";
+                warn.title = errorPosts.map((p) => `${p.post_type === "story" ? "Story" : "Feed"}: ${p.publish_error}`).join("\n");
+                warn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    const msg = errorPosts.map((p) =>
+                        `• ${p.post_type === "story" ? "Story" : "Feed"} (${formatDateBR(p.schedule_date)}):\n  ${p.publish_error}`
+                    ).join("\n\n");
+                    showToast(msg, "error", 8000);
+                });
+                el.appendChild(warn);
+            }
         }
 
         if (clickable && dayPosts.length > 0 && onDayClick) {

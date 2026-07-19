@@ -1143,12 +1143,32 @@ input, textarea, select {
     border-radius: 50%;
 }
 
-.cal-dot.pending {
-    background: var(--yellow);
+.cal-dot.feed-pending {
+    background: var(--red);
 }
 
-.cal-dot.posted {
-    background: var(--green);
+.cal-dot.feed-posted {
+    background: #86efac;
+}
+
+.cal-dot.story-pending {
+    background: #7c3aed;
+}
+
+.cal-dot.story-posted {
+    background: #166534;
+}
+
+.cal-error-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 1;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.2));
 }
 
 .full-calendar-grid .cal-day {
