@@ -125,7 +125,7 @@ def handle_server_error(e):
 # Autenticacao (ativa somente se APP_PASSWORD estiver definida)
 # ============================================================
 
-AUTH_PUBLIC_PATHS = {"/api/health", "/api/login", "/api/auth-status", "/auth/callback", "/privacy"}
+AUTH_PUBLIC_PATHS = {"/api/health", "/api/login", "/api/auth-status", "/auth/callback", "/privacy", "/terms"}
 
 
 @app.before_request
@@ -958,6 +958,74 @@ h1{font-size:1.5rem}h2{font-size:1.1rem;margin-top:2rem}a{color:#c0392b}
 <h2>6. Contato</h2>
 <p>Dúvidas sobre privacidade: <a href="mailto:r.maluf@gmail.com">r.maluf@gmail.com</a></p>
 </body></html>"""
+
+
+@app.route("/terms")
+def terms_of_service():
+    return """<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Termos de Serviço — AutoPost Tabajara</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:700px;margin:40px auto;padding:0 20px;line-height:1.7;color:#333}
+h1{font-size:1.5rem}h2{font-size:1.1rem;margin-top:2rem}a{color:#c0392b}
+</style></head>
+<body>
+<h1>Termos de Serviço</h1>
+<p><strong>AutoPost Tabajara</strong> — última atualização: julho de 2026.</p>
+
+<h2>1. Aceitação dos termos</h2>
+<p>Ao utilizar o AutoPost Tabajara ("Serviço"), você concorda com estes termos. Se não concordar, não utilize o Serviço.</p>
+
+<h2>2. Descrição do serviço</h2>
+<p>O AutoPost Tabajara é uma ferramenta de agendamento e publicação de fotos no Instagram. O Serviço permite enviar fotos, gerar legendas com inteligência artificial e agendar publicações em contas Instagram Profissionais.</p>
+
+<h2>3. Requisitos</h2>
+<ul>
+<li>Você deve ter uma conta Instagram Profissional (Criador ou Empresa) vinculada a uma Página do Facebook</li>
+<li>Você é responsável pelo conteúdo que publica através do Serviço</li>
+<li>Você deve respeitar os Termos de Uso do Instagram e da Meta</li>
+</ul>
+
+<h2>4. Conteúdo do usuário</h2>
+<p>Você mantém todos os direitos sobre as fotos e textos que envia. O Serviço não reivindica propriedade sobre seu conteúdo. Ao enviar conteúdo, você nos autoriza a armazená-lo temporariamente para fins de publicação.</p>
+
+<h2>5. Legendas geradas por IA</h2>
+<p>As legendas sugeridas são geradas por inteligência artificial e servem como sugestão. Você é responsável por revisar e aprovar qualquer conteúdo antes da publicação.</p>
+
+<h2>6. Disponibilidade</h2>
+<p>O Serviço é fornecido "como está". Não garantimos disponibilidade ininterrupta. Publicações agendadas dependem da disponibilidade da API do Instagram/Meta.</p>
+
+<h2>7. Exclusão de dados</h2>
+<p>Você pode excluir todos os seus dados a qualquer momento nas Configurações do app. Após a exclusão, seus dados não podem ser recuperados.</p>
+
+<h2>8. Limitação de responsabilidade</h2>
+<p>O AutoPost Tabajara não se responsabiliza por publicações feitas em horários incorretos, falhas na API do Instagram, conteúdo gerado pela IA, ou qualquer dano decorrente do uso do Serviço.</p>
+
+<h2>9. Alterações nos termos</h2>
+<p>Podemos atualizar estes termos a qualquer momento. O uso continuado do Serviço após alterações constitui aceitação dos novos termos.</p>
+
+<h2>10. Contato</h2>
+<p>Dúvidas: <a href="mailto:r.maluf@gmail.com">r.maluf@gmail.com</a></p>
+</body></html>"""
+
+
+@app.route("/api/delete-all-data", methods=["POST"])
+def delete_all_data():
+    for acct in db.list_ig_accounts():
+        db.remove_ig_account(acct["id"])
+
+    posts = db.list_posts()
+    for post in posts:
+        photo_path = post.get("photo_path", "")
+        if photo_path and os.path.exists(photo_path):
+            try:
+                os.remove(photo_path)
+            except OSError:
+                pass
+        db.delete_post(post["id"])
+
+    return jsonify({"success": True})
 
 
 @app.route("/auth/callback")

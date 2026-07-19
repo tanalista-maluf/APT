@@ -1941,6 +1941,19 @@ async function loadSettingsPage() {
 
     document.getElementById("logoutBtn").onclick = logout;
 
+    document.getElementById("deleteAllDataBtn").addEventListener("click", async () => {
+        if (!confirm("Tem certeza? Isso vai excluir TODAS as contas, fotos e posts. Não tem volta.")) return;
+        if (!confirm("Última chance. Confirma a exclusão de todos os dados?")) return;
+        try {
+            await apiFetch("/delete-all-data", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+            showToast("Todos os dados foram excluídos.", "success");
+            loadInstagramStatus();
+            loadQueue();
+        } catch (e) {
+            showToast("Erro ao excluir dados.", "error");
+        }
+    });
+
     loadInstagramStatus();
     wireInstagramButtons();
 }
