@@ -162,6 +162,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupSidebar();
     setupDropzone();
     setupStoryDropzone();
+    setupStatsControls();
     setupNewPostModal();
     setupScheduleModal();
     setupEditModal();
@@ -1494,6 +1495,7 @@ async function loadQueue() {
 
     renderNextPosts();
     renderLastPost();
+    renderStats();
     renderMiniCalendar();
 
     const activePage = document.querySelector(".page.active");
@@ -1577,6 +1579,163 @@ function renderLastPost() {
         </div>
     `;
     box.appendChild(wrap);
+}
+
+// ------------------------------------------------------------
+// Estatísticas (pizza + barras diárias)
+// ------------------------------------------------------------
+
+let _statsMonth = new Date();
+
+function renderStats() {
+    renderStatsPie();
+    renderStatsDailyChart();
+    updateStatsMonthLabel();
+}
+
+function renderStatsPie() {
+    const canvas = document.getElementById("statsPieCanvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, 200, 200);
+
+    const pending = queueData.filter((p) => p.status === "pending").length;
+    const posted = queueData.filter((p) => p.status === "posted").length;
+    const failed = queueData.filter((p) => p.publish_error && p.status === "pending").length;
+    const pendingClean = pending - failed;
+    const total = queueData.length;
+
+    const slices = [
+        { label: "Publicadas", count: posted, color: "#22c55e" },
+        { label: "Agendadas", count: pendingClean, color: "#3b82f6" },
+        { label: "Com erro", count: failed, color: "#ef4444" },
+    ].filter((s) => s.count > 0);
+
+    if (slices.length === 0) {
+        ctx.fillStyle = "#e5e7eb";
+        ctx.beginPath();
+        ctx.arc(100, 100, 80, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Sem dados", 100, 105);
+    } else {
+        let angle = -Math.PI / 2;
+        slices.forEach((s) => {
+            const sliceAngle = (s.count / total) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(100, 100);
+            ctx.arc(100, 100, 80, angle, angle + sliceAngle);
+            ctx.closePath();
+            ctx.fillStyle = s.color;
+            ctx.fill();
+            angle += sliceAngle;
+        });
+        ctx.beginPath();
+        ctx.arc(100, 100, 45, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.fillStyle = "#1f2937";
+        ctx.font = "bold 28px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(total, 100, 107);
+        ctx.font = "11px sans-serif";
+        ctx.fillStyle = "#6b7280";
+        ctx.fillText("total", 100, 122);
+    }
+
+    const legend = document.getElementById("statsPieLegend");
+    legend.innerHTML = "";
+    [
+        { label: "Publicadas", count: posted, color: "#22c55e" },
+        { label: "Agendadas", count: pendingClean, color: "#3b82f6" },
+        { label: "Com erro", count: failed, color: "#ef4444" },
+    ].forEach((s) => {
+        const div = document.createElement("div");
+        div.className = "stats-pie-legend-item";
+        div.innerHTML = `<span class="stats-pie-legend-dot" style="background:${s.color}"></span>${s.label}: ${s.count}`;
+        legend.appendChild(div);
+    });
+}
+
+function renderStatsDailyChart() {
+    const canvas = document.getElementById("statsDailyCanvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const year = _statsMonth.getFullYear();
+    const month = _statsMonth.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const counts = new Array(daysInMonth).fill(0);
+    queueData.forEach((p) => {
+        if (p.status !== "posted") return;
+        const d = new Date(p.posted_at || p.schedule_date);
+        if (d.getFullYear() === year && d.getMonth() === month) {
+            counts[d.getDate() - 1]++;
+        }
+    });
+
+    const maxCount = Math.max(1, ...counts);
+    const barW = Math.max(4, (W - 40) / daysInMonth - 2);
+    const gap = (W - 40 - barW * daysInMonth) / (daysInMonth - 1 || 1);
+    const chartH = H - 30;
+    const baseY = chartH;
+
+    ctx.strokeStyle = "#e5e7eb";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+        const y = baseY - (chartH - 10) * (i / 4);
+        ctx.beginPath();
+        ctx.moveTo(30, y);
+        ctx.lineTo(W, y);
+        ctx.stroke();
+    }
+
+    counts.forEach((count, i) => {
+        const x = 30 + i * (barW + gap);
+        const h = count > 0 ? Math.max(4, ((chartH - 10) * count) / maxCount) : 0;
+        const y = baseY - h;
+
+        ctx.fillStyle = count > 0 ? "#22c55e" : "transparent";
+        ctx.beginPath();
+        ctx.roundRect(x, y, barW, h, 2);
+        ctx.fill();
+
+        if (i % Math.ceil(daysInMonth / 15) === 0 || i === daysInMonth - 1) {
+            ctx.fillStyle = "#9ca3af";
+            ctx.font = "10px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(i + 1, x + barW / 2, H - 2);
+        }
+    });
+}
+
+const MONTH_NAMES_PT = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+function updateStatsMonthLabel() {
+    const label = document.getElementById("statsMonthLabel");
+    if (label) label.textContent = `${MONTH_NAMES_PT[_statsMonth.getMonth()]} ${_statsMonth.getFullYear()}`;
+}
+
+function setupStatsControls() {
+    const prev = document.getElementById("statsPrevMonth");
+    const next = document.getElementById("statsNextMonth");
+    if (!prev || !next) return;
+    prev.addEventListener("click", () => {
+        _statsMonth = new Date(_statsMonth.getFullYear(), _statsMonth.getMonth() - 1, 1);
+        renderStatsDailyChart();
+        updateStatsMonthLabel();
+    });
+    next.addEventListener("click", () => {
+        _statsMonth = new Date(_statsMonth.getFullYear(), _statsMonth.getMonth() + 1, 1);
+        renderStatsDailyChart();
+        updateStatsMonthLabel();
+    });
 }
 
 // ------------------------------------------------------------

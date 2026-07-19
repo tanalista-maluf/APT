@@ -156,6 +156,24 @@
                     <button class="link-btn" data-page="calendar">Ver calendário completo →</button>
                 </div>
 
+                <div class="card stats-card">
+                    <h3>Estatísticas</h3>
+                    <div class="stats-content">
+                        <div class="stats-pie-wrapper">
+                            <canvas id="statsPieCanvas" width="200" height="200"></canvas>
+                            <div id="statsPieLegend" class="stats-pie-legend"></div>
+                        </div>
+                        <div class="stats-daily-wrapper">
+                            <div class="stats-daily-header">
+                                <button class="btn btn-secondary btn-sm" id="statsPrevMonth">←</button>
+                                <span id="statsMonthLabel" class="stats-month-label">Julho 2026</span>
+                                <button class="btn btn-secondary btn-sm" id="statsNextMonth">→</button>
+                            </div>
+                            <canvas id="statsDailyCanvas" width="600" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </section>
 
