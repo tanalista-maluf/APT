@@ -804,6 +804,7 @@ input, textarea, select {
     border-radius: var(--radius);
     overflow: hidden;
     background: #000;
+    flex-shrink: 0;
 }
 
 .story-crop-viewport {
