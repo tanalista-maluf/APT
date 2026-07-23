@@ -2086,3 +2086,20 @@ input, textarea, select {
 @keyframes ptr-spin {
     to { transform: rotate(360deg); }
 }
+
+/* Alerta de token Instagram */
+.ig-token-alert {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-left: 4px solid var(--red);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: #991B1B;
+}
+
+.ig-token-alert.hidden {
+    display: none;
+}

@@ -2306,6 +2306,41 @@ async function loadInstagramStatus() {
     } catch (e) {
         warn.textContent = "Não foi possível verificar o status do Instagram.";
     }
+
+    checkTokenHealth();
+}
+
+async function checkTokenHealth() {
+    const alertEl = document.getElementById("igTokenAlert");
+    if (!alertEl) return;
+    alertEl.innerHTML = "";
+    alertEl.classList.add("hidden");
+
+    if (_igAccounts.length === 0) return;
+
+    try {
+        const res = await apiFetch(`/instagram/check-token`);
+        const data = await res.json();
+        const problems = [];
+
+        for (const acct of (data.accounts || [])) {
+            if (!acct.ok) {
+                problems.push(`<strong>@${escapeHtml(acct.username)}</strong>: ${escapeHtml(acct.error)}`);
+            }
+        }
+
+        if (data.has_permission_errors) {
+            problems.push(`${data.failed_posts_count} postagem(ns) falharam por erro de permissão — reconecte a conta para corrigir.`);
+        }
+
+        if (problems.length > 0) {
+            alertEl.innerHTML =
+                `<strong>⚠️ Problema com o token do Instagram</strong><br>` +
+                problems.join("<br>") +
+                `<br><br><span style="font-size:0.85em;opacity:0.9">Reconecte a conta para renovar o token e as permissões.</span>`;
+            alertEl.classList.remove("hidden");
+        }
+    } catch (_) {}
 }
 
 function populateAccountSelectors() {
