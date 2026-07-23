@@ -1527,6 +1527,9 @@ function buildMiniPostItem(post) {
     div.className = "mini-post-item";
     const dateStr = formatDateBR(post.schedule_date);
     const isStory = post.post_type === "story";
+    const errorLine = post.publish_error
+        ? `<span class="queue-item-error" data-error="${escapeHtml(post.publish_error)}">⚠️ falhou</span>`
+        : "";
     div.innerHTML = `
         <div class="mini-post-thumb">
             <img src="/${post.photo_path}" alt="">
@@ -1537,9 +1540,14 @@ function buildMiniPostItem(post) {
             <div class="mini-post-item-meta">
                 <span class="status-badge ${post.status}">${post.status === "posted" ? "Postado" : "Pendente"}</span>
                 <span>${dateStr}</span>
+                ${errorLine}
             </div>
         </div>
     `;
+    const errorEl = div.querySelector(".queue-item-error");
+    if (errorEl) {
+        errorEl.addEventListener("click", (e) => { e.stopPropagation(); showToast(errorEl.dataset.error, "error", 8000); });
+    }
     div.addEventListener("click", () => openEditModal(post));
     return div;
 }
@@ -1976,9 +1984,8 @@ function buildQueueItem(post) {
     const dateStr = formatDateBR(post.schedule_date);
     const isPending = post.status !== "posted";
 
-    // Aviso discreto se a última tentativa de publicação falhou
     const errorLine = post.publish_error
-        ? `<span class="queue-item-error" title="${escapeHtml(post.publish_error)}">⚠️ falhou</span>`
+        ? `<span class="queue-item-error" data-error="${escapeHtml(post.publish_error)}">⚠️ falhou</span>`
         : "";
 
     div.innerHTML = `
@@ -2003,6 +2010,11 @@ function buildQueueItem(post) {
     }
     div.querySelector(".edit-btn").addEventListener("click", () => openEditModal(post));
     div.querySelector(".delete-btn").addEventListener("click", () => openDeleteModal(post.id));
+
+    const errorEl = div.querySelector(".queue-item-error");
+    if (errorEl) {
+        errorEl.addEventListener("click", () => showToast(errorEl.dataset.error, "error", 8000));
+    }
 
     return div;
 }
