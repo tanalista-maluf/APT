@@ -16,56 +16,56 @@ const MOODS = [
 ];
 
 const PHOTO_FILTERS = {
-    none: { label: "Original" },
+    none: { label: "Original", group: null },
 
     // ── 30ºS Brand ──────────────────────────────────────────
-    "30s-kraft": { label: "30ºS Kraft", brightness: 1.02, contrast: 1.08, saturate: 0.82, temperature: 24, tint: { r: 60, g: 30, b: 10, a: 0.06 }, vignette: 0.12, clarity: 0, grayscale: 0 },
-    "30s-ink": { label: "30ºS Ink", brightness: 0.92, contrast: 1.25, saturate: 0.75, temperature: 8, tint: { r: 17, g: 17, b: 17, a: 0.08 }, vignette: 0.18, clarity: 0, grayscale: 0 },
-    "30s-stamp": { label: "30ºS Stamp", brightness: 1.05, contrast: 1.15, saturate: 0.88, temperature: 18, tint: { r: 50, g: 25, b: 5, a: 0.05 }, vignette: 0.08, clarity: 0, grayscale: 0 },
-    "30s-golden": { label: "30ºS Golden", brightness: 1.08, contrast: 1.05, saturate: 0.90, temperature: 32, tint: { r: 242, g: 201, b: 76, a: 0.04 }, vignette: 0.06, clarity: 0, grayscale: 0 },
-    "30s-mono": { label: "30ºS Mono", brightness: 1.05, contrast: 1.20, saturate: 0, temperature: 6, tint: { r: 60, g: 40, b: 20, a: 0.06 }, vignette: 0.10, clarity: 0, grayscale: 1 },
+    "30s-kraft":   { label: "Kraft",   group: "30ºS", brightness: 1.02, contrast: 1.08, saturate: 0.82, temperature: 24, tint: { r: 60, g: 30, b: 10, a: 0.06 }, vignette: 0.12, clarity: 0, grayscale: 0 },
+    "30s-ink":     { label: "Ink",     group: "30ºS", brightness: 0.92, contrast: 1.25, saturate: 0.75, temperature: 8, tint: { r: 17, g: 17, b: 17, a: 0.08 }, vignette: 0.18, clarity: 0, grayscale: 0 },
+    "30s-stamp":   { label: "Stamp",   group: "30ºS", brightness: 1.05, contrast: 1.15, saturate: 0.88, temperature: 18, tint: { r: 50, g: 25, b: 5, a: 0.05 }, vignette: 0.08, clarity: 0, grayscale: 0 },
+    "30s-golden":  { label: "Golden",  group: "30ºS", brightness: 1.08, contrast: 1.05, saturate: 0.90, temperature: 32, tint: { r: 242, g: 201, b: 76, a: 0.04 }, vignette: 0.06, clarity: 0, grayscale: 0 },
+    "30s-mono":    { label: "Mono",    group: "30ºS", brightness: 1.05, contrast: 1.20, saturate: 0, temperature: 6, tint: { r: 60, g: 40, b: 20, a: 0.06 }, vignette: 0.10, clarity: 0, grayscale: 1 },
 
-    // ── Fab Four (vermelho vibrante, cores intensas) ────────
-    "fab-four-red": { label: "Fab Four Red", brightness: 1.03, contrast: 1.18, saturate: 1.25, temperature: 12, tint: { r: 231, g: 76, b: 60, a: 0.05 }, vignette: 0.10, clarity: 0, grayscale: 0 },
-    "fab-four-vivid": { label: "Fab Four Vivid", brightness: 1.06, contrast: 1.12, saturate: 1.35, temperature: 6, tint: { r: 50, g: 10, b: 30, a: 0.04 }, vignette: 0.05, clarity: 0, grayscale: 0 },
-    "fab-four-warm": { label: "Fab Four Warm", brightness: 1.04, contrast: 1.10, saturate: 1.15, temperature: 20, tint: { r: 180, g: 50, b: 30, a: 0.04 }, vignette: 0.08, clarity: 0, grayscale: 0 },
+    // ── Fab Four ────────────────────────────────────────────
+    "fab-four-red":   { label: "Red",   group: "Fab Four", brightness: 1.03, contrast: 1.18, saturate: 1.25, temperature: 12, tint: { r: 231, g: 76, b: 60, a: 0.05 }, vignette: 0.10, clarity: 0, grayscale: 0 },
+    "fab-four-vivid": { label: "Vivid", group: "Fab Four", brightness: 1.06, contrast: 1.12, saturate: 1.35, temperature: 6, tint: { r: 50, g: 10, b: 30, a: 0.04 }, vignette: 0.05, clarity: 0, grayscale: 0 },
+    "fab-four-warm":  { label: "Warm",  group: "Fab Four", brightness: 1.04, contrast: 1.10, saturate: 1.15, temperature: 20, tint: { r: 180, g: 50, b: 30, a: 0.04 }, vignette: 0.08, clarity: 0, grayscale: 0 },
 
-    // ── Nordic (tons frios, azulados, luz nórdica) ──────────
-    "nordic-frost": { label: "Nordic Frost", brightness: 1.06, contrast: 1.05, saturate: 0.85, temperature: -18, tint: { r: 10, g: 30, b: 60, a: 0.05 }, vignette: 0.06, clarity: 0, grayscale: 0 },
-    "nordic-aurora": { label: "Nordic Aurora", brightness: 0.95, contrast: 1.15, saturate: 1.20, temperature: -12, tint: { r: 20, g: 60, b: 40, a: 0.05 }, vignette: 0.12, clarity: 0, grayscale: 0 },
-    "nordic-midnight": { label: "Nordic Midnight", brightness: 0.88, contrast: 1.22, saturate: 0.90, temperature: -22, tint: { r: 15, g: 20, b: 50, a: 0.07 }, vignette: 0.18, clarity: 0, grayscale: 0 },
+    // ── Nordic ──────────────────────────────────────────────
+    "nordic-frost":    { label: "Frost",    group: "Nordic", brightness: 1.06, contrast: 1.05, saturate: 0.85, temperature: -18, tint: { r: 10, g: 30, b: 60, a: 0.05 }, vignette: 0.06, clarity: 0, grayscale: 0 },
+    "nordic-aurora":   { label: "Aurora",   group: "Nordic", brightness: 0.95, contrast: 1.15, saturate: 1.20, temperature: -12, tint: { r: 20, g: 60, b: 40, a: 0.05 }, vignette: 0.12, clarity: 0, grayscale: 0 },
+    "nordic-midnight": { label: "Midnight", group: "Nordic", brightness: 0.88, contrast: 1.22, saturate: 0.90, temperature: -22, tint: { r: 15, g: 20, b: 50, a: 0.07 }, vignette: 0.18, clarity: 0, grayscale: 0 },
 
-    // ── Lapland (neve, branco, tons suaves e gelados) ───────
-    "lapland-snow": { label: "Lapland Snow", brightness: 1.12, contrast: 0.95, saturate: 0.78, temperature: -8, tint: { r: 200, g: 210, b: 220, a: 0.04 }, vignette: 0.04, clarity: 0, grayscale: 0 },
-    "lapland-cabin": { label: "Lapland Cabin", brightness: 1.04, contrast: 1.10, saturate: 0.88, temperature: 28, tint: { r: 80, g: 40, b: 15, a: 0.06 }, vignette: 0.14, clarity: 0, grayscale: 0 },
-    "lapland-birch": { label: "Lapland Birch", brightness: 1.08, contrast: 1.02, saturate: 0.82, temperature: 4, tint: { r: 40, g: 50, b: 30, a: 0.04 }, vignette: 0.06, clarity: 0, grayscale: 0 },
+    // ── Lapland ─────────────────────────────────────────────
+    "lapland-snow":  { label: "Snow",  group: "Lapland", brightness: 1.12, contrast: 0.95, saturate: 0.78, temperature: -8, tint: { r: 200, g: 210, b: 220, a: 0.04 }, vignette: 0.04, clarity: 0, grayscale: 0 },
+    "lapland-cabin": { label: "Cabin", group: "Lapland", brightness: 1.04, contrast: 1.10, saturate: 0.88, temperature: 28, tint: { r: 80, g: 40, b: 15, a: 0.06 }, vignette: 0.14, clarity: 0, grayscale: 0 },
+    "lapland-birch": { label: "Birch", group: "Lapland", brightness: 1.08, contrast: 1.02, saturate: 0.82, temperature: 4, tint: { r: 40, g: 50, b: 30, a: 0.04 }, vignette: 0.06, clarity: 0, grayscale: 0 },
 
-    // ── Highlands (verde musgo, pedra, névoa escocesa) ──────
-    "highlands-moss": { label: "Highlands Moss", brightness: 0.98, contrast: 1.08, saturate: 0.92, temperature: -4, tint: { r: 20, g: 50, b: 15, a: 0.06 }, vignette: 0.10, clarity: 0, grayscale: 0 },
-    "highlands-mist": { label: "Highlands Mist", brightness: 1.10, contrast: 0.90, saturate: 0.75, temperature: -6, tint: { r: 30, g: 35, b: 45, a: 0.05 }, vignette: 0.08, clarity: 0, grayscale: 0 },
-    "highlands-stone": { label: "Highlands Stone", brightness: 0.95, contrast: 1.18, saturate: 0.80, temperature: 2, tint: { r: 40, g: 35, b: 30, a: 0.06 }, vignette: 0.14, clarity: 0, grayscale: 0 },
+    // ── Highlands ───────────────────────────────────────────
+    "highlands-moss":  { label: "Moss",  group: "Highlands", brightness: 0.98, contrast: 1.08, saturate: 0.92, temperature: -4, tint: { r: 20, g: 50, b: 15, a: 0.06 }, vignette: 0.10, clarity: 0, grayscale: 0 },
+    "highlands-mist":  { label: "Mist",  group: "Highlands", brightness: 1.10, contrast: 0.90, saturate: 0.75, temperature: -6, tint: { r: 30, g: 35, b: 45, a: 0.05 }, vignette: 0.08, clarity: 0, grayscale: 0 },
+    "highlands-stone": { label: "Stone", group: "Highlands", brightness: 0.95, contrast: 1.18, saturate: 0.80, temperature: 2, tint: { r: 40, g: 35, b: 30, a: 0.06 }, vignette: 0.14, clarity: 0, grayscale: 0 },
 
-    // ── Mediterranean (luz dourada, mar, terracota) ─────────
-    "med-terracota": { label: "Med Terracota", brightness: 1.05, contrast: 1.10, saturate: 1.05, temperature: 22, tint: { r: 180, g: 80, b: 40, a: 0.04 }, vignette: 0.06, clarity: 0, grayscale: 0 },
-    "med-azur": { label: "Med Azur", brightness: 1.08, contrast: 1.05, saturate: 1.12, temperature: -6, tint: { r: 20, g: 50, b: 80, a: 0.04 }, vignette: 0.04, clarity: 0, grayscale: 0 },
-    "med-sunset": { label: "Med Sunset", brightness: 1.10, contrast: 1.08, saturate: 1.08, temperature: 35, tint: { r: 200, g: 100, b: 40, a: 0.04 }, vignette: 0.08, clarity: 0, grayscale: 0 },
+    // ── Mediterranean ───────────────────────────────────────
+    "med-terracota": { label: "Terracota", group: "Mediterranean", brightness: 1.05, contrast: 1.10, saturate: 1.05, temperature: 22, tint: { r: 180, g: 80, b: 40, a: 0.04 }, vignette: 0.06, clarity: 0, grayscale: 0 },
+    "med-azur":      { label: "Azur",      group: "Mediterranean", brightness: 1.08, contrast: 1.05, saturate: 1.12, temperature: -6, tint: { r: 20, g: 50, b: 80, a: 0.04 }, vignette: 0.04, clarity: 0, grayscale: 0 },
+    "med-sunset":    { label: "Sunset",    group: "Mediterranean", brightness: 1.10, contrast: 1.08, saturate: 1.08, temperature: 35, tint: { r: 200, g: 100, b: 40, a: 0.04 }, vignette: 0.08, clarity: 0, grayscale: 0 },
 
-    // ── Desert (areia, ocre, calor seco) ────────────────────
-    "desert-dune": { label: "Desert Dune", brightness: 1.08, contrast: 1.05, saturate: 0.85, temperature: 30, tint: { r: 200, g: 160, b: 80, a: 0.05 }, vignette: 0.06, clarity: 0, grayscale: 0 },
-    "desert-oasis": { label: "Desert Oasis", brightness: 1.02, contrast: 1.12, saturate: 1.10, temperature: 18, tint: { r: 50, g: 40, b: 10, a: 0.04 }, vignette: 0.08, clarity: 0, grayscale: 0 },
+    // ── Desert ──────────────────────────────────────────────
+    "desert-dune":  { label: "Dune",  group: "Desert", brightness: 1.08, contrast: 1.05, saturate: 0.85, temperature: 30, tint: { r: 200, g: 160, b: 80, a: 0.05 }, vignette: 0.06, clarity: 0, grayscale: 0 },
+    "desert-oasis": { label: "Oasis", group: "Desert", brightness: 1.02, contrast: 1.12, saturate: 1.10, temperature: 18, tint: { r: 50, g: 40, b: 10, a: 0.04 }, vignette: 0.08, clarity: 0, grayscale: 0 },
 
-    // ── Patagonia (vento, gelo, contraste dramático) ────────
-    "patagonia-ice": { label: "Patagonia Ice", brightness: 1.04, contrast: 1.20, saturate: 0.92, temperature: -14, tint: { r: 15, g: 40, b: 60, a: 0.05 }, vignette: 0.10, clarity: 0, grayscale: 0 },
-    "patagonia-wind": { label: "Patagonia Wind", brightness: 0.96, contrast: 1.25, saturate: 1.05, temperature: -4, tint: null, vignette: 0.14, clarity: 0, grayscale: 0 },
+    // ── Patagonia ────────────────────────────────────────────
+    "patagonia-ice":  { label: "Ice",  group: "Patagonia", brightness: 1.04, contrast: 1.20, saturate: 0.92, temperature: -14, tint: { r: 15, g: 40, b: 60, a: 0.05 }, vignette: 0.10, clarity: 0, grayscale: 0 },
+    "patagonia-wind": { label: "Wind", group: "Patagonia", brightness: 0.96, contrast: 1.25, saturate: 1.05, temperature: -4, tint: null, vignette: 0.14, clarity: 0, grayscale: 0 },
 
-    // ── Tropical (verde exuberante, calor, saturação) ───────
-    "tropical-jungle": { label: "Tropical Jungle", brightness: 0.98, contrast: 1.10, saturate: 1.28, temperature: 8, tint: { r: 10, g: 60, b: 20, a: 0.04 }, vignette: 0.08, clarity: 0, grayscale: 0 },
-    "tropical-beach": { label: "Tropical Beach", brightness: 1.10, contrast: 1.02, saturate: 1.15, temperature: 14, tint: { r: 40, g: 180, b: 200, a: 0.03 }, vignette: 0.04, clarity: 0, grayscale: 0 },
+    // ── Tropical ────────────────────────────────────────────
+    "tropical-jungle": { label: "Jungle", group: "Tropical", brightness: 0.98, contrast: 1.10, saturate: 1.28, temperature: 8, tint: { r: 10, g: 60, b: 20, a: 0.04 }, vignette: 0.08, clarity: 0, grayscale: 0 },
+    "tropical-beach":  { label: "Beach",  group: "Tropical", brightness: 1.10, contrast: 1.02, saturate: 1.15, temperature: 14, tint: { r: 40, g: 180, b: 200, a: 0.03 }, vignette: 0.04, clarity: 0, grayscale: 0 },
 
-    // ── Film (simulações analógicas clássicas) ──────────────
-    "film-kodak": { label: "Film Kodak", brightness: 1.04, contrast: 1.08, saturate: 1.10, temperature: 16, tint: { r: 255, g: 200, b: 50, a: 0.03 }, vignette: 0.10, clarity: 0, grayscale: 0 },
-    "film-fuji": { label: "Film Fuji", brightness: 1.02, contrast: 1.06, saturate: 1.05, temperature: -8, tint: { r: 30, g: 80, b: 60, a: 0.03 }, vignette: 0.08, clarity: 0, grayscale: 0 },
-    "film-portra": { label: "Film Portra", brightness: 1.06, contrast: 0.95, saturate: 0.90, temperature: 12, tint: { r: 60, g: 40, b: 30, a: 0.04 }, vignette: 0.06, clarity: 0, grayscale: 0 },
+    // ── Film ────────────────────────────────────────────────
+    "film-kodak":  { label: "Kodak",  group: "Film", brightness: 1.04, contrast: 1.08, saturate: 1.10, temperature: 16, tint: { r: 255, g: 200, b: 50, a: 0.03 }, vignette: 0.10, clarity: 0, grayscale: 0 },
+    "film-fuji":   { label: "Fuji",   group: "Film", brightness: 1.02, contrast: 1.06, saturate: 1.05, temperature: -8, tint: { r: 30, g: 80, b: 60, a: 0.03 }, vignette: 0.08, clarity: 0, grayscale: 0 },
+    "film-portra": { label: "Portra", group: "Film", brightness: 1.06, contrast: 0.95, saturate: 0.90, temperature: 12, tint: { r: 60, g: 40, b: 30, a: 0.04 }, vignette: 0.06, clarity: 0, grayscale: 0 },
 
 };
 
@@ -1063,19 +1063,19 @@ function setupNewPostModal() {
 
     document.getElementById("regenHashtagsBtn").addEventListener("click", regenerateHashtags);
 
-    // Populate filter dropdown with optgroups by category
     const filterSelect = document.getElementById("filterSelect");
     const groups = {};
+    const groupOrder = [];
     for (const [key, f] of Object.entries(PHOTO_FILTERS)) {
         if (key === "none") continue;
-        const parts = f.label.replace(/\s+\d+$/, "");
-        if (!groups[parts]) groups[parts] = [];
-        groups[parts].push({ key, label: f.label });
+        const g = f.group || "Outros";
+        if (!groups[g]) { groups[g] = []; groupOrder.push(g); }
+        groups[g].push({ key, label: f.label });
     }
-    for (const [groupName, items] of Object.entries(groups)) {
+    for (const groupName of groupOrder) {
         const optgroup = document.createElement("optgroup");
         optgroup.label = groupName;
-        for (const item of items) {
+        for (const item of groups[groupName]) {
             const opt = document.createElement("option");
             opt.value = item.key;
             opt.textContent = item.label;
@@ -2477,17 +2477,32 @@ function setupStoryDropzone() {
     });
 
     // Filter controls
-    const filterSelect = document.getElementById("storyFilterSelect");
-    filterSelect.innerHTML = "";
+    const storyFilterSelect = document.getElementById("storyFilterSelect");
+    storyFilterSelect.innerHTML = "";
+    const origOpt = document.createElement("option");
+    origOpt.value = "none"; origOpt.textContent = "Original";
+    storyFilterSelect.appendChild(origOpt);
+    const sGroups = {}; const sOrder = [];
     for (const [key, f] of Object.entries(PHOTO_FILTERS)) {
-        const opt = document.createElement("option");
-        opt.value = key; opt.textContent = f.label;
-        filterSelect.appendChild(opt);
+        if (key === "none") continue;
+        const g = f.group || "Outros";
+        if (!sGroups[g]) { sGroups[g] = []; sOrder.push(g); }
+        sGroups[g].push({ key, label: f.label });
     }
-    filterSelect.addEventListener("change", () => {
+    for (const gn of sOrder) {
+        const og = document.createElement("optgroup");
+        og.label = gn;
+        for (const item of sGroups[gn]) {
+            const opt = document.createElement("option");
+            opt.value = item.key; opt.textContent = item.label;
+            og.appendChild(opt);
+        }
+        storyFilterSelect.appendChild(og);
+    }
+    storyFilterSelect.addEventListener("change", () => {
         const item = storyItems[currentStoryIndex];
-        if (item) item.filterKey = filterSelect.value;
-        document.getElementById("storyFilterIntensityRow").style.display = filterSelect.value === "none" ? "none" : "";
+        if (item) item.filterKey = storyFilterSelect.value;
+        document.getElementById("storyFilterIntensityRow").style.display = storyFilterSelect.value === "none" ? "none" : "";
         applyStoryFilter();
     });
     document.getElementById("storyFilterIntensity").addEventListener("input", (e) => {
