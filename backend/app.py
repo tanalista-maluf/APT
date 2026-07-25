@@ -838,41 +838,28 @@ def instagram_status():
 
 @app.route("/api/instagram/check-token", methods=["GET"])
 def instagram_check_token():
-    """Verifica saúde do token e permissões de cada conta conectada."""
+    """Verifica saúde do token de cada conta conectada."""
     accounts = db.list_ig_accounts()
     if not accounts:
         return jsonify({"accounts": []})
 
-    required_perms = {
-        "instagram_basic", "instagram_content_publish",
-        "pages_read_engagement", "pages_show_list",
-    }
     results = []
     for acct in accounts:
         token = acct.get("access_token", "")
+        ig_user_id = acct.get("ig_user_id", "")
         entry = {
             "id": acct["id"],
             "username": acct.get("username", ""),
             "ok": False,
             "error": None,
-            "missing_permissions": [],
         }
-        if not token:
+        if not token or not ig_user_id:
             entry["error"] = "Token não configurado."
             results.append(entry)
             continue
         try:
-            data = instagram._get(
-                f"{instagram.GRAPH_BASE}/me/permissions",
-                {"access_token": token},
-            )
-            granted = {p["permission"] for p in data.get("data", []) if p.get("status") == "granted"}
-            missing = sorted(required_perms - granted)
-            if missing:
-                entry["error"] = f"Permissões faltando: {', '.join(missing)}"
-                entry["missing_permissions"] = missing
-            else:
-                entry["ok"] = True
+            instagram.get_account_info(ig_user_id, token)
+            entry["ok"] = True
         except instagram.InstagramError as e:
             entry["error"] = str(e)
         results.append(entry)
