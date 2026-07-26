@@ -554,26 +554,29 @@ async function handleNewFiles(fileList) {
                     photo.caption = data.caption || "";
                     photo.hashtags = data.hashtags || [];
                     photo.contentType = data.content_type || "";
-                    const defaultMood = photo.location ? "pin" : "maluf";
-                    try {
-                        const moodRes = await apiFetch(`/rewrite-caption`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                caption: photo.caption,
-                                mood: defaultMood,
-                                location: photo.location || "",
-                                content_type: photo.contentType || ""
-                            })
-                        });
-                        const moodData = await moodRes.json();
-                        if (moodData.success && moodData.caption) {
-                            const label = defaultMood === "pin" ? "📍 Só Local" : "✍️ Meu Estilo";
-                            photo.captionOptions.unshift({ style: label, text: moodData.caption });
-                            photo.caption = moodData.caption;
-                            photo.activeMood = defaultMood;
-                        }
-                    } catch (_) {}
+                    if (photo.location) {
+                        try {
+                            const moodRes = await apiFetch(`/rewrite-caption`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    caption: photo.caption,
+                                    mood: "pin",
+                                    location: photo.location || "",
+                                    content_type: photo.contentType || ""
+                                })
+                            });
+                            const moodData = await moodRes.json();
+                            if (moodData.success && moodData.caption) {
+                                photo.captionOptions.unshift({ style: "📍 Só Local", text: moodData.caption });
+                                photo.caption = moodData.caption;
+                                photo.activeMood = "pin";
+                            }
+                        } catch (_) {}
+                    } else {
+                        photo.caption = "";
+                        photo.activeMood = null;
+                    }
                 } else if (data.error) {
                     analysisErrors.push(data.error);
                 }
