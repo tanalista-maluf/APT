@@ -703,6 +703,64 @@ input, textarea, select {
     align-self: start;
 }
 
+.scripts-card {
+    grid-column: 2;
+    grid-row: 5;
+    align-self: start;
+}
+
+.scripts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.scripts-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    background: var(--cream);
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s ease;
+}
+
+.scripts-item:hover {
+    background: var(--cream-2);
+}
+
+.scripts-item-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.scripts-item-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.scripts-item-name {
+    font-weight: 700;
+    font-size: 13px;
+    font-family: var(--font-mono);
+}
+
+.scripts-item-desc {
+    font-size: 12px;
+    color: var(--gray-text);
+    margin-top: 2px;
+}
+
+.scripts-item-dl {
+    font-size: 16px;
+    color: var(--red);
+    flex-shrink: 0;
+}
+
 .stats-content {
     display: flex;
     flex-direction: column;
@@ -2093,6 +2151,11 @@ input, textarea, select {
     }
 
     .mini-calendar-card {
+        grid-column: 1;
+        grid-row: auto;
+    }
+
+    .scripts-card {
         grid-column: 1;
         grid-row: auto;
     }

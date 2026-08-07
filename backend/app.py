@@ -136,7 +136,11 @@ def require_auth():
     if not AUTH_ENABLED or request.method == "OPTIONS":
         return None
     path = request.path
-    needs_auth = (path.startswith("/api/") and path not in AUTH_PUBLIC_PATHS) or path.startswith("/data/")
+    needs_auth = (
+        (path.startswith("/api/") and path not in AUTH_PUBLIC_PATHS)
+        or path.startswith("/data/")
+        or path.startswith("/downloads/")
+    )
     if needs_auth and not session.get("authed"):
         return jsonify({"error": "Login necessário", "auth_required": True}), 401
     return None
