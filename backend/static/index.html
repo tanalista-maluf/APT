@@ -60,6 +60,9 @@
             <button class="side-nav-item" data-page="content-gen">
                 <span class="side-nav-icon">🧭</span> Gerar Conteúdo
             </button>
+            <button class="side-nav-item" data-page="content-drafts">
+                <span class="side-nav-icon">📋</span> Rascunhos
+            </button>
             <button class="side-nav-item" data-page="settings">
                 <span class="side-nav-icon">⚙️</span> Configurações
             </button>
@@ -275,6 +278,21 @@
                 <p class="muted-text" id="cgEtaLabel"></p>
 
                 <div id="cgGrid" class="cg-grid"></div>
+            </div>
+        </section>
+
+        <!-- PÁGINA: RASCUNHOS (levas de Gerar Conteúdo) -->
+        <section id="page-content-drafts" class="page">
+            <div class="card">
+                <div class="card-header-row">
+                    <h3>Rascunhos</h3>
+                </div>
+                <p class="muted-text" style="margin-bottom:14px">
+                    Levas de conteúdo criadas em "Gerar Conteúdo" — em andamento ou já concluídas. Clique em "Retomar" pra reabrir a tela de progresso.
+                </p>
+                <div id="cgDraftsList" class="cg-drafts-list">
+                    <p class="empty-state">Carregando...</p>
+                </div>
             </div>
         </section>
 

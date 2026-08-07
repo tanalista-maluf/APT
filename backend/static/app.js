@@ -74,6 +74,7 @@ const PAGE_TITLES = {
     calendar: "Calendário",
     history: "Histórico",
     "content-gen": "Gerar Conteúdo",
+    "content-drafts": "Rascunhos",
     settings: "Configurações",
 };
 
@@ -321,6 +322,8 @@ function switchPage(pageName) {
         renderHistoryList();
     } else if (pageName === "content-gen") {
         renderContentGenPage();
+    } else if (pageName === "content-drafts") {
+        renderContentDraftsPage();
     } else if (pageName === "settings") {
         loadSettingsPage();
     }
@@ -3454,6 +3457,63 @@ async function restoreCgBatchFromStorage() {
     const activePage = document.querySelector(".page.active");
     if (activePage && activePage.id === "page-content-gen") {
         renderContentGenPage();
+    }
+}
+
+const CG_STATUS_LABELS = {
+    draft: "Rascunho",
+    generating_text: "Gerando textos…",
+    downloading_photos: "Baixando fotos…",
+    done: "Concluída",
+    cancelled: "Cancelada",
+};
+
+async function renderContentDraftsPage() {
+    const list = document.getElementById("cgDraftsList");
+    list.innerHTML = '<p class="empty-state">Carregando...</p>';
+    try {
+        const res = await apiFetch("/content-batches");
+        const data = await res.json();
+        const batches = data.batches || [];
+
+        if (batches.length === 0) {
+            list.innerHTML = '<p class="empty-state">Nenhuma leva criada ainda. Vá em "Gerar Conteúdo" pra começar uma.</p>';
+            return;
+        }
+
+        list.innerHTML = batches.map((b) => {
+            const t = b.totals || {};
+            const total = t.total || 0;
+            const textDone = t.text_done || 0;
+            const photoDone = t.photo_done || 0;
+            const statusLabel = CG_STATUS_LABELS[b.status] || b.status;
+            const expNames = (b.expeditions || []).map((e) => e.name).join(", ") || "—";
+            const dateStr = b.created_at ? formatDateBR(b.created_at) : "";
+            return `
+                <div class="cg-draft-card">
+                    <div class="cg-draft-info">
+                        <p class="cg-draft-name">${escapeHtml(b.name || "(sem nome)")}</p>
+                        <p class="muted-text">${escapeHtml(expNames)}</p>
+                        <div class="cg-draft-meta">
+                            <span class="status-badge ${b.status === "done" ? "posted" : "pending"}">${escapeHtml(statusLabel)}</span>
+                            <span>Textos ${textDone}/${total} · Fotos ${photoDone}/${total}</span>
+                            <span>${dateStr}</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary btn-small" data-resume-batch="${b.id}">Retomar</button>
+                </div>
+            `;
+        }).join("");
+
+        list.querySelectorAll("[data-resume-batch]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                cgCurrentBatchId = btn.dataset.resumeBatch;
+                localStorage.setItem("cgCurrentBatchId", cgCurrentBatchId);
+                switchPage("content-gen");
+            });
+        });
+    } catch (e) {
+        list.innerHTML = '<p class="empty-state">Erro ao carregar rascunhos.</p>';
     }
 }
 

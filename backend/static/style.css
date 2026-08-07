@@ -566,6 +566,41 @@ input, textarea, select {
     flex-shrink: 0;
 }
 
+.cg-drafts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cg-draft-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    background: var(--cream);
+}
+
+.cg-draft-info {
+    min-width: 0;
+}
+
+.cg-draft-name {
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.cg-draft-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--gray-text);
+}
+
 /* ============================================================
    DASHBOARD GRID
    ============================================================ */

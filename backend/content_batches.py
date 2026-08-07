@@ -476,7 +476,10 @@ def batch_progress(batch_id):
 
 @content_batches_bp.route("/api/content-batches", methods=["GET"])
 def list_batches():
-    return jsonify({"batches": db.list_content_batches()})
+    batches = db.list_content_batches()
+    for batch in batches:
+        batch["totals"] = db.count_items_by_status(batch["id"])
+    return jsonify({"batches": batches})
 
 
 @content_batches_bp.route("/api/content-batches/<batch_id>", methods=["GET"])
