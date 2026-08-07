@@ -162,6 +162,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupSidebar();
     setupDropzone();
     setupStoryDropzone();
+    setupCarouselDropzone();
     setupStatsControls();
     setupNewPostModal();
     setupScheduleModal();
@@ -2903,4 +2904,511 @@ async function submitAllStories() {
     closeStoryEditor();
     btn.disabled = false;
     btn.textContent = "Agendar Story";
+}
+
+// ============================================================
+// CARROSSEL
+// ============================================================
+
+let carouselItems = [];
+let currentCarouselIndex = 0;
+let _carouselDragging = false;
+let _carouselDragStart = { x: 0, y: 0, panX: 0, panY: 0 };
+let _carouselOrigImg = null;
+
+const CAROUSEL_MIN_PHOTOS = 2;
+const CAROUSEL_MAX_PHOTOS = 10;
+
+function _carouselCrop() {
+    const item = carouselItems[currentCarouselIndex];
+    if (!item) return { panX: 0, panY: 0, zoom: 100, rotation: 0 };
+    if (!item.crop) item.crop = { panX: 0, panY: 0, zoom: 100, rotation: 0 };
+    return item.crop;
+}
+
+function setupCarouselDropzone() {
+    const input = document.getElementById("carouselPhotoInput");
+    const inner = document.getElementById("carouselDropzoneInner");
+    if (!inner || !input) return;
+
+    inner.addEventListener("click", () => input.click());
+    input.addEventListener("change", (e) => {
+        if (e.target.files.length > 0) handleCarouselFiles(e.target.files);
+        input.value = "";
+    });
+    inner.addEventListener("dragover", (e) => { e.preventDefault(); inner.classList.add("drag-over"); });
+    inner.addEventListener("dragleave", () => inner.classList.remove("drag-over"));
+    inner.addEventListener("drop", (e) => {
+        e.preventDefault(); inner.classList.remove("drag-over");
+        if (e.dataTransfer.files.length > 0) handleCarouselFiles(e.dataTransfer.files);
+    });
+
+    document.getElementById("closeCarouselEditorBtn").addEventListener("click", closeCarouselEditor);
+    document.getElementById("cancelCarouselBtn").addEventListener("click", closeCarouselEditor);
+    document.getElementById("confirmCarouselBtn").addEventListener("click", submitCarousel);
+    document.getElementById("carouselPrevBtn").addEventListener("click", () => navigateCarousel(-1));
+    document.getElementById("carouselNextBtn").addEventListener("click", () => navigateCarousel(1));
+
+    document.getElementById("carouselTextOverlay").addEventListener("input", () => {
+        if (carouselItems[currentCarouselIndex]) {
+            carouselItems[currentCarouselIndex].text = document.getElementById("carouselTextOverlay").value;
+        }
+    });
+
+    // Crop controls
+    document.getElementById("carouselRotateLeftBtn").addEventListener("click", () => {
+        const c = _carouselCrop(); c.rotation = (c.rotation - 90 + 360) % 360; c.panX = 0; c.panY = 0;
+        updateCarouselCropTransform();
+    });
+    document.getElementById("carouselRotateRightBtn").addEventListener("click", () => {
+        const c = _carouselCrop(); c.rotation = (c.rotation + 90) % 360; c.panX = 0; c.panY = 0;
+        updateCarouselCropTransform();
+    });
+    document.getElementById("carouselCropResetBtn").addEventListener("click", () => {
+        const item = carouselItems[currentCarouselIndex];
+        if (item) { item.crop = { panX: 0, panY: 0, zoom: 100, rotation: 0 }; item.filterKey = "none"; item.filterIntensity = 80; }
+        document.getElementById("carouselZoom").value = 100;
+        document.getElementById("carouselZoomValue").textContent = "100%";
+        document.getElementById("carouselFilterSelect").value = "none";
+        document.getElementById("carouselFilterIntensityRow").style.display = "none";
+        applyCarouselFilter();
+        updateCarouselCropTransform();
+    });
+    document.getElementById("carouselZoom").addEventListener("input", (e) => {
+        const c = _carouselCrop(); c.zoom = parseInt(e.target.value);
+        document.getElementById("carouselZoomValue").textContent = c.zoom + "%";
+        updateCarouselCropTransform();
+    });
+
+    // Filter controls
+    const filterSelect = document.getElementById("carouselFilterSelect");
+    filterSelect.innerHTML = "";
+    for (const [key, f] of Object.entries(PHOTO_FILTERS)) {
+        const opt = document.createElement("option");
+        opt.value = key; opt.textContent = f.label;
+        filterSelect.appendChild(opt);
+    }
+    filterSelect.addEventListener("change", () => {
+        const item = carouselItems[currentCarouselIndex];
+        if (item) item.filterKey = filterSelect.value;
+        document.getElementById("carouselFilterIntensityRow").style.display = filterSelect.value === "none" ? "none" : "";
+        applyCarouselFilter();
+    });
+    document.getElementById("carouselFilterIntensity").addEventListener("input", (e) => {
+        const item = carouselItems[currentCarouselIndex];
+        if (item) item.filterIntensity = parseInt(e.target.value);
+        document.getElementById("carouselFilterIntensityValue").textContent = e.target.value + "%";
+        applyCarouselFilter();
+    });
+
+    // Pan via mouse
+    const vp = document.getElementById("carouselCropViewport");
+    vp.addEventListener("mousedown", (e) => {
+        e.preventDefault(); _carouselDragging = true;
+        const c = _carouselCrop();
+        _carouselDragStart = { x: e.clientX, y: e.clientY, panX: c.panX, panY: c.panY };
+    });
+    window.addEventListener("mousemove", (e) => {
+        if (!_carouselDragging) return;
+        const c = _carouselCrop();
+        c.panX = _carouselDragStart.panX + (e.clientX - _carouselDragStart.x);
+        c.panY = _carouselDragStart.panY + (e.clientY - _carouselDragStart.y);
+        updateCarouselCropTransform();
+    });
+    window.addEventListener("mouseup", () => { _carouselDragging = false; });
+
+    // Pan via touch
+    vp.addEventListener("touchstart", (e) => {
+        if (e.touches.length === 1) {
+            _carouselDragging = true;
+            const t = e.touches[0]; const c = _carouselCrop();
+            _carouselDragStart = { x: t.clientX, y: t.clientY, panX: c.panX, panY: c.panY };
+        }
+    }, { passive: true });
+    vp.addEventListener("touchmove", (e) => {
+        if (!_carouselDragging || e.touches.length !== 1) return;
+        e.preventDefault();
+        const t = e.touches[0]; const c = _carouselCrop();
+        c.panX = _carouselDragStart.panX + (t.clientX - _carouselDragStart.x);
+        c.panY = _carouselDragStart.panY + (t.clientY - _carouselDragStart.y);
+        updateCarouselCropTransform();
+    }, { passive: false });
+    vp.addEventListener("touchend", () => { _carouselDragging = false; });
+}
+
+function updateCarouselCropTransform() {
+    const crop = _carouselCrop();
+    const img = document.getElementById("carouselEditImage");
+    const canvas = document.getElementById("carouselFilterCanvas");
+    const vp = document.getElementById("carouselCropViewport");
+    if (!_carouselOrigImg) return;
+
+    const vw = vp.clientWidth;
+    const vh = vp.clientHeight;
+    const isRotated = crop.rotation % 180 !== 0;
+    const natW = _carouselOrigImg.naturalWidth;
+    const natH = _carouselOrigImg.naturalHeight;
+    const imgW = isRotated ? natH : natW;
+    const imgH = isRotated ? natW : natH;
+
+    const scaleToFit = Math.max(vw / imgW, vh / imgH);
+    const zoom = crop.zoom / 100;
+    const finalScale = scaleToFit * zoom;
+
+    const displayW = natW * finalScale;
+    const displayH = natH * finalScale;
+    const maxPanX = Math.max(0, ((isRotated ? displayH : displayW) - vw) / 2);
+    const maxPanY = Math.max(0, ((isRotated ? displayW : displayH) - vh) / 2);
+    crop.panX = Math.max(-maxPanX, Math.min(maxPanX, crop.panX));
+    crop.panY = Math.max(-maxPanY, Math.min(maxPanY, crop.panY));
+
+    crop._vpW = vw;
+    crop._vpH = vh;
+
+    const transform = `translate(${crop.panX}px, ${crop.panY}px) rotate(${crop.rotation}deg) scale(${finalScale})`;
+    img.style.width = `${natW}px`;
+    img.style.height = `${natH}px`;
+    img.style.transform = transform;
+    img.style.left = `${(vw - natW) / 2}px`;
+    img.style.top = `${(vh - natH) / 2}px`;
+
+    const cw = canvas.width || natW;
+    const ch = canvas.height || natH;
+    const canvasScale = finalScale * (natW / cw);
+    canvas.style.width = `${cw}px`;
+    canvas.style.height = `${ch}px`;
+    canvas.style.transform = `translate(${crop.panX}px, ${crop.panY}px) rotate(${crop.rotation}deg) scale(${canvasScale})`;
+    canvas.style.left = `${(vw - cw) / 2}px`;
+    canvas.style.top = `${(vh - ch) / 2}px`;
+}
+
+function applyCarouselFilter() {
+    const item = carouselItems[currentCarouselIndex];
+    if (!item || !_carouselOrigImg) return;
+    const filterKey = item.filterKey || "none";
+    const intensity = (item.filterIntensity || 80) / 100;
+    const img = document.getElementById("carouselEditImage");
+    const canvas = document.getElementById("carouselFilterCanvas");
+
+    if (filterKey === "none" || intensity === 0) {
+        img.style.display = "";
+        canvas.style.display = "none";
+        updateCarouselCropTransform();
+        return;
+    }
+
+    const filter = PHOTO_FILTERS[filterKey];
+    if (!filter) return;
+
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const natW = _carouselOrigImg.naturalWidth;
+    const natH = _carouselOrigImg.naturalHeight;
+    const MAX = 1200;
+    const ps = Math.min(1, MAX / Math.max(natW, natH));
+    const pw = Math.round(natW * ps);
+    const ph = Math.round(natH * ps);
+    canvas.width = pw;
+    canvas.height = ph;
+
+    const b = 1 + ((filter.brightness || 1) - 1) * intensity;
+    const co = 1 + ((filter.contrast || 1) - 1) * intensity;
+    const s = filter.grayscale ? 1 - intensity : 1 + ((filter.saturate || 1) - 1) * intensity;
+    let cssF = `brightness(${b}) contrast(${co}) saturate(${s})`;
+    if (filter.grayscale) cssF += ` grayscale(${intensity})`;
+    if (filter.temperature) cssF += ` hue-rotate(${filter.temperature * 0.5 * intensity}deg)`;
+    ctx.filter = cssF;
+    ctx.drawImage(_carouselOrigImg, 0, 0, pw, ph);
+    ctx.filter = "none";
+
+    if (filter.tint) {
+        const t = filter.tint;
+        ctx.fillStyle = `rgba(${t.r},${t.g},${t.b},${(t.a || 0.05) * intensity})`;
+        ctx.fillRect(0, 0, pw, ph);
+    }
+    if (filter.clarity && filter.clarity > 0) {
+        ctx.globalCompositeOperation = "overlay";
+        ctx.globalAlpha = filter.clarity * intensity * 0.3;
+        ctx.drawImage(canvas, 0, 0);
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1.0;
+    }
+    if (filter.vignette && filter.vignette > 0) {
+        const cx = pw / 2, cy = ph / 2, r = Math.max(cx, cy);
+        const grad = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 1.2);
+        grad.addColorStop(0, "rgba(0,0,0,0)");
+        grad.addColorStop(1, `rgba(0,0,0,${filter.vignette * intensity})`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, pw, ph);
+    }
+
+    img.style.display = "none";
+    canvas.style.display = "";
+    updateCarouselCropTransform();
+}
+
+async function handleCarouselFiles(fileList) {
+    const files = Array.from(fileList);
+    if (files.length === 0) return;
+
+    if (files.length < CAROUSEL_MIN_PHOTOS) {
+        showToast(`Escolha pelo menos ${CAROUSEL_MIN_PHOTOS} fotos para montar um carrossel.`, "error");
+        return;
+    }
+    if (files.length > CAROUSEL_MAX_PHOTOS) {
+        showToast(`Máximo de ${CAROUSEL_MAX_PHOTOS} fotos por carrossel. Selecione menos fotos.`, "error");
+        return;
+    }
+
+    carouselItems = [];
+    for (const file of files) {
+        const base64 = await fileToBase64(file);
+        carouselItems.push({ base64, text: "", crop: { panX: 0, panY: 0, zoom: 100, rotation: 0 }, filterKey: "none", filterIntensity: 80 });
+    }
+
+    document.getElementById("carouselCaption").value = "";
+    document.getElementById("carouselHashtags").value = "";
+    document.getElementById("carouselLocation").value = "";
+
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 30);
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    document.getElementById("carouselScheduleDate").value = local;
+
+    currentCarouselIndex = 0;
+    document.getElementById("carouselEditorModal").classList.remove("hidden");
+    renderCarouselThumbnails();
+    loadCarouselEditorForCurrent();
+    updateCarouselNav();
+}
+
+function loadCarouselEditorForCurrent() {
+    const item = carouselItems[currentCarouselIndex];
+    document.getElementById("carouselTextOverlay").value = item.text || "";
+
+    const crop = _carouselCrop();
+    document.getElementById("carouselZoom").value = crop.zoom;
+    document.getElementById("carouselZoomValue").textContent = crop.zoom + "%";
+    document.getElementById("carouselFilterSelect").value = item.filterKey || "none";
+    document.getElementById("carouselFilterIntensity").value = item.filterIntensity || 80;
+    document.getElementById("carouselFilterIntensityValue").textContent = (item.filterIntensity || 80) + "%";
+    document.getElementById("carouselFilterIntensityRow").style.display = (item.filterKey && item.filterKey !== "none") ? "" : "none";
+
+    const img = document.getElementById("carouselEditImage");
+    _carouselOrigImg = new Image();
+    _carouselOrigImg.onload = () => {
+        img.src = _carouselOrigImg.src;
+        img.style.display = "";
+        document.getElementById("carouselFilterCanvas").style.display = "none";
+        requestAnimationFrame(() => {
+            applyCarouselFilter();
+            updateCarouselCropTransform();
+        });
+    };
+    _carouselOrigImg.src = item.base64;
+}
+
+function renderCarouselThumbnails() {
+    const strip = document.getElementById("carouselThumbnails");
+    strip.innerHTML = "";
+    carouselItems.forEach((item, i) => {
+        const thumb = document.createElement("div");
+        thumb.className = "story-thumb" + (i === currentCarouselIndex ? " active" : "");
+        thumb.innerHTML = `<img src="${item.base64}"><span class="story-thumb-num">${i + 1}</span>`;
+        thumb.addEventListener("click", () => {
+            saveCurrentCarouselFields();
+            currentCarouselIndex = i;
+            renderCarouselThumbnails();
+            loadCarouselEditorForCurrent();
+            updateCarouselNav();
+        });
+
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "story-thumb-remove";
+        removeBtn.textContent = "✕";
+        removeBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (carouselItems.length <= CAROUSEL_MIN_PHOTOS) {
+                showToast(`O carrossel precisa de pelo menos ${CAROUSEL_MIN_PHOTOS} fotos.`, "error");
+                return;
+            }
+            carouselItems.splice(i, 1);
+            if (currentCarouselIndex >= carouselItems.length) currentCarouselIndex = carouselItems.length - 1;
+            renderCarouselThumbnails();
+            loadCarouselEditorForCurrent();
+            updateCarouselNav();
+        });
+        thumb.appendChild(removeBtn);
+        strip.appendChild(thumb);
+    });
+}
+
+function saveCurrentCarouselFields() {
+    if (!carouselItems[currentCarouselIndex]) return;
+    carouselItems[currentCarouselIndex].text = document.getElementById("carouselTextOverlay").value;
+}
+
+function updateCarouselNav() {
+    const total = carouselItems.length;
+    document.getElementById("carouselPrevBtn").disabled = currentCarouselIndex === 0;
+    document.getElementById("carouselNextBtn").disabled = currentCarouselIndex === total - 1;
+    document.getElementById("carouselCounter").textContent = `${currentCarouselIndex + 1} / ${total}`;
+    document.getElementById("confirmCarouselBtn").textContent = `Agendar Carrossel (${total} fotos)`;
+}
+
+function navigateCarousel(dir) {
+    saveCurrentCarouselFields();
+    currentCarouselIndex = Math.max(0, Math.min(carouselItems.length - 1, currentCarouselIndex + dir));
+    renderCarouselThumbnails();
+    loadCarouselEditorForCurrent();
+    updateCarouselNav();
+}
+
+function renderCarouselFinalCanvas(item) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            const c = document.createElement("canvas");
+            c.width = 1080; c.height = 1080;
+            const ctx = c.getContext("2d");
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, 1080, 1080);
+
+            const crop = item.crop || { panX: 0, panY: 0, zoom: 100, rotation: 0 };
+            const isRotated = crop.rotation % 180 !== 0;
+            const natW = img.naturalWidth;
+            const natH = img.naturalHeight;
+            const imgW = isRotated ? natH : natW;
+            const imgH = isRotated ? natW : natH;
+
+            const scaleToFit = Math.max(1080 / imgW, 1080 / imgH);
+            const zoom = crop.zoom / 100;
+            const finalScale = scaleToFit * zoom;
+
+            const vpW = crop._vpW || 320;
+            const vpH = crop._vpH || 320;
+            const panXScaled = crop.panX * (1080 / vpW);
+            const panYScaled = crop.panY * (1080 / vpH);
+
+            const filterKey = item.filterKey || "none";
+            const hasFilter = filterKey !== "none" && item.filterIntensity;
+            const filter = hasFilter ? PHOTO_FILTERS[filterKey] : null;
+
+            if (filter) {
+                const intensity = (item.filterIntensity || 80) / 100;
+                const b = 1 + ((filter.brightness || 1) - 1) * intensity;
+                const co = 1 + ((filter.contrast || 1) - 1) * intensity;
+                const s = filter.grayscale ? 1 - intensity : 1 + ((filter.saturate || 1) - 1) * intensity;
+                let cssF = `brightness(${b}) contrast(${co}) saturate(${s})`;
+                if (filter.grayscale) cssF += ` grayscale(${intensity})`;
+                if (filter.temperature) cssF += ` hue-rotate(${filter.temperature * 0.5 * intensity}deg)`;
+                ctx.filter = cssF;
+            }
+
+            ctx.save();
+            ctx.translate(1080 / 2 + panXScaled, 1080 / 2 + panYScaled);
+            ctx.rotate((crop.rotation * Math.PI) / 180);
+            ctx.scale(finalScale, finalScale);
+            ctx.drawImage(img, -natW / 2, -natH / 2);
+            ctx.restore();
+            ctx.filter = "none";
+
+            if (filter) {
+                const intensity = (item.filterIntensity || 80) / 100;
+                if (filter.tint) {
+                    const t = filter.tint;
+                    ctx.fillStyle = `rgba(${t.r},${t.g},${t.b},${(t.a || 0.05) * intensity})`;
+                    ctx.fillRect(0, 0, 1080, 1080);
+                }
+                if (filter.vignette && filter.vignette > 0) {
+                    const cx = 540, cy = 540, r = Math.max(cx, cy);
+                    const grad = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 1.2);
+                    grad.addColorStop(0, "rgba(0,0,0,0)");
+                    grad.addColorStop(1, `rgba(0,0,0,${filter.vignette * intensity})`);
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, 1080, 1080);
+                }
+            }
+
+            const text = (item.text || "").trim();
+            if (text) {
+                ctx.save();
+                ctx.font = "bold 56px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#fff";
+                ctx.shadowColor = "rgba(0,0,0,0.7)";
+                ctx.shadowBlur = 12;
+                ctx.fillText(text, 540, 960, 1000);
+                ctx.restore();
+            }
+
+            resolve(c.toDataURL("image/jpeg", 0.92));
+        };
+        img.src = item.base64;
+    });
+}
+
+function closeCarouselEditor() {
+    document.getElementById("carouselEditorModal").classList.add("hidden");
+    carouselItems = [];
+    currentCarouselIndex = 0;
+    _carouselOrigImg = null;
+}
+
+async function submitCarousel() {
+    saveCurrentCarouselFields();
+
+    if (carouselItems.length < CAROUSEL_MIN_PHOTOS) {
+        showToast(`O carrossel precisa de pelo menos ${CAROUSEL_MIN_PHOTOS} fotos.`, "error");
+        return;
+    }
+    if (carouselItems.length > CAROUSEL_MAX_PHOTOS) {
+        showToast(`Máximo de ${CAROUSEL_MAX_PHOTOS} fotos por carrossel.`, "error");
+        return;
+    }
+
+    const caption = document.getElementById("carouselCaption").value.trim();
+    const hashtagsRaw = document.getElementById("carouselHashtags").value.trim();
+    const hashtags = hashtagsRaw ? hashtagsRaw.split(/[\s,]+/).filter(Boolean) : [];
+    const location = document.getElementById("carouselLocation").value.trim();
+    const scheduleDate = document.getElementById("carouselScheduleDate").value;
+
+    const btn = document.getElementById("confirmCarouselBtn");
+    btn.disabled = true;
+    btn.textContent = "Gerando fotos...";
+
+    try {
+        const photos = [];
+        for (let i = 0; i < carouselItems.length; i++) {
+            btn.textContent = `Gerando foto ${i + 1}/${carouselItems.length}...`;
+            const finalBase64 = await renderCarouselFinalCanvas(carouselItems[i]);
+            photos.push(finalBase64);
+        }
+
+        btn.textContent = "Agendando...";
+        const res = await apiFetch("/create-post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                photos,
+                caption,
+                hashtags,
+                location,
+                schedule_date: scheduleDate ? new Date(scheduleDate).toISOString() : new Date().toISOString(),
+                post_type: "carousel",
+            }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast("Carrossel agendado com sucesso!", "success");
+            if (typeof loadNextPosts === "function") loadNextPosts();
+            closeCarouselEditor();
+        } else {
+            showToast(data.error || "Erro ao agendar carrossel.", "error");
+        }
+    } catch (e) {
+        showToast("Erro ao agendar carrossel. Verifique a conexão.", "error");
+    }
+
+    btn.disabled = false;
+    btn.textContent = "Agendar Carrossel";
 }

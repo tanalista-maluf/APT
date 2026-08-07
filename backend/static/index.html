@@ -126,6 +126,16 @@
                     </div>
                 </div>
 
+                <div class="card dropzone-card dropzone-card-carousel" id="carouselDropzoneCard">
+                    <span class="dropzone-ribbon ribbon-carousel">CARROSSEL</span>
+                    <input type="file" id="carouselPhotoInput" accept="image/*" multiple hidden>
+                    <div class="dropzone-inner" id="carouselDropzoneInner">
+                        <span class="dropzone-icon">🖼️</span>
+                        <p class="dropzone-text">Carrossel — arraste de 2 a 10 fotos</p>
+                        <p class="dropzone-hint">Serão publicadas juntas, em 1 post com legenda única</p>
+                    </div>
+                </div>
+
                 <div class="card progress-card hidden" id="progressCard">
                     <h3>AutoPost Tabajara em ação</h3>
                     <ul class="progress-checklist" id="progressChecklist"></ul>
@@ -611,6 +621,74 @@
         <div class="modal-footer">
             <button class="btn btn-secondary" id="cancelStoryBtn">Cancelar</button>
             <button class="btn btn-primary" id="confirmStoryBtn">Agendar Story</button>
+        </div>
+    </div>
+</div>
+
+<div id="carouselEditorModal" class="modal-overlay hidden">
+    <div class="modal-panel carousel-editor-panel">
+        <div class="modal-header">
+            <h2>Editar Carrossel</h2>
+            <button class="modal-close" id="closeCarouselEditorBtn">✕</button>
+        </div>
+        <div class="modal-body carousel-editor-body">
+            <div id="carouselThumbnails" class="story-thumbnails"></div>
+            <div class="story-nav-row">
+                <button class="btn btn-secondary btn-sm" id="carouselPrevBtn">← Anterior</button>
+                <span id="carouselCounter" class="story-counter">1 / 1</span>
+                <button class="btn btn-secondary btn-sm" id="carouselNextBtn">Próximo →</button>
+            </div>
+
+            <div class="carousel-viewport-wrapper">
+                <div class="story-crop-viewport" id="carouselCropViewport">
+                    <img id="carouselEditImage" draggable="false">
+                    <canvas id="carouselFilterCanvas" style="display:none;position:absolute;"></canvas>
+                </div>
+            </div>
+
+            <div class="story-edit-controls">
+                <div class="story-edit-row">
+                    <button class="btn btn-secondary btn-sm" id="carouselRotateLeftBtn" title="Girar esquerda">↺</button>
+                    <button class="btn btn-secondary btn-sm" id="carouselRotateRightBtn" title="Girar direita">↻</button>
+                    <button class="btn btn-secondary btn-sm" id="carouselCropResetBtn" title="Resetar">Reset</button>
+                </div>
+                <div class="story-edit-row">
+                    <label class="story-control-label" style="margin:0">Zoom</label>
+                    <input type="range" id="carouselZoom" min="100" max="300" value="100" class="range-input">
+                    <span id="carouselZoomValue" class="range-value">100%</span>
+                </div>
+                <div class="story-edit-row">
+                    <label class="story-control-label" style="margin:0">Filtro</label>
+                    <select id="carouselFilterSelect" class="input input-sm"></select>
+                </div>
+                <div class="story-edit-row" id="carouselFilterIntensityRow" style="display:none">
+                    <label class="story-control-label" style="margin:0">Intensidade</label>
+                    <input type="range" id="carouselFilterIntensity" min="0" max="100" value="80" class="range-input">
+                    <span id="carouselFilterIntensityValue" class="range-value">80%</span>
+                </div>
+            </div>
+
+            <div class="story-controls">
+                <label class="story-control-label">Texto sobre esta foto</label>
+                <input type="text" id="carouselTextOverlay" class="input" placeholder="Texto opcional...">
+            </div>
+
+            <hr class="carousel-divider">
+
+            <div class="story-controls">
+                <label class="story-control-label">Legenda do post (única para o carrossel)</label>
+                <textarea id="carouselCaption" class="input" rows="3" placeholder="Escreva a legenda..."></textarea>
+                <label class="story-control-label">Hashtags</label>
+                <input type="text" id="carouselHashtags" class="input" placeholder="Ex: #viagem #praia #verao">
+                <label class="story-control-label">Localização</label>
+                <input type="text" id="carouselLocation" class="input" placeholder="Ex: Paris, França">
+                <label class="story-control-label">Agendar para</label>
+                <input type="datetime-local" id="carouselScheduleDate" class="input">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelCarouselBtn">Cancelar</button>
+            <button class="btn btn-primary" id="confirmCarouselBtn">Agendar Carrossel</button>
         </div>
     </div>
 </div>

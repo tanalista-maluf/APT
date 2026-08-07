@@ -775,6 +775,18 @@ def _public_photo_url(post):
     return f"{PUBLIC_BASE_URL}/public/media/{token}"
 
 
+def _public_carousel_urls(post):
+    """Monta as URLs publicas HTTPS de cada foto de um post de carrossel."""
+    if not PUBLIC_BASE_URL:
+        raise instagram.InstagramError(
+            "Falta definir PUBLIC_BASE_URL (o endereco publico do app). "
+            "A publicacao real so funciona com o app publicado na internet."
+        )
+    token = db.get_media_token(post["id"])
+    photos = post.get("carousel_photos") or []
+    return [f"{PUBLIC_BASE_URL}/public/media/{token}/{i}" for i in range(len(photos))]
+
+
 def publish_post(post):
     """Publica UM post no Instagram e atualiza seu status no banco.
 
@@ -786,10 +798,15 @@ def publish_post(post):
         raise instagram.InstagramError("Conecte uma conta do Instagram nas Configurações.")
 
     try:
-        image_url = _public_photo_url(post)
         if post.get("post_type") == "story":
+            image_url = _public_photo_url(post)
             media_id = instagram.publish_story(ig_user_id, access_token, image_url)
+        elif post.get("post_type") == "carousel":
+            image_urls = _public_carousel_urls(post)
+            caption = instagram.build_caption(post.get("caption", ""), post.get("hashtags", []))
+            media_id = instagram.publish_carousel(ig_user_id, access_token, image_urls, caption)
         else:
+            image_url = _public_photo_url(post)
             caption = instagram.build_caption(post.get("caption", ""), post.get("hashtags", []))
             media_id = instagram.publish_photo(ig_user_id, access_token, image_url, caption)
     except instagram.InstagramError as e:
@@ -1145,6 +1162,18 @@ def public_media(token):
     return send_from_directory(PHOTOS_FOLDER, filename)
 
 
+@app.route("/public/media/<token>/<int:index>")
+def public_media_carousel(token, index):
+    post = db.get_post_by_media_token(token)
+    if post is None:
+        return jsonify({"error": "not found"}), 404
+    photos = json.loads(post["carousel_photos"]) if post["carousel_photos"] else []
+    if index < 0 or index >= len(photos):
+        return jsonify({"error": "not found"}), 404
+    filename = os.path.basename(photos[index])
+    return send_from_directory(PHOTOS_FOLDER, filename)
+
+
 # ============================================================
 # Agendador de publicacao: inicia no primeiro request. Assim roda tanto
 # sob gunicorn (producao) quanto no servidor local, e nunca duplica sob o
@@ -1288,6 +1317,7 @@ def create_post():
     try:
         data = request.json
         photo_base64 = data.get("photo")
+        photos_base64 = data.get("photos")  # carrossel: lista de fotos
         caption = data.get("caption", "")
         hashtags = data.get("hashtags", [])
         location = data.get("location", "")
@@ -1296,7 +1326,10 @@ def create_post():
         ig_account_id = data.get("ig_account_id")
         post_type = data.get("post_type", "feed")
 
-        if not photo_base64:
+        if post_type == "carousel":
+            if not photos_base64 or len(photos_base64) < 2:
+                return jsonify({"error": "Carrossel precisa de pelo menos 2 fotos"}), 400
+        elif not photo_base64:
             return jsonify({"error": "Foto e obrigatoria"}), 400
 
         if not ig_account_id:
@@ -1305,16 +1338,29 @@ def create_post():
                 ig_account_id = default["id"]
 
         post_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        image_bytes = decode_base64_image(photo_base64)
 
-        photo_filename = f"photo_{post_id}.jpg"
-        photo_path = os.path.join(PHOTOS_FOLDER, photo_filename)
-        with open(photo_path, "wb") as f:
-            f.write(image_bytes)
+        if post_type == "carousel":
+            carousel_photos = []
+            for i, item_base64 in enumerate(photos_base64):
+                image_bytes = decode_base64_image(item_base64)
+                photo_filename = f"photo_{post_id}_{i}.jpg"
+                photo_path = os.path.join(PHOTOS_FOLDER, photo_filename)
+                with open(photo_path, "wb") as f:
+                    f.write(image_bytes)
+                carousel_photos.append(f"data/photos/{photo_filename}")
+            cover_path = carousel_photos[0]
+        else:
+            image_bytes = decode_base64_image(photo_base64)
+            photo_filename = f"photo_{post_id}.jpg"
+            photo_path = os.path.join(PHOTOS_FOLDER, photo_filename)
+            with open(photo_path, "wb") as f:
+                f.write(image_bytes)
+            cover_path = f"data/photos/{photo_filename}"
+            carousel_photos = []
 
         post = {
             "id": post_id,
-            "photo_path": f"data/photos/{photo_filename}",
+            "photo_path": cover_path,
             "caption": caption,
             "hashtags": hashtags,
             "location": location,
@@ -1324,6 +1370,7 @@ def create_post():
             "created_at": datetime.now().isoformat(),
             "posted_at": None,
             "post_type": post_type,
+            "carousel_photos": carousel_photos,
         }
 
         db.add_post(post)

@@ -86,6 +86,7 @@ def _row_to_post(row):
         "attempts": row["attempts"] if "attempts" in keys else 0,
         "ig_account_id": row["ig_account_id"] if "ig_account_id" in keys else None,
         "post_type": row["post_type"] if "post_type" in keys else "feed",
+        "carousel_photos": json.loads(row["carousel_photos"]) if "carousel_photos" in keys and row["carousel_photos"] else [],
     }
 
 
@@ -98,6 +99,7 @@ _POST_EXTRA_COLUMNS = {
     "attempts": "INTEGER NOT NULL DEFAULT 0",
     "ig_account_id": "INTEGER",
     "post_type": "TEXT NOT NULL DEFAULT 'feed'",
+    "carousel_photos": "TEXT NOT NULL DEFAULT ''",
 }
 
 
@@ -229,8 +231,8 @@ def add_post(post):
         conn.execute(
             """INSERT INTO posts
                (id, photo_path, caption, hashtags, location, tagged_people,
-                schedule_date, status, created_at, posted_at, post_type)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                schedule_date, status, created_at, posted_at, post_type, carousel_photos)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 post["id"],
                 post["photo_path"],
@@ -243,6 +245,7 @@ def add_post(post):
                 post.get("created_at"),
                 post.get("posted_at"),
                 post.get("post_type", "feed"),
+                json.dumps(post.get("carousel_photos", []), ensure_ascii=False),
             ),
         )
 
@@ -262,6 +265,7 @@ def update_post(post_id, fields):
         "attempts": lambda v: int(v),
         "ig_account_id": lambda v: int(v) if v else None,
         "post_type": lambda v: v,
+        "carousel_photos": lambda v: json.dumps(v, ensure_ascii=False),
     }
 
     sets, values = [], []

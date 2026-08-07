@@ -179,6 +179,69 @@ def publish_story(ig_user_id, access_token, image_url, poll_seconds=25):
     return media_id
 
 
+def publish_carousel(ig_user_id, access_token, image_urls, caption, poll_seconds=25):
+    """Publica um carrossel (2 a 10 fotos) e devolve o id da midia publicada."""
+    if not ig_user_id or not access_token:
+        raise InstagramError("Conta do Instagram nao configurada.")
+    if not image_urls or len(image_urls) < 2:
+        raise InstagramError("Carrossel precisa de pelo menos 2 fotos.")
+    for url in image_urls:
+        if not url or not url.startswith("http"):
+            raise InstagramError("Todas as fotos do carrossel precisam estar num link publico (https).")
+
+    # 1. Cria um container filho por foto (is_carousel_item)
+    child_ids = []
+    for url in image_urls:
+        child = _post(
+            f"{GRAPH_BASE}/{ig_user_id}/media",
+            {"image_url": url, "is_carousel_item": "true", "access_token": access_token},
+        )
+        child_id = child.get("id")
+        if not child_id:
+            raise InstagramError("O Instagram nao retornou o id de uma das fotos do carrossel.")
+        child_ids.append(child_id)
+
+    # 2. Aguarda cada filho terminar de processar
+    for child_id in child_ids:
+        deadline = time.time() + poll_seconds
+        while time.time() < deadline:
+            status = _get(
+                f"{GRAPH_BASE}/{child_id}",
+                {"fields": "status_code,status", "access_token": access_token},
+            )
+            code = status.get("status_code")
+            if code == "FINISHED":
+                break
+            if code == "ERROR":
+                raise InstagramError(f"O Instagram rejeitou uma foto do carrossel: {status.get('status', 'erro')}.")
+            time.sleep(2)
+
+    # 3. Cria o container "pai" do carrossel
+    container = _post(
+        f"{GRAPH_BASE}/{ig_user_id}/media",
+        {
+            "media_type": "CAROUSEL",
+            "caption": caption or "",
+            "children": ",".join(child_ids),
+            "access_token": access_token,
+        },
+    )
+    creation_id = container.get("id")
+    if not creation_id:
+        raise InstagramError("O Instagram nao retornou o id do container do carrossel.")
+
+    # 4. Publica
+    published = _post(
+        f"{GRAPH_BASE}/{ig_user_id}/media_publish",
+        {"creation_id": creation_id, "access_token": access_token},
+    )
+    media_id = published.get("id")
+    if not media_id:
+        raise InstagramError("O Instagram nao confirmou a publicacao do carrossel.")
+
+    return media_id
+
+
 def exchange_long_lived_token(app_id, app_secret, short_token):
     """Troca um token de curta duracao por um de longa duracao (~60 dias).
 
