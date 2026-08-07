@@ -190,6 +190,10 @@ def _run_generate_text(batch_id):
         by_theme.setdefault((it["expedition_id"], it["theme_id"]), []).append(it)
 
     for (expedition_id, theme_id), theme_items in by_theme.items():
+        current = db.get_content_batch(batch_id)
+        if not current or current.get("status") == "cancelled":
+            return
+
         expedition = expeditions.get(expedition_id, {"name": theme_items[0]["expedition_name"]})
         theme = themes.get(theme_id, {"name": theme_items[0]["theme_name"]})
         theme_items.sort(key=lambda i: i["item_order"])
@@ -400,6 +404,20 @@ def generate_text(batch_id):
 
     db.update_content_batch(batch_id, {"status": "generating_text", "updated_at": _now_iso()})
     return jsonify({"success": True, "status": "generating_text"})
+
+
+@content_batches_bp.route("/api/content-batches/<batch_id>/cancel", methods=["POST"])
+def cancel_batch(batch_id):
+    """Para a produção de texto/fotos da leva: marca itens pendentes como
+    erro (tira o texto da thread de geração e as fotos da fila do worker
+    Unsplash) e muda o status da leva para 'cancelled'."""
+    batch = db.get_content_batch(batch_id)
+    if not batch:
+        return jsonify({"error": "Leva não encontrada"}), 404
+
+    db.cancel_pending_content_items(batch_id)
+    db.update_content_batch(batch_id, {"status": "cancelled", "updated_at": _now_iso()})
+    return jsonify({"success": True, "status": "cancelled"})
 
 
 @content_batches_bp.route("/api/content-batches/<batch_id>/start-photo-download", methods=["POST"])

@@ -648,6 +648,28 @@ def update_content_item(item_id, fields):
     return get_content_item(item_id)
 
 
+def cancel_pending_content_items(batch_id):
+    """Marca como erro (Cancelado) todo item pendente de texto/foto da leva.
+
+    Usado ao cancelar uma leva: tira os itens da fila do worker Unsplash
+    (que so pega photo_status='pending') e impede a thread de geracao de
+    texto de continuar processando temas ja marcados como erro.
+    """
+    from datetime import datetime
+    now = datetime.utcnow().isoformat()
+    with _connect() as conn:
+        conn.execute(
+            """UPDATE content_items SET text_status = 'error', text_error = 'Cancelado pelo usuário', updated_at = ?
+               WHERE batch_id = ? AND text_status = 'pending'""",
+            (now, batch_id),
+        )
+        conn.execute(
+            """UPDATE content_items SET photo_status = 'error', photo_error = 'Cancelado pelo usuário', updated_at = ?
+               WHERE batch_id = ? AND photo_status = 'pending'""",
+            (now, batch_id),
+        )
+
+
 def get_pending_photo_items(limit=None):
     query = "SELECT * FROM content_items WHERE photo_status = 'pending' AND text_status = 'done' ORDER BY created_at"
     if limit:

@@ -3425,6 +3425,7 @@ function setupContentGenPage() {
     });
 
     document.getElementById("cgSubmitBtn").addEventListener("click", submitContentBatch);
+    document.getElementById("cgCancelBtn").addEventListener("click", cancelContentBatch);
     document.getElementById("cgBackToFormBtn").addEventListener("click", () => {
         _stopContentGenPoll();
         cgCurrentBatchId = null;
@@ -3623,6 +3624,27 @@ async function submitContentBatch() {
     btn.textContent = "Gerar conteúdo →";
 }
 
+async function cancelContentBatch() {
+    if (!cgCurrentBatchId) return;
+    if (!confirm("Cancelar esta leva? Textos e fotos ainda pendentes param de ser gerados. O que já ficou pronto continua disponível pra agendar.")) return;
+
+    const btn = document.getElementById("cgCancelBtn");
+    btn.disabled = true;
+    btn.textContent = "Cancelando...";
+
+    try {
+        await apiFetch(`/content-batches/${cgCurrentBatchId}/cancel`, { method: "POST" });
+        showToast("Leva cancelada. O que já estava pronto continua disponível.", "success");
+        _cgPhotoDownloadStarted = true; // impede o próximo tick de tentar reiniciar o download
+        fetchAndRenderCgProgress(cgCurrentBatchId);
+    } catch (e) {
+        showToast("Erro ao cancelar a leva.", "error");
+    }
+
+    btn.disabled = false;
+    btn.textContent = "Cancelar";
+}
+
 function _stopContentGenPoll() {
     if (_cgPollTimer) {
         clearInterval(_cgPollTimer);
@@ -3664,7 +3686,9 @@ async function fetchAndRenderCgProgress(batchId) {
 function renderContentGenGrid(data) {
     const { batch, totals, themes, estimated_hours_remaining } = data;
 
-    document.getElementById("cgProgressTitle").textContent = batch.name || "Gerando conteúdo…";
+    const titleSuffix = batch.status === "cancelled" ? " (cancelada)" : "";
+    document.getElementById("cgProgressTitle").textContent = (batch.name || "Gerando conteúdo…") + titleSuffix;
+    document.getElementById("cgCancelBtn").classList.toggle("hidden", batch.status === "cancelled" || batch.status === "done");
 
     const textTotal = totals.total || 0;
     const textDone = totals.text_done || 0;
