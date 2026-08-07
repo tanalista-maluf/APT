@@ -16,107 +16,57 @@ const MOODS = [
 ];
 
 const PHOTO_FILTERS = {
-    none: { label: "Original" },
-    "amazing-beach-01": { label: "Amazing Beach 01", brightness: 1.0, contrast: 1.0, saturate: 0.995, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-beach-02": { label: "Amazing Beach 02", brightness: 0.912, contrast: 0.975, saturate: 0.984, temperature: -12.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-beach-03": { label: "Amazing Beach 03", brightness: 0.839, contrast: 0.895, saturate: 0.928, temperature: 15.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-beach-04": { label: "Amazing Beach 04", brightness: 1.052, contrast: 1.135, saturate: 0.91, temperature: 0.0, tint: null, vignette: 0.06, clarity: 0, grayscale: 0 },
-    "amazing-beach-05": { label: "Amazing Beach 05", brightness: 1.0, contrast: 1.035, saturate: 1.0, temperature: 4.5, tint: null, vignette: 0.01, clarity: 0, grayscale: 0 },
-    "amazing-beauty-01": { label: "Amazing Beauty 01", brightness: 1.035, contrast: 1.0, saturate: 1.004, temperature: 18.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-beauty-02": { label: "Amazing Beauty 02", brightness: 1.07, contrast: 1.0, saturate: 1.02, temperature: 28.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-beauty-03": { label: "Amazing Beauty 03", brightness: 1.0, contrast: 0.935, saturate: 0.913, temperature: 27.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-black-01": { label: "Amazing Black 01", brightness: 1.018, contrast: 1.28, saturate: 1.041, temperature: 0.0, tint: null, vignette: 0.15, clarity: 0, grayscale: 0 },
-    "amazing-black-02": { label: "Amazing Black 02", brightness: 1.0, contrast: 1.31, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-black-03": { label: "Amazing Black 03", brightness: 1.123, contrast: 1.44, saturate: 0.953, temperature: 0.0, tint: null, vignette: 0.15, clarity: 0, grayscale: 0 },
-    "amazing-black-04": { label: "Amazing Black 04", brightness: 1.0, contrast: 1.155, saturate: 0.98, temperature: 0.0, tint: null, vignette: 0.15, clarity: 0, grayscale: 0 },
-    "amazing-black-05": { label: "Amazing Black 05", brightness: 1.0, contrast: 1.06, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-black-white-01": { label: "Amazing Black White 01", brightness: 0.79, contrast: 1.43, saturate: 1.0, temperature: -13.5, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 1.0 },
-    "amazing-black-white-02": { label: "Amazing Black White 02", brightness: 1.105, contrast: 1.29, saturate: 1.0, temperature: -3.0, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 1.0 },
-    "amazing-black-white-03": { label: "Amazing Black White 03", brightness: 0.948, contrast: 1.185, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 1.0 },
-    "amazing-black-white-04": { label: "Amazing Black White 04", brightness: 1.105, contrast: 1.185, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 1.0 },
-    "amazing-black-white-05": { label: "Amazing Black White 05", brightness: 1.0, contrast: 1.095, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.01, clarity: 0, grayscale: 1.0 },
-    "amazing-blue-01": { label: "Amazing Blue 01", brightness: 1.087, contrast: 1.005, saturate: 0.907, temperature: 15.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-blue-02": { label: "Amazing Blue 02", brightness: 1.0, contrast: 1.0, saturate: 0.941, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-blue-03": { label: "Amazing Blue 03", brightness: 1.0, contrast: 1.0, saturate: 1.0, temperature: -22.5, tint: null, vignette: 0.11, clarity: 0, grayscale: 0 },
-    "amazing-blue-04": { label: "Amazing Blue 04", brightness: 1.01, contrast: 1.0, saturate: 0.963, temperature: 4.5, tint: null, vignette: 0.11, clarity: 0, grayscale: 0 },
-    "amazing-blue-05": { label: "Amazing Blue 05", brightness: 0.948, contrast: 1.14, saturate: 0.89, temperature: 7.5, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-blue-06": { label: "Amazing Blue 06", brightness: 1.0, contrast: 0.965, saturate: 1.176, temperature: 6.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.08, clarity: 0, grayscale: 0 },
-    "amazing-blue-07": { label: "Amazing Blue 07", brightness: 1.0, contrast: 1.0, saturate: 1.048, temperature: 15.0, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-blue-08": { label: "Amazing Blue 08", brightness: 1.0, contrast: 1.0, saturate: 0.813, temperature: 0.0, tint: null, vignette: 0.1, clarity: 0, grayscale: 0 },
-    "amazing-blue-09": { label: "Amazing Blue 09", brightness: 1.0, contrast: 1.0, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-blue-10": { label: "Amazing Blue 10", brightness: 1.0, contrast: 1.0, saturate: 1.02, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-boho-01": { label: "Amazing Boho 01", brightness: 1.042, contrast: 1.175, saturate: 0.912, temperature: 4.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-boho-02": { label: "Amazing Boho 02", brightness: 1.042, contrast: 1.175, saturate: 0.96, temperature: 9.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-boho-03": { label: "Amazing Boho 03", brightness: 0.948, contrast: 1.105, saturate: 0.919, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-cinematic-01": { label: "Amazing Cinematic 01", brightness: 1.035, contrast: 1.225, saturate: 1.113, temperature: 0.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-cinematic-02": { label: "Amazing Cinematic 02", brightness: 1.042, contrast: 1.0, saturate: 0.817, temperature: 22.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-cinematic-03": { label: "Amazing Cinematic 03", brightness: 1.0, contrast: 1.115, saturate: 1.097, temperature: 0.0, tint: null, vignette: 0.11, clarity: 0, grayscale: 0 },
-    "amazing-city-01": { label: "Amazing City 01", brightness: 1.098, contrast: 1.0, saturate: 0.88, temperature: -6.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-city-02": { label: "Amazing City 02", brightness: 0.72, contrast: 1.0, saturate: 0.983, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-city-03": { label: "Amazing City 03", brightness: 1.123, contrast: 1.115, saturate: 0.768, temperature: -6.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-city-04": { label: "Amazing City 04", brightness: 1.105, contrast: 1.235, saturate: 1.351, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-city-05": { label: "Amazing City 05", brightness: 1.01, contrast: 1.0, saturate: 1.193, temperature: 0.0, tint: null, vignette: 0.11, clarity: 0, grayscale: 0 },
-    "amazing-coffee-01": { label: "Amazing Coffee 01", brightness: 1.014, contrast: 1.055, saturate: 0.805, temperature: 21.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-coffee-02": { label: "Amazing Coffee 02", brightness: 1.0, contrast: 1.135, saturate: 0.656, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-coffee-03": { label: "Amazing Coffee 03", brightness: 1.231, contrast: 1.185, saturate: 1.03, temperature: 0.0, tint: null, vignette: 0.15, clarity: 0, grayscale: 0 },
-    "amazing-color-01": { label: "Amazing Color 01", brightness: 1.287, contrast: 1.09, saturate: 0.96, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-color-02": { label: "Amazing Color 02", brightness: 1.063, contrast: 1.0, saturate: 0.984, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-color-03": { label: "Amazing Color 03", brightness: 1.101, contrast: 1.105, saturate: 1.0, temperature: 7.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-color-04": { label: "Amazing Color 04", brightness: 1.0, contrast: 1.255, saturate: 1.109, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-color-05": { label: "Amazing Color 05", brightness: 1.0, contrast: 1.055, saturate: 0.945, temperature: 6.0, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-color-06": { label: "Amazing Color 06", brightness: 1.0, contrast: 1.0, saturate: 1.05, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-color-07": { label: "Amazing Color 07", brightness: 1.0, contrast: 1.0, saturate: 0.881, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-color-09": { label: "Amazing Color 09", brightness: 1.123, contrast: 1.11, saturate: 1.183, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-color-10": { label: "Amazing Color 10", brightness: 1.035, contrast: 1.055, saturate: 1.15, temperature: 0.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-food-01": { label: "Amazing Food 01", brightness: 1.0, contrast: 1.0, saturate: 1.071, temperature: 7.5, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-food-02": { label: "Amazing Food 02", brightness: 1.0, contrast: 1.035, saturate: 1.048, temperature: 16.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-food-03": { label: "Amazing Food 03", brightness: 1.129, contrast: 1.165, saturate: 1.261, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-food-04": { label: "Amazing Food 04", brightness: 1.0, contrast: 1.23, saturate: 1.063, temperature: 4.5, tint: null, vignette: 0.01, clarity: 0, grayscale: 0 },
-    "amazing-food-05": { label: "Amazing Food 05", brightness: 1.0, contrast: 1.0, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-forest-01": { label: "Amazing Forest 01", brightness: 0.912, contrast: 0.975, saturate: 0.984, temperature: -12.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-forest-02": { label: "Amazing Forest 02", brightness: 1.123, contrast: 0.965, saturate: 0.859, temperature: 0.0, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-forest-03": { label: "Amazing Forest 03", brightness: 1.0, contrast: 1.125, saturate: 1.103, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-forest-04": { label: "Amazing Forest 04", brightness: 0.912, contrast: 0.965, saturate: 1.201, temperature: 10.5, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-forest-05": { label: "Amazing Forest 05", brightness: 1.196, contrast: 1.0, saturate: 0.88, temperature: 7.5, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-golden-hour-01": { label: "Amazing Golden Hour 01", brightness: 1.123, contrast: 0.825, saturate: 1.111, temperature: 42.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-golden-hour-02": { label: "Amazing Golden Hour 02", brightness: 1.0, contrast: 1.075, saturate: 1.01, temperature: 22.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-golden-hour-03": { label: "Amazing Golden Hour 03", brightness: 1.123, contrast: 0.825, saturate: 1.111, temperature: 22.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-golden-hour-04": { label: "Amazing Golden Hour 04", brightness: 0.878, contrast: 1.0, saturate: 0.72, temperature: 37.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.03, clarity: 0, grayscale: 0 },
-    "amazing-golden-hour-05": { label: "Amazing Golden Hour 05", brightness: 1.262, contrast: 1.225, saturate: 1.083, temperature: 22.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-neon-01": { label: "Amazing Neon 01", brightness: 1.105, contrast: 1.145, saturate: 1.491, temperature: -24.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-neon-02": { label: "Amazing Neon 02", brightness: 0.878, contrast: 1.165, saturate: 1.571, temperature: -25.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-neon-03": { label: "Amazing Neon 03", brightness: 1.0, contrast: 1.26, saturate: 1.459, temperature: -52.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-nude-01": { label: "Amazing Nude 01", brightness: 1.0, contrast: 0.9, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-nude-02": { label: "Amazing Nude 02", brightness: 1.024, contrast: 0.945, saturate: 1.003, temperature: 15.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-nude-03": { label: "Amazing Nude 03", brightness: 1.01, contrast: 0.865, saturate: 0.963, temperature: 19.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.11, clarity: 0, grayscale: 0 },
-    "amazing-nude-04": { label: "Amazing Nude 04", brightness: 1.0, contrast: 0.815, saturate: 0.816, temperature: 28.5, tint: null, vignette: 0.03, clarity: 0, grayscale: 0 },
-    "amazing-nude-05": { label: "Amazing Nude 05", brightness: 1.024, contrast: 0.94, saturate: 0.857, temperature: 34.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-pastel-01": { label: "Amazing Pastel 01", brightness: 1.0, contrast: 1.045, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.2, clarity: 0, grayscale: 0 },
-    "amazing-pastel-02": { label: "Amazing Pastel 02", brightness: 1.0, contrast: 1.085, saturate: 1.0, temperature: -18.0, tint: null, vignette: 0.2, clarity: 0, grayscale: 0 },
-    "amazing-pastel-03": { label: "Amazing Pastel 03", brightness: 1.0, contrast: 1.045, saturate: 1.0, temperature: 0.0, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.2, clarity: 0, grayscale: 0 },
-    "amazing-pets-01": { label: "Amazing Pets 01", brightness: 1.0, contrast: 1.165, saturate: 0.943, temperature: 37.5, tint: null, vignette: 0.02, clarity: 0, grayscale: 0 },
-    "amazing-pets-02": { label: "Amazing Pets 02", brightness: 1.161, contrast: 1.0, saturate: 0.807, temperature: 15.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-pets-03": { label: "Amazing Pets 03", brightness: 1.115, contrast: 1.05, saturate: 1.013, temperature: 0.0, tint: null, vignette: 0.05, clarity: 0, grayscale: 0 },
-    "amazing-portrait-01": { label: "Amazing Portrait 01", brightness: 1.07, contrast: 1.095, saturate: 1.037, temperature: 0.0, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-portrait-02": { label: "Amazing Portrait 02", brightness: 1.01, contrast: 1.0, saturate: 0.963, temperature: 22.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.11, clarity: 0, grayscale: 0 },
-    "amazing-portrait-03": { label: "Amazing Portrait 03", brightness: 1.0, contrast: 1.0, saturate: 1.13, temperature: 0.0, tint: null, vignette: 0.11, clarity: 0, grayscale: 0 },
-    "amazing-red-01": { label: "Amazing Red 01", brightness: 1.042, contrast: 0.98, saturate: 0.807, temperature: 15.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-red-03": { label: "Amazing Red 03", brightness: 1.018, contrast: 1.135, saturate: 0.907, temperature: 0.0, tint: null, vignette: 0.11, clarity: 0, grayscale: 0 },
-    "amazing-rose-01": { label: "Amazing Rose 01", brightness: 0.983, contrast: 1.065, saturate: 1.077, temperature: 0.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-rose-02": { label: "Amazing Rose 02", brightness: 1.052, contrast: 0.935, saturate: 0.913, temperature: 34.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-rose-03": { label: "Amazing Rose 03", brightness: 1.049, contrast: 1.02, saturate: 0.913, temperature: 28.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-rose-04": { label: "Amazing Rose 04", brightness: 1.0, contrast: 0.755, saturate: 0.626, temperature: 31.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-rose-05": { label: "Amazing Rose 05", brightness: 1.231, contrast: 1.095, saturate: 0.863, temperature: 22.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-teal-orange-01": { label: "Amazing Teal Orange 01", brightness: 1.123, contrast: 1.0, saturate: 0.737, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-teal-orange-02": { label: "Amazing Teal Orange 02", brightness: 1.123, contrast: 1.0, saturate: 0.737, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-teal-orange-03": { label: "Amazing Teal Orange 03", brightness: 1.0, contrast: 1.175, saturate: 0.947, temperature: 0.0, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-wedding-01": { label: "Amazing Wedding 01", brightness: 1.0, contrast: 1.16, saturate: 0.695, temperature: 19.5, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-wedding-02": { label: "Amazing Wedding 02", brightness: 1.042, contrast: 1.125, saturate: 0.912, temperature: 4.5, tint: { r: 50, g: 0, b: 50, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-wedding-03": { label: "Amazing Wedding 03", brightness: 1.0, contrast: 1.29, saturate: 0.729, temperature: 0.0, tint: { r: 0, g: 50, b: 0, a: 0.05 }, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-wedding-04": { label: "Amazing Wedding 04", brightness: 1.0, contrast: 0.795, saturate: 0.608, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-white-01": { label: "Amazing White 01", brightness: 1.14, contrast: 1.055, saturate: 1.0, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
-    "amazing-white-02": { label: "Amazing White 02", brightness: 1.0, contrast: 0.985, saturate: 0.834, temperature: 0.0, tint: null, vignette: 0.19, clarity: 0, grayscale: 0 },
-    "amazing-white-03": { label: "Amazing White 03", brightness: 1.0, contrast: 1.27, saturate: 1.007, temperature: 0.0, tint: null, vignette: 0.0, clarity: 0, grayscale: 0 },
+    none: { label: "Original", group: null },
+
+    // ── 30ºS Brand ──────────────────────────────────────────
+    "30s-kraft":   { label: "Kraft",   group: "30ºS", brightness: 1.02, contrast: 1.08, saturate: 0.82, temperature: 24, tint: { r: 60, g: 30, b: 10, a: 0.06 }, vignette: 0.12, clarity: 0, grayscale: 0 },
+    "30s-ink":     { label: "Ink",     group: "30ºS", brightness: 0.92, contrast: 1.25, saturate: 0.75, temperature: 8, tint: { r: 17, g: 17, b: 17, a: 0.08 }, vignette: 0.18, clarity: 0, grayscale: 0 },
+    "30s-stamp":   { label: "Stamp",   group: "30ºS", brightness: 1.05, contrast: 1.15, saturate: 0.88, temperature: 18, tint: { r: 50, g: 25, b: 5, a: 0.05 }, vignette: 0.08, clarity: 0, grayscale: 0 },
+    "30s-golden":  { label: "Golden",  group: "30ºS", brightness: 1.08, contrast: 1.05, saturate: 0.90, temperature: 32, tint: { r: 242, g: 201, b: 76, a: 0.04 }, vignette: 0.06, clarity: 0, grayscale: 0 },
+    "30s-mono":    { label: "Mono",    group: "30ºS", brightness: 1.05, contrast: 1.20, saturate: 0, temperature: 6, tint: { r: 60, g: 40, b: 20, a: 0.06 }, vignette: 0.10, clarity: 0, grayscale: 1 },
+
+    // ── Fab Four ────────────────────────────────────────────
+    "fab-four-red":   { label: "Red",   group: "Fab Four", brightness: 1.03, contrast: 1.18, saturate: 1.25, temperature: 12, tint: { r: 231, g: 76, b: 60, a: 0.05 }, vignette: 0.10, clarity: 0, grayscale: 0 },
+    "fab-four-vivid": { label: "Vivid", group: "Fab Four", brightness: 1.06, contrast: 1.12, saturate: 1.35, temperature: 6, tint: { r: 50, g: 10, b: 30, a: 0.04 }, vignette: 0.05, clarity: 0, grayscale: 0 },
+    "fab-four-warm":  { label: "Warm",  group: "Fab Four", brightness: 1.04, contrast: 1.10, saturate: 1.15, temperature: 20, tint: { r: 180, g: 50, b: 30, a: 0.04 }, vignette: 0.08, clarity: 0, grayscale: 0 },
+
+    // ── Nordic ──────────────────────────────────────────────
+    "nordic-frost":    { label: "Frost",    group: "Nordic", brightness: 1.06, contrast: 1.05, saturate: 0.85, temperature: -18, tint: { r: 10, g: 30, b: 60, a: 0.05 }, vignette: 0.06, clarity: 0, grayscale: 0 },
+    "nordic-aurora":   { label: "Aurora",   group: "Nordic", brightness: 0.95, contrast: 1.15, saturate: 1.20, temperature: -12, tint: { r: 20, g: 60, b: 40, a: 0.05 }, vignette: 0.12, clarity: 0, grayscale: 0 },
+    "nordic-midnight": { label: "Midnight", group: "Nordic", brightness: 0.88, contrast: 1.22, saturate: 0.90, temperature: -22, tint: { r: 15, g: 20, b: 50, a: 0.07 }, vignette: 0.18, clarity: 0, grayscale: 0 },
+
+    // ── Lapland ─────────────────────────────────────────────
+    "lapland-snow":  { label: "Snow",  group: "Lapland", brightness: 1.12, contrast: 0.95, saturate: 0.78, temperature: -8, tint: { r: 200, g: 210, b: 220, a: 0.04 }, vignette: 0.04, clarity: 0, grayscale: 0 },
+    "lapland-cabin": { label: "Cabin", group: "Lapland", brightness: 1.04, contrast: 1.10, saturate: 0.88, temperature: 28, tint: { r: 80, g: 40, b: 15, a: 0.06 }, vignette: 0.14, clarity: 0, grayscale: 0 },
+    "lapland-birch": { label: "Birch", group: "Lapland", brightness: 1.08, contrast: 1.02, saturate: 0.82, temperature: 4, tint: { r: 40, g: 50, b: 30, a: 0.04 }, vignette: 0.06, clarity: 0, grayscale: 0 },
+
+    // ── Highlands ───────────────────────────────────────────
+    "highlands-moss":  { label: "Moss",  group: "Highlands", brightness: 0.98, contrast: 1.08, saturate: 0.92, temperature: -4, tint: { r: 20, g: 50, b: 15, a: 0.06 }, vignette: 0.10, clarity: 0, grayscale: 0 },
+    "highlands-mist":  { label: "Mist",  group: "Highlands", brightness: 1.10, contrast: 0.90, saturate: 0.75, temperature: -6, tint: { r: 30, g: 35, b: 45, a: 0.05 }, vignette: 0.08, clarity: 0, grayscale: 0 },
+    "highlands-stone": { label: "Stone", group: "Highlands", brightness: 0.95, contrast: 1.18, saturate: 0.80, temperature: 2, tint: { r: 40, g: 35, b: 30, a: 0.06 }, vignette: 0.14, clarity: 0, grayscale: 0 },
+
+    // ── Mediterranean ───────────────────────────────────────
+    "med-terracota": { label: "Terracota", group: "Mediterranean", brightness: 1.05, contrast: 1.10, saturate: 1.05, temperature: 22, tint: { r: 180, g: 80, b: 40, a: 0.04 }, vignette: 0.06, clarity: 0, grayscale: 0 },
+    "med-azur":      { label: "Azur",      group: "Mediterranean", brightness: 1.08, contrast: 1.05, saturate: 1.12, temperature: -6, tint: { r: 20, g: 50, b: 80, a: 0.04 }, vignette: 0.04, clarity: 0, grayscale: 0 },
+    "med-sunset":    { label: "Sunset",    group: "Mediterranean", brightness: 1.10, contrast: 1.08, saturate: 1.08, temperature: 35, tint: { r: 200, g: 100, b: 40, a: 0.04 }, vignette: 0.08, clarity: 0, grayscale: 0 },
+
+    // ── Desert ──────────────────────────────────────────────
+    "desert-dune":  { label: "Dune",  group: "Desert", brightness: 1.08, contrast: 1.05, saturate: 0.85, temperature: 30, tint: { r: 200, g: 160, b: 80, a: 0.05 }, vignette: 0.06, clarity: 0, grayscale: 0 },
+    "desert-oasis": { label: "Oasis", group: "Desert", brightness: 1.02, contrast: 1.12, saturate: 1.10, temperature: 18, tint: { r: 50, g: 40, b: 10, a: 0.04 }, vignette: 0.08, clarity: 0, grayscale: 0 },
+
+    // ── Patagonia ────────────────────────────────────────────
+    "patagonia-ice":  { label: "Ice",  group: "Patagonia", brightness: 1.04, contrast: 1.20, saturate: 0.92, temperature: -14, tint: { r: 15, g: 40, b: 60, a: 0.05 }, vignette: 0.10, clarity: 0, grayscale: 0 },
+    "patagonia-wind": { label: "Wind", group: "Patagonia", brightness: 0.96, contrast: 1.25, saturate: 1.05, temperature: -4, tint: null, vignette: 0.14, clarity: 0, grayscale: 0 },
+
+    // ── Tropical ────────────────────────────────────────────
+    "tropical-jungle": { label: "Jungle", group: "Tropical", brightness: 0.98, contrast: 1.10, saturate: 1.28, temperature: 8, tint: { r: 10, g: 60, b: 20, a: 0.04 }, vignette: 0.08, clarity: 0, grayscale: 0 },
+    "tropical-beach":  { label: "Beach",  group: "Tropical", brightness: 1.10, contrast: 1.02, saturate: 1.15, temperature: 14, tint: { r: 40, g: 180, b: 200, a: 0.03 }, vignette: 0.04, clarity: 0, grayscale: 0 },
+
+    // ── Film ────────────────────────────────────────────────
+    "film-kodak":  { label: "Kodak",  group: "Film", brightness: 1.04, contrast: 1.08, saturate: 1.10, temperature: 16, tint: { r: 255, g: 200, b: 50, a: 0.03 }, vignette: 0.10, clarity: 0, grayscale: 0 },
+    "film-fuji":   { label: "Fuji",   group: "Film", brightness: 1.02, contrast: 1.06, saturate: 1.05, temperature: -8, tint: { r: 30, g: 80, b: 60, a: 0.03 }, vignette: 0.08, clarity: 0, grayscale: 0 },
+    "film-portra": { label: "Portra", group: "Film", brightness: 1.06, contrast: 0.95, saturate: 0.90, temperature: 12, tint: { r: 60, g: 40, b: 30, a: 0.04 }, vignette: 0.06, clarity: 0, grayscale: 0 },
+
 };
 
 const PAGE_TITLES = {
@@ -605,26 +555,29 @@ async function handleNewFiles(fileList) {
                     photo.caption = data.caption || "";
                     photo.hashtags = data.hashtags || [];
                     photo.contentType = data.content_type || "";
-                    const defaultMood = photo.location ? "pin" : "maluf";
-                    try {
-                        const moodRes = await apiFetch(`/rewrite-caption`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                caption: photo.caption,
-                                mood: defaultMood,
-                                location: photo.location || "",
-                                content_type: photo.contentType || ""
-                            })
-                        });
-                        const moodData = await moodRes.json();
-                        if (moodData.success && moodData.caption) {
-                            const label = defaultMood === "pin" ? "📍 Só Local" : "✍️ Meu Estilo";
-                            photo.captionOptions.unshift({ style: label, text: moodData.caption });
-                            photo.caption = moodData.caption;
-                            photo.activeMood = defaultMood;
-                        }
-                    } catch (_) {}
+                    if (photo.location) {
+                        try {
+                            const moodRes = await apiFetch(`/rewrite-caption`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    caption: photo.caption,
+                                    mood: "pin",
+                                    location: photo.location || "",
+                                    content_type: photo.contentType || ""
+                                })
+                            });
+                            const moodData = await moodRes.json();
+                            if (moodData.success && moodData.caption) {
+                                photo.captionOptions.unshift({ style: "📍 Só Local", text: moodData.caption });
+                                photo.caption = moodData.caption;
+                                photo.activeMood = "pin";
+                            }
+                        } catch (_) {}
+                    } else {
+                        photo.caption = "";
+                        photo.activeMood = null;
+                    }
                 } else if (data.error) {
                     analysisErrors.push(data.error);
                 }
@@ -1114,19 +1067,19 @@ function setupNewPostModal() {
 
     document.getElementById("regenHashtagsBtn").addEventListener("click", regenerateHashtags);
 
-    // Populate filter dropdown with optgroups by category
     const filterSelect = document.getElementById("filterSelect");
     const groups = {};
+    const groupOrder = [];
     for (const [key, f] of Object.entries(PHOTO_FILTERS)) {
         if (key === "none") continue;
-        const parts = f.label.replace(/\s+\d+$/, "");
-        if (!groups[parts]) groups[parts] = [];
-        groups[parts].push({ key, label: f.label });
+        const g = f.group || "Outros";
+        if (!groups[g]) { groups[g] = []; groupOrder.push(g); }
+        groups[g].push({ key, label: f.label });
     }
-    for (const [groupName, items] of Object.entries(groups)) {
+    for (const groupName of groupOrder) {
         const optgroup = document.createElement("optgroup");
         optgroup.label = groupName;
-        for (const item of items) {
+        for (const item of groups[groupName]) {
             const opt = document.createElement("option");
             opt.value = item.key;
             opt.textContent = item.label;
@@ -1528,6 +1481,9 @@ function buildMiniPostItem(post) {
     div.className = "mini-post-item";
     const dateStr = formatDateBR(post.schedule_date);
     const isStory = post.post_type === "story";
+    const errorLine = post.publish_error
+        ? `<span class="queue-item-error" data-error="${escapeHtml(post.publish_error)}">⚠️ falhou</span>`
+        : "";
     div.innerHTML = `
         <div class="mini-post-thumb">
             <img src="/${post.photo_path}" alt="">
@@ -1538,9 +1494,14 @@ function buildMiniPostItem(post) {
             <div class="mini-post-item-meta">
                 <span class="status-badge ${post.status}">${post.status === "posted" ? "Postado" : "Pendente"}</span>
                 <span>${dateStr}</span>
+                ${errorLine}
             </div>
         </div>
     `;
+    const errorEl = div.querySelector(".queue-item-error");
+    if (errorEl) {
+        errorEl.addEventListener("click", (e) => { e.stopPropagation(); showToast(errorEl.dataset.error, "error", 8000); });
+    }
     div.addEventListener("click", () => openEditModal(post));
     return div;
 }
@@ -1977,9 +1938,8 @@ function buildQueueItem(post) {
     const dateStr = formatDateBR(post.schedule_date);
     const isPending = post.status !== "posted";
 
-    // Aviso discreto se a última tentativa de publicação falhou
     const errorLine = post.publish_error
-        ? `<span class="queue-item-error" title="${escapeHtml(post.publish_error)}">⚠️ falhou</span>`
+        ? `<span class="queue-item-error" data-error="${escapeHtml(post.publish_error)}">⚠️ falhou</span>`
         : "";
 
     div.innerHTML = `
@@ -2004,6 +1964,11 @@ function buildQueueItem(post) {
     }
     div.querySelector(".edit-btn").addEventListener("click", () => openEditModal(post));
     div.querySelector(".delete-btn").addEventListener("click", () => openDeleteModal(post.id));
+
+    const errorEl = div.querySelector(".queue-item-error");
+    if (errorEl) {
+        errorEl.addEventListener("click", () => showToast(errorEl.dataset.error, "error", 8000));
+    }
 
     return div;
 }
@@ -2295,6 +2260,41 @@ async function loadInstagramStatus() {
     } catch (e) {
         warn.textContent = "Não foi possível verificar o status do Instagram.";
     }
+
+    checkTokenHealth();
+}
+
+async function checkTokenHealth() {
+    const alertEl = document.getElementById("igTokenAlert");
+    if (!alertEl) return;
+    alertEl.innerHTML = "";
+    alertEl.classList.add("hidden");
+
+    if (_igAccounts.length === 0) return;
+
+    try {
+        const res = await apiFetch(`/instagram/check-token`);
+        const data = await res.json();
+        const problems = [];
+
+        for (const acct of (data.accounts || [])) {
+            if (!acct.ok) {
+                problems.push(`<strong>@${escapeHtml(acct.username)}</strong>: ${escapeHtml(acct.error)}`);
+            }
+        }
+
+        if (data.has_permission_errors) {
+            problems.push(`${data.failed_posts_count} postagem(ns) falharam por erro de permissão — reconecte a conta para corrigir.`);
+        }
+
+        if (problems.length > 0) {
+            alertEl.innerHTML =
+                `<strong>⚠️ Problema com o token do Instagram</strong><br>` +
+                problems.join("<br>") +
+                `<br><br><span style="font-size:0.85em;opacity:0.9">Reconecte a conta para renovar o token e as permissões.</span>`;
+            alertEl.classList.remove("hidden");
+        }
+    } catch (_) {}
 }
 
 function populateAccountSelectors() {
@@ -2481,17 +2481,32 @@ function setupStoryDropzone() {
     });
 
     // Filter controls
-    const filterSelect = document.getElementById("storyFilterSelect");
-    filterSelect.innerHTML = "";
+    const storyFilterSelect = document.getElementById("storyFilterSelect");
+    storyFilterSelect.innerHTML = "";
+    const origOpt = document.createElement("option");
+    origOpt.value = "none"; origOpt.textContent = "Original";
+    storyFilterSelect.appendChild(origOpt);
+    const sGroups = {}; const sOrder = [];
     for (const [key, f] of Object.entries(PHOTO_FILTERS)) {
-        const opt = document.createElement("option");
-        opt.value = key; opt.textContent = f.label;
-        filterSelect.appendChild(opt);
+        if (key === "none") continue;
+        const g = f.group || "Outros";
+        if (!sGroups[g]) { sGroups[g] = []; sOrder.push(g); }
+        sGroups[g].push({ key, label: f.label });
     }
-    filterSelect.addEventListener("change", () => {
+    for (const gn of sOrder) {
+        const og = document.createElement("optgroup");
+        og.label = gn;
+        for (const item of sGroups[gn]) {
+            const opt = document.createElement("option");
+            opt.value = item.key; opt.textContent = item.label;
+            og.appendChild(opt);
+        }
+        storyFilterSelect.appendChild(og);
+    }
+    storyFilterSelect.addEventListener("change", () => {
         const item = storyItems[currentStoryIndex];
-        if (item) item.filterKey = filterSelect.value;
-        document.getElementById("storyFilterIntensityRow").style.display = filterSelect.value === "none" ? "none" : "";
+        if (item) item.filterKey = storyFilterSelect.value;
+        document.getElementById("storyFilterIntensityRow").style.display = storyFilterSelect.value === "none" ? "none" : "";
         applyStoryFilter();
     });
     document.getElementById("storyFilterIntensity").addEventListener("input", (e) => {

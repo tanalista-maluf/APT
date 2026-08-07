@@ -853,6 +853,44 @@ def instagram_status():
     })
 
 
+@app.route("/api/instagram/check-token", methods=["GET"])
+def instagram_check_token():
+    """Verifica saúde do token de cada conta conectada."""
+    accounts = db.list_ig_accounts()
+    if not accounts:
+        return jsonify({"accounts": []})
+
+    results = []
+    for acct in accounts:
+        token = acct.get("access_token", "")
+        ig_user_id = acct.get("ig_user_id", "")
+        entry = {
+            "id": acct["id"],
+            "username": acct.get("username", ""),
+            "ok": False,
+            "error": None,
+        }
+        if not token or not ig_user_id:
+            entry["error"] = "Token não configurado."
+            results.append(entry)
+            continue
+        try:
+            instagram.get_account_info(ig_user_id, token)
+            entry["ok"] = True
+        except instagram.InstagramError as e:
+            entry["error"] = str(e)
+        results.append(entry)
+
+    failed_posts = [p for p in db.list_posts() if p.get("publish_error") and p["status"] == "pending"]
+    has_permission_errors = any("permission" in (p.get("publish_error") or "").lower() for p in failed_posts)
+
+    return jsonify({
+        "accounts": results,
+        "failed_posts_count": len(failed_posts),
+        "has_permission_errors": has_permission_errors,
+    })
+
+
 @app.route("/api/instagram/connect", methods=["POST"])
 def instagram_connect():
     data = request.json or {}
