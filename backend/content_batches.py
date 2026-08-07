@@ -22,6 +22,7 @@ from datetime import datetime
 
 import requests
 from flask import Blueprint, jsonify, request
+from PIL import Image, ImageDraw, ImageFont
 
 import db
 import unsplash_worker
@@ -48,7 +49,14 @@ DEFAULT_THEMES = [
 ]
 
 MIN_PHOTO_COUNT = 3
-MAX_PHOTO_COUNT = 10
+MAX_PHOTO_COUNT = 9  # +1 capa = 10, limite de fotos por carrossel do Instagram
+
+COVER_ITEM_ORDER = -1
+COVER_LABEL = "30°S EXPLORERS CLUB"
+FONTS_DIR = os.path.join(os.path.dirname(__file__), "static", "fonts")
+FONT_PLAYFAIR = os.path.join(FONTS_DIR, "PlayfairDisplay.ttf")
+FONT_CORMORANT = os.path.join(FONTS_DIR, "CormorantGaramond.ttf")
+COVER_SIZE = 1080
 
 
 def _clamp_photo_count(value):
@@ -59,6 +67,119 @@ def _clamp_photo_count(value):
     return max(MIN_PHOTO_COUNT, min(MAX_PHOTO_COUNT, n))
 
 UNSPLASH_API_BASE = "https://api.unsplash.com"
+
+
+# ============================================================
+# Composicao da capa (Pillow)
+# ============================================================
+
+def _cover_font(path, size, variation=None):
+    f = ImageFont.truetype(path, size)
+    if variation:
+        try:
+            f.set_variation_by_name(variation)
+        except Exception:
+            pass
+    return f
+
+
+def _cover_center_crop(img, size):
+    img = img.convert("RGB")
+    w, h = img.size
+    side = min(w, h)
+    left = (w - side) // 2
+    top = (h - side) // 2
+    img = img.crop((left, top, left + side, top + side))
+    return img.resize((size, size), Image.LANCZOS)
+
+
+def _cover_wrap_text(draw, text, font_path, variation, start_size, min_size, max_width, max_lines):
+    """Reduz o tamanho da fonte ate o texto quebrar em no maximo max_lines
+    linhas cabendo em max_width. Retorna (linhas, font)."""
+    size = start_size
+    while size >= min_size:
+        f = _cover_font(font_path, size, variation)
+        words = text.split()
+        lines = []
+        current = ""
+        for word in words:
+            trial = f"{current} {word}".strip()
+            bbox = draw.textbbox((0, 0), trial, font=f)
+            if bbox[2] - bbox[0] <= max_width or not current:
+                current = trial
+            else:
+                lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        if len(lines) <= max_lines:
+            return lines, f
+        size -= 10
+    # ultimo recurso: fonte minima, aceita quantas linhas precisar
+    f = _cover_font(font_path, min_size, variation)
+    return lines, f
+
+
+def _render_cover_image(background_path, title_text, expedition_name, out_path):
+    """Compoe a capa do carrossel: foto de fundo (Unsplash) + scrim escuro +
+    rotulo/titulo/divisor/expedicao em tipografia serifada."""
+    W = H = COVER_SIZE
+    bg = Image.open(background_path)
+    bg = _cover_center_crop(bg, W).convert("RGBA")
+
+    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    od = ImageDraw.Draw(overlay)
+    od.rectangle([0, 0, W, H], fill=(10, 15, 12, 100))
+    # gradiente mais escuro na faixa central onde o texto fica
+    band_top, band_bottom = int(H * 0.28), int(H * 0.78)
+    od.rectangle([0, band_top, W, band_bottom], fill=(6, 10, 8, 90))
+
+    img = Image.alpha_composite(bg, overlay)
+    draw = ImageDraw.Draw(img)
+
+    def draw_center(y, text, f, fill):
+        bbox = draw.textbbox((0, 0), text, font=f)
+        w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
+        draw.text(((W - w) / 2 - bbox[0], y), text, font=f, fill=fill)
+        return h
+
+    max_width = W - 160
+
+    # rotulo "30°S EXPLORERS CLUB" com letter-spacing manual
+    f_label = _cover_font(FONT_CORMORANT, 34, b"SemiBold")
+    label = " ".join(list(COVER_LABEL))
+    y = 150
+    y += draw_center(y, label, f_label, (210, 190, 140, 255)) + 60
+
+    # titulo (quebra automatica, reduz fonte se necessario)
+    title = (title_text or "").strip().upper()
+    title_lines, f_title = _cover_wrap_text(draw, title, FONT_PLAYFAIR, b"Bold", 108, 48, max_width, 3)
+    line_height = f_title.size + 14
+    for line in title_lines:
+        y += draw_center(y, line, f_title, (255, 255, 255, 255)) + 14
+    y += 20
+
+    # divisor decorativo: linha -- losango -- linha
+    divider_w = 160
+    cx = W / 2
+    draw.line([(cx - divider_w, y), (cx - 22, y)], fill=(210, 190, 140, 255), width=2)
+    draw.line([(cx + 22, y), (cx + divider_w, y)], fill=(210, 190, 140, 255), width=2)
+    diamond = 9
+    draw.polygon(
+        [(cx, y - diamond), (cx + diamond, y), (cx, y + diamond), (cx - diamond, y)],
+        fill=(210, 190, 140, 255),
+    )
+    y += 46
+
+    # "NA {EXPEDICAO}"
+    exp_text = f"NA {expedition_name or ''}".strip().upper()
+    exp_lines, f_exp = _cover_wrap_text(draw, exp_text, FONT_CORMORANT, b"Medium", 56, 30, max_width, 2)
+    for line in exp_lines:
+        y += draw_center(y, line, f_exp, (235, 228, 210, 255)) + 8
+
+    img.convert("RGB").save(out_path, "JPEG", quality=92)
+    return out_path
 
 
 def init_app(client, claude_model, photos_folder, unsplash_access_key, persist_carousel_post):
@@ -122,9 +243,13 @@ def _theme_text_schema(photo_count):
                     "required": ["caption_text", "search_keyword"],
                     "additionalProperties": False,
                 },
-            }
+            },
+            "cover_keyword": {
+                "type": "string",
+                "description": "Termo de busca no Unsplash, em ingles, para a FOTO DE FUNDO DA CAPA do carrossel (distinta das fotos dos itens): deve combinar a expedicao e o tema, visual e amplo (ex: 'scandinavian nordic city aerial dramatic sky')",
+            },
         },
-        "required": ["items"],
+        "required": ["items", "cover_keyword"],
         "additionalProperties": False,
     }
 
@@ -153,7 +278,9 @@ Gere EXATAMENTE {photo_count} itens, um para cada foto do carrossel, cobrindo o 
 
 Para cada item:
 - "caption_text": um parágrafo curto (2-4 frases) em português do Brasil, tom autêntico e interessante, sem hashtags, sem emoji forçado, sem clichês tipo "momento especial" ou "sem palavras".
-- "search_keyword": um termo de busca em inglês para encontrar uma foto real no Unsplash que combine com esse parágrafo (ex: "santorini blue dome church", "lisbon tram yellow"). Seja específico e visual, não genérico."""
+- "search_keyword": um termo de busca em inglês para encontrar uma foto real no Unsplash que combine com esse parágrafo (ex: "santorini blue dome church", "lisbon tram yellow"). Seja específico e visual, não genérico.
+
+Além dos {photo_count} itens, gere também "cover_keyword": um termo de busca em inglês para a foto de FUNDO DA CAPA do carrossel (uma foto distinta das anteriores, mais ampla/atmosférica, que combine com a expedição "{expedition['name']}" e o tema "{theme['name']}" ao mesmo tempo — ex: "scandinavian nordic city aerial dramatic sky")."""
 
     message = client.messages.create(
         model=_ctx["claude_model"],
@@ -166,7 +293,8 @@ Para cada item:
     items = data.get("items", [])[:photo_count]
     while len(items) < photo_count:
         items.append({"caption_text": "", "search_keyword": theme["name"]})
-    return items
+    cover_keyword = str(data.get("cover_keyword", "")).strip() or f"{expedition['name']} {theme['name']}"
+    return items, cover_keyword
 
 
 def _generate_theme_summary(expedition, theme, captions):
@@ -213,10 +341,12 @@ def _run_generate_text(batch_id):
         expedition = expeditions.get(expedition_id, {"name": theme_items[0]["expedition_name"]})
         theme = themes.get(theme_id, {"name": theme_items[0]["theme_name"]})
         theme_items.sort(key=lambda i: i["item_order"])
+        cover_item = next((it for it in theme_items if it["item_order"] == COVER_ITEM_ORDER), None)
+        photo_items = [it for it in theme_items if it["item_order"] != COVER_ITEM_ORDER]
         try:
-            generated = _generate_theme_text(expedition, theme)
+            generated, cover_keyword = _generate_theme_text(expedition, theme)
             captions = []
-            for item, gen in zip(theme_items, generated):
+            for item, gen in zip(photo_items, generated):
                 caption = str(gen.get("caption_text", "")).strip()
                 keyword = str(gen.get("search_keyword", "")).strip() or theme.get("name", "")
                 db.update_content_item(item["id"], {
@@ -227,6 +357,17 @@ def _run_generate_text(batch_id):
                     "updated_at": _now_iso(),
                 })
                 captions.append(caption)
+
+            if cover_item:
+                photo_count = _clamp_photo_count(theme.get("photo_count", len(photo_items) or 5))
+                cover_title = f"{photo_count:02d} {theme.get('name', '').upper()} IMPERDÍVEIS"
+                db.update_content_item(cover_item["id"], {
+                    "caption_text": cover_title,
+                    "search_keyword": cover_keyword,
+                    "text_status": "done",
+                    "text_error": "",
+                    "updated_at": _now_iso(),
+                })
 
             summary = _generate_theme_summary(expedition, theme, captions)
             for item in theme_items:
@@ -302,10 +443,34 @@ def _download_photo_for_item(item):
     with open(photo_path, "wb") as f:
         f.write(image_res.content)
 
+    final_relpath = f"data/photos/{filename}"
+
+    if item.get("item_order") == COVER_ITEM_ORDER:
+        try:
+            cover_filename = f"unsplash_{photo_id}_cover.jpg"
+            cover_path = os.path.join(_ctx["photos_folder"], cover_filename)
+            _render_cover_image(
+                background_path=photo_path,
+                title_text=item.get("caption_text") or "",
+                expedition_name=item.get("expedition_name") or "",
+                out_path=cover_path,
+            )
+            final_relpath = f"data/photos/{cover_filename}"
+        except Exception as e:
+            db.update_content_item(item["id"], {
+                "photo_status": "error",
+                "photo_error": f"falha ao compor capa: {e}",
+                "unsplash_photo_id": photo_id,
+                "photographer_name": photo.get("user", {}).get("name", ""),
+                "photographer_url": photo.get("user", {}).get("links", {}).get("html", ""),
+                "updated_at": _now_iso(),
+            })
+            return
+
     db.update_content_item(item["id"], {
         "photo_status": "done",
         "photo_error": "",
-        "photo_path": f"data/photos/{filename}",
+        "photo_path": final_relpath,
         "unsplash_photo_id": photo_id,
         "photographer_name": photo.get("user", {}).get("name", ""),
         "photographer_url": photo.get("user", {}).get("links", {}).get("html", ""),
@@ -388,7 +553,7 @@ def create_batch():
         items = []
         for exp in expeditions:
             for th in themes:
-                for order in range(th.get("photo_count", 5)):
+                for order in range(COVER_ITEM_ORDER, th.get("photo_count", 5)):
                     items.append({
                         "id": f"{batch_id}_{exp['id']}_{th['id']}_{order}",
                         "batch_id": batch_id,
@@ -556,9 +721,11 @@ def retry_item(batch_id, item_id):
         if item["text_status"] == "error" or not item["caption_text"]:
             theme_items = db.list_content_items(batch_id=batch_id, expedition_id=item["expedition_id"], theme_id=item["theme_id"])
             theme_items.sort(key=lambda i: i["item_order"])
-            generated = _generate_theme_text(expedition, theme)
+            cover_item = next((it for it in theme_items if it["item_order"] == COVER_ITEM_ORDER), None)
+            photo_items = [it for it in theme_items if it["item_order"] != COVER_ITEM_ORDER]
+            generated, cover_keyword = _generate_theme_text(expedition, theme)
             captions = []
-            for it, gen in zip(theme_items, generated):
+            for it, gen in zip(photo_items, generated):
                 caption = str(gen.get("caption_text", "")).strip()
                 keyword = str(gen.get("search_keyword", "")).strip() or theme.get("name", "")
                 db.update_content_item(it["id"], {
@@ -566,6 +733,13 @@ def retry_item(batch_id, item_id):
                     "text_status": "done", "text_error": "", "updated_at": _now_iso(),
                 })
                 captions.append(caption)
+            if cover_item:
+                photo_count = _clamp_photo_count(theme.get("photo_count", len(photo_items) or 5))
+                cover_title = f"{photo_count:02d} {theme.get('name', '').upper()} IMPERDÍVEIS"
+                db.update_content_item(cover_item["id"], {
+                    "caption_text": cover_title, "search_keyword": cover_keyword,
+                    "text_status": "done", "text_error": "", "updated_at": _now_iso(),
+                })
             summary = _generate_theme_summary(expedition, theme, captions)
             for it in theme_items:
                 db.update_content_item(it["id"], {"theme_summary": summary, "updated_at": _now_iso()})
@@ -596,7 +770,7 @@ def schedule_theme(batch_id):
         if not batch:
             return jsonify({"error": "Leva não encontrada"}), 404
         theme_def = next((t for t in batch.get("themes", []) if t.get("id") == theme_id), None)
-        expected_count = _clamp_photo_count(theme_def.get("photo_count", 5)) if theme_def else 5
+        expected_count = _clamp_photo_count(theme_def.get("photo_count", 5)) + 1 if theme_def else 6
 
         items = db.list_content_items(batch_id=batch_id, expedition_id=expedition_id, theme_id=theme_id)
         items.sort(key=lambda i: i["item_order"])

@@ -246,7 +246,7 @@
                 <button class="btn btn-small" id="cgAddExpeditionBtn" type="button">+ Adicionar expedição</button>
 
                 <h4 class="cg-subheading">Temas dos carrosséis</h4>
-                <p class="muted-text" style="margin-bottom:10px">Cada tema vira 1 carrossel de 5 fotos por expedição.</p>
+                <p class="muted-text" style="margin-bottom:10px">Cada tema vira 1 carrossel de N+1 fotos por expedição (1 capa gerada automaticamente + N fotos).</p>
                 <div id="cgThemesList"></div>
                 <button class="btn btn-small" id="cgAddThemeBtn" type="button">+ Adicionar tema</button>
 
@@ -579,7 +579,7 @@
         <div class="modal-body">
             <img id="cgItemTextImage" class="new-post-image hidden" src="" alt="">
             <div class="field-block">
-                <label class="field-label">Legenda</label>
+                <label class="field-label" id="cgItemTextCaptionLabel">Legenda</label>
                 <p id="cgItemTextCaption" class="cg-item-text-body"></p>
             </div>
             <div class="field-block">

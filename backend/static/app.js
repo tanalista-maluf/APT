@@ -3625,7 +3625,7 @@ function renderCgExpeditionsList() {
     updateCgEstimate();
 }
 
-const CG_PHOTO_COUNT_OPTIONS = [3, 4, 5, 6, 7, 8, 9, 10];
+const CG_PHOTO_COUNT_OPTIONS = [3, 4, 5, 6, 7, 8, 9];
 
 function renderCgThemesList() {
     const container = document.getElementById("cgThemesList");
@@ -3663,7 +3663,7 @@ function renderCgThemesList() {
 }
 
 function updateCgEstimate() {
-    const photosPerRound = cgThemes.reduce((sum, t) => sum + Number(t.photo_count || 5), 0);
+    const photosPerRound = cgThemes.reduce((sum, t) => sum + Number(t.photo_count || 5) + 1, 0);
     const totalItems = cgExpeditions.length * photosPerRound;
     const hours = totalItems ? Math.round((totalItems / 25) * 10) / 10 : 0;
     const el = document.getElementById("cgEstimate");
@@ -3831,8 +3831,10 @@ function renderContentGenGrid(data) {
             const badgeClass = item.photo_status === "done" ? "done" : (item.photo_status === "error" || item.text_status === "error") ? "error" : "pending";
             const badgeLabel = item.photo_status === "done" ? "OK" : (item.text_status === "error" ? "erro texto" : item.photo_status === "error" ? "erro foto" : "…");
             const clickable = item.text_status === "done" ? ` data-item-id="${item.id}"` : "";
+            const isCover = item.item_order === -1;
             return `
-                <div class="cg-thumb${item.text_status === "done" ? " cg-thumb-clickable" : ""}"${clickable} title="${item.text_status === "done" ? "Ver texto gerado" : ""}">
+                <div class="cg-thumb${item.text_status === "done" ? " cg-thumb-clickable" : ""}${isCover ? " cg-thumb-cover" : ""}"${clickable} title="${item.text_status === "done" ? "Ver texto gerado" : ""}">
+                    ${isCover ? '<span class="cg-cover-badge">CAPA</span>' : ""}
                     ${thumbHtml}
                     <span class="status-badge ${badgeClass}">${badgeLabel}</span>
                 </div>
@@ -3882,7 +3884,9 @@ function renderContentGenGrid(data) {
 
 function openCgItemTextModal(item) {
     if (!item) return;
-    document.getElementById("cgItemTextTitle").textContent = `${item.theme_name} — ${item.expedition_name}`;
+    const isCover = item.item_order === -1;
+    document.getElementById("cgItemTextTitle").textContent = `${item.theme_name} — ${item.expedition_name}${isCover ? " (capa)" : ""}`;
+    document.getElementById("cgItemTextCaptionLabel").textContent = isCover ? "Texto da capa" : "Legenda";
     document.getElementById("cgItemTextCaption").textContent = item.caption_text || "(sem texto)";
     document.getElementById("cgItemTextKeyword").textContent = item.search_keyword || "—";
     const img = document.getElementById("cgItemTextImage");
