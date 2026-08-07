@@ -122,20 +122,18 @@ def _cover_wrap_text(draw, text, font_path, variation, start_size, min_size, max
 
 def _render_cover_image(background_path, title_text, expedition_name, out_path):
     """Compoe a capa do carrossel: foto de fundo (Unsplash) + scrim escuro +
-    rotulo/titulo/divisor/expedicao em tipografia serifada."""
+    rotulo/titulo/divisor/expedicao em tipografia serifada, bloco de texto
+    centralizado tanto na horizontal quanto na vertical."""
     W = H = COVER_SIZE
     bg = Image.open(background_path)
     bg = _cover_center_crop(bg, W).convert("RGBA")
 
-    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    od = ImageDraw.Draw(overlay)
-    od.rectangle([0, 0, W, H], fill=(10, 15, 12, 100))
-    # gradiente mais escuro na faixa central onde o texto fica
-    band_top, band_bottom = int(H * 0.28), int(H * 0.78)
-    od.rectangle([0, band_top, W, band_bottom], fill=(6, 10, 8, 90))
+    img_base = Image.alpha_composite(bg, Image.new("RGBA", (W, H), (0, 0, 0, 0)))
+    draw = ImageDraw.Draw(img_base)
 
-    img = Image.alpha_composite(bg, overlay)
-    draw = ImageDraw.Draw(img)
+    def text_size(text, f):
+        bbox = draw.textbbox((0, 0), text, font=f)
+        return bbox[2] - bbox[0], bbox[3] - bbox[1]
 
     def draw_center(y, text, f, fill):
         bbox = draw.textbbox((0, 0), text, font=f)
@@ -145,20 +143,50 @@ def _render_cover_image(background_path, title_text, expedition_name, out_path):
         return h
 
     max_width = W - 160
+    GAP_LABEL = 60
+    GAP_LINE = 14
+    GAP_TITLE_DIVIDER = 20
+    DIVIDER_SPACE = 46
+    GAP_EXP_LINE = 8
 
     # rotulo "30°S EXPLORERS CLUB" com letter-spacing manual
     f_label = _cover_font(FONT_CORMORANT, 34, b"SemiBold")
     label = " ".join(list(COVER_LABEL))
-    y = 150
-    y += draw_center(y, label, f_label, (210, 190, 140, 255)) + 60
+    label_h = text_size(label, f_label)[1]
 
     # titulo (quebra automatica, reduz fonte se necessario)
     title = (title_text or "").strip().upper()
     title_lines, f_title = _cover_wrap_text(draw, title, FONT_PLAYFAIR, b"Bold", 108, 48, max_width, 3)
-    line_height = f_title.size + 14
+    title_line_heights = [text_size(line, f_title)[1] for line in title_lines]
+
+    # "NA {EXPEDICAO}"
+    exp_text = f"NA {expedition_name or ''}".strip().upper()
+    exp_lines, f_exp = _cover_wrap_text(draw, exp_text, FONT_CORMORANT, b"Medium", 56, 30, max_width, 2)
+    exp_line_heights = [text_size(line, f_exp)[1] for line in exp_lines]
+
+    # altura total do bloco, pra centralizar verticalmente
+    block_height = (
+        label_h + GAP_LABEL
+        + sum(h + GAP_LINE for h in title_line_heights)
+        + GAP_TITLE_DIVIDER + DIVIDER_SPACE
+        + sum(h + GAP_EXP_LINE for h in exp_line_heights)
+    )
+    y = max(60, (H - block_height) / 2)
+    block_top, block_bottom = y - 40, y + block_height + 40
+
+    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    od = ImageDraw.Draw(overlay)
+    od.rectangle([0, 0, W, H], fill=(10, 15, 12, 100))
+    # gradiente mais escuro atras do bloco de texto, onde quer que ele caia
+    od.rectangle([0, block_top, W, block_bottom], fill=(6, 10, 8, 90))
+    img = Image.alpha_composite(bg, overlay)
+    draw = ImageDraw.Draw(img)
+
+    y += draw_center(y, label, f_label, (210, 190, 140, 255)) + GAP_LABEL
+
     for line in title_lines:
-        y += draw_center(y, line, f_title, (255, 255, 255, 255)) + 14
-    y += 20
+        y += draw_center(y, line, f_title, (255, 255, 255, 255)) + GAP_LINE
+    y += GAP_TITLE_DIVIDER
 
     # divisor decorativo: linha -- losango -- linha
     divider_w = 160
@@ -170,13 +198,10 @@ def _render_cover_image(background_path, title_text, expedition_name, out_path):
         [(cx, y - diamond), (cx + diamond, y), (cx, y + diamond), (cx - diamond, y)],
         fill=(210, 190, 140, 255),
     )
-    y += 46
+    y += DIVIDER_SPACE
 
-    # "NA {EXPEDICAO}"
-    exp_text = f"NA {expedition_name or ''}".strip().upper()
-    exp_lines, f_exp = _cover_wrap_text(draw, exp_text, FONT_CORMORANT, b"Medium", 56, 30, max_width, 2)
     for line in exp_lines:
-        y += draw_center(y, line, f_exp, (235, 228, 210, 255)) + 8
+        y += draw_center(y, line, f_exp, (235, 228, 210, 255)) + GAP_EXP_LINE
 
     img.convert("RGB").save(out_path, "JPEG", quality=92)
     return out_path
