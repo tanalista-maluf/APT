@@ -3385,27 +3385,42 @@ async function submitCarousel() {
 // ============================================================
 
 const CG_DEFAULT_THEMES = [
-    "Chegada e primeiras impressões",
-    "Cultura e história local",
-    "Natureza e paisagens",
-    "Gastronomia",
-    "Momentos e despedida",
+    "Cidades",
+    "Highlights",
+    "Pratos e Bebidas Típicas",
+    "Locais Instagramáveis",
+    "Dicas Práticas",
 ];
 
 let cgExpeditions = [];   // [{name, roteiro_text}]
-let cgThemes = [];        // [string]
+let cgThemes = [];        // [{name, photo_count}]
 let cgCurrentBatchId = null;
 let _cgPollTimer = null;
 let cgScheduleTarget = null; // {expedition_id, theme_id}
+let cgPresetExpeditions = []; // [{name, roteiro_text}] carregado do backend
+
+async function loadCgPresetExpeditions() {
+    if (cgPresetExpeditions.length) return cgPresetExpeditions;
+    try {
+        const res = await apiFetch("/content-batches/preset-expeditions");
+        const data = await res.json();
+        cgPresetExpeditions = data.expeditions || [];
+    } catch (e) {
+        cgPresetExpeditions = [];
+    }
+    return cgPresetExpeditions;
+}
 
 function setupContentGenPage() {
+    loadCgPresetExpeditions().then(() => renderCgExpeditionsList());
+
     document.getElementById("cgAddExpeditionBtn").addEventListener("click", () => {
         cgExpeditions.push({ name: "", roteiro_text: "" });
         renderCgExpeditionsList();
     });
 
     document.getElementById("cgAddThemeBtn").addEventListener("click", () => {
-        cgThemes.push("");
+        cgThemes.push({ name: "", photo_count: 5 });
         renderCgThemesList();
     });
 
@@ -3427,7 +3442,7 @@ function renderContentGenPage() {
         cgExpeditions.push({ name: "", roteiro_text: "" });
     }
     if (cgThemes.length === 0) {
-        cgThemes = [...CG_DEFAULT_THEMES];
+        cgThemes = CG_DEFAULT_THEMES.map((name) => ({ name, photo_count: 5 }));
     }
     renderCgExpeditionsList();
     renderCgThemesList();
@@ -3444,17 +3459,42 @@ function renderContentGenPage() {
 
 function renderCgExpeditionsList() {
     const container = document.getElementById("cgExpeditionsList");
+    const presetOptions = cgPresetExpeditions.map((p, pi) =>
+        `<option value="${pi}">${escapeHtml(p.name)}</option>`
+    ).join("");
+
     container.innerHTML = cgExpeditions.map((exp, i) => `
         <div class="cg-expedition-block" data-index="${i}">
             <div class="cg-block-header">
                 <label class="field-label" style="margin:0">Expedição ${i + 1}</label>
                 ${cgExpeditions.length > 1 ? `<button type="button" class="cg-remove-btn" data-remove-exp="${i}">Remover</button>` : ""}
             </div>
+            <select class="cg-exp-preset" data-exp-preset="${i}">
+                <option value="">— selecionar expedição cadastrada —</option>
+                ${presetOptions}
+                <option value="custom">Personalizado (preencher manualmente)</option>
+            </select>
             <input type="text" class="cg-exp-name" data-exp-name="${i}" placeholder="Nome da expedição" value="${escapeHtml(exp.name)}">
             <textarea class="cg-exp-roteiro" data-exp-roteiro="${i}" placeholder="Cole aqui o roteiro completo da expedição...">${escapeHtml(exp.roteiro_text)}</textarea>
         </div>
     `).join("");
 
+    container.querySelectorAll("[data-exp-preset]").forEach((select) => {
+        select.addEventListener("change", (e) => {
+            const idx = Number(e.target.dataset.expPreset);
+            const val = e.target.value;
+            if (val === "" || val === "custom") {
+                return;
+            }
+            const preset = cgPresetExpeditions[Number(val)];
+            if (preset) {
+                cgExpeditions[idx].name = preset.name;
+                cgExpeditions[idx].roteiro_text = preset.roteiro_text;
+                renderCgExpeditionsList();
+                updateCgEstimate();
+            }
+        });
+    });
     container.querySelectorAll("[data-exp-name]").forEach((input) => {
         input.addEventListener("input", (e) => {
             cgExpeditions[Number(e.target.dataset.expName)].name = e.target.value;
@@ -3477,18 +3517,29 @@ function renderCgExpeditionsList() {
     updateCgEstimate();
 }
 
+const CG_PHOTO_COUNT_OPTIONS = [3, 4, 5, 6, 7, 8, 9, 10];
+
 function renderCgThemesList() {
     const container = document.getElementById("cgThemesList");
     container.innerHTML = cgThemes.map((theme, i) => `
         <div class="cg-theme-block" data-index="${i}">
-            <input type="text" data-theme-name="${i}" placeholder="Nome do tema" value="${escapeHtml(theme)}">
+            <input type="text" data-theme-name="${i}" placeholder="Nome do tema" value="${escapeHtml(theme.name)}">
+            <select data-theme-photo-count="${i}" title="Número de fotos do carrossel">
+                ${CG_PHOTO_COUNT_OPTIONS.map((n) => `<option value="${n}" ${Number(theme.photo_count || 5) === n ? "selected" : ""}>${n} fotos</option>`).join("")}
+            </select>
             ${cgThemes.length > 1 ? `<button type="button" class="cg-remove-btn" data-remove-theme="${i}">Remover</button>` : ""}
         </div>
     `).join("");
 
     container.querySelectorAll("[data-theme-name]").forEach((input) => {
         input.addEventListener("input", (e) => {
-            cgThemes[Number(e.target.dataset.themeName)] = e.target.value;
+            cgThemes[Number(e.target.dataset.themeName)].name = e.target.value;
+            updateCgEstimate();
+        });
+    });
+    container.querySelectorAll("[data-theme-photo-count]").forEach((select) => {
+        select.addEventListener("change", (e) => {
+            cgThemes[Number(e.target.dataset.themePhotoCount)].photo_count = Number(e.target.value);
             updateCgEstimate();
         });
     });
@@ -3504,7 +3555,8 @@ function renderCgThemesList() {
 }
 
 function updateCgEstimate() {
-    const totalItems = cgExpeditions.length * cgThemes.length * 5;
+    const photosPerRound = cgThemes.reduce((sum, t) => sum + Number(t.photo_count || 5), 0);
+    const totalItems = cgExpeditions.length * photosPerRound;
     const hours = totalItems ? Math.round((totalItems / 25) * 10) / 10 : 0;
     const el = document.getElementById("cgEstimate");
     if (el) {
@@ -3519,7 +3571,9 @@ async function submitContentBatch() {
     const expeditions = cgExpeditions
         .map((e) => ({ name: e.name.trim(), roteiro_text: e.roteiro_text.trim() }))
         .filter((e) => e.name && e.roteiro_text);
-    const themes = cgThemes.map((t) => t.trim()).filter(Boolean).map((t) => ({ name: t }));
+    const themes = cgThemes
+        .map((t) => ({ name: (t.name || "").trim(), photo_count: Number(t.photo_count) || 5 }))
+        .filter((t) => t.name);
 
     if (expeditions.length === 0) {
         showToast("Adicione ao menos 1 expedição com nome e roteiro.", "error");

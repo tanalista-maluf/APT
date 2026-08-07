@@ -25,6 +25,7 @@ from flask import Blueprint, jsonify, request
 
 import db
 import unsplash_worker
+from expedition_presets import EXPEDITION_PRESETS
 
 content_batches_bp = Blueprint("content_batches", __name__)
 
@@ -39,12 +40,23 @@ _ctx = {
 }
 
 DEFAULT_THEMES = [
-    {"name": "Chegada e primeiras impressões"},
-    {"name": "Cultura e história local"},
-    {"name": "Natureza e paisagens"},
-    {"name": "Gastronomia"},
-    {"name": "Momentos e despedida"},
+    {"name": "Cidades", "photo_count": 5},
+    {"name": "Highlights", "photo_count": 5},
+    {"name": "Pratos e Bebidas Típicas", "photo_count": 5},
+    {"name": "Locais Instagramáveis", "photo_count": 5},
+    {"name": "Dicas Práticas", "photo_count": 5},
 ]
+
+MIN_PHOTO_COUNT = 3
+MAX_PHOTO_COUNT = 10
+
+
+def _clamp_photo_count(value):
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        n = 5
+    return max(MIN_PHOTO_COUNT, min(MAX_PHOTO_COUNT, n))
 
 UNSPLASH_API_BASE = "https://api.unsplash.com"
 
@@ -72,32 +84,35 @@ def _now_iso():
 
 
 def _theme_ready(items):
-    """5 itens do tema com texto e foto prontos."""
+    """Todos os itens do tema (N fotos) com texto e foto prontos."""
     if not items:
         return False
     return all(it["text_status"] == "done" and it["photo_status"] == "done" for it in items)
 
 
-THEME_TEXT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "items": {
-            "type": "array",
-            "description": "Exatamente 5 paragrafos sobre o tema, um por foto do carrossel",
+def _theme_text_schema(photo_count):
+    return {
+        "type": "object",
+        "properties": {
             "items": {
-                "type": "object",
-                "properties": {
-                    "caption_text": {"type": "string", "description": "Paragrafo curto em portugues do Brasil, legenda da foto individual"},
-                    "search_keyword": {"type": "string", "description": "Termo de busca de foto no Unsplash, em ingles, objetivo (ex: 'lisbon alfama street')"},
+                "type": "array",
+                "description": f"Exatamente {photo_count} paragrafos sobre o tema, um por foto do carrossel",
+                "minItems": photo_count,
+                "maxItems": photo_count,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "caption_text": {"type": "string", "description": "Paragrafo curto em portugues do Brasil, legenda da foto individual"},
+                        "search_keyword": {"type": "string", "description": "Termo de busca de foto no Unsplash, em ingles, objetivo (ex: 'lisbon alfama street')"},
+                    },
+                    "required": ["caption_text", "search_keyword"],
+                    "additionalProperties": False,
                 },
-                "required": ["caption_text", "search_keyword"],
-                "additionalProperties": False,
-            },
-        }
-    },
-    "required": ["items"],
-    "additionalProperties": False,
-}
+            }
+        },
+        "required": ["items"],
+        "additionalProperties": False,
+    }
 
 THEME_SUMMARY_SCHEMA = {
     "type": "object",
@@ -110,16 +125,17 @@ THEME_SUMMARY_SCHEMA = {
 
 
 def _generate_theme_text(expedition, theme):
-    """1 chamada Claude: 5 paragrafos + 5 keywords de busca pra um tema."""
+    """1 chamada Claude: N paragrafos + N keywords de busca pra um tema."""
     client = _ctx["client"]
-    prompt = f"""Você está criando o conteúdo de um carrossel de Instagram (5 fotos) sobre o tema "{theme['name']}" dentro da expedição "{expedition['name']}".
+    photo_count = _clamp_photo_count(theme.get("photo_count", 5))
+    prompt = f"""Você está criando o conteúdo de um carrossel de Instagram ({photo_count} fotos) sobre o tema "{theme['name']}" dentro da expedição "{expedition['name']}".
 
 Roteiro completo da expedição (use como contexto e fonte de fatos reais):
 ---
 {expedition.get('roteiro_text', '')}
 ---
 
-Gere EXATAMENTE 5 itens, um para cada foto do carrossel, cobrindo o tema "{theme['name']}" com base no roteiro acima. Se o roteiro não tiver 5 momentos/lugares claramente distintos para esse tema, use o bom senso para dividir em 5 partes coerentes (ex: 5 ângulos, 5 cidades, 5 momentos do dia) — nunca invente lugares que não existem no roteiro.
+Gere EXATAMENTE {photo_count} itens, um para cada foto do carrossel, cobrindo o tema "{theme['name']}" com base no roteiro acima. Se o roteiro não tiver {photo_count} momentos/lugares claramente distintos para esse tema, use o bom senso para dividir em {photo_count} partes coerentes (ex: {photo_count} ângulos, {photo_count} cidades, {photo_count} momentos do dia) — nunca invente lugares que não existem no roteiro.
 
 Para cada item:
 - "caption_text": um parágrafo curto (2-4 frases) em português do Brasil, tom autêntico e interessante, sem hashtags, sem emoji forçado, sem clichês tipo "momento especial" ou "sem palavras".
@@ -128,13 +144,13 @@ Para cada item:
     message = client.messages.create(
         model=_ctx["claude_model"],
         max_tokens=2000,
-        output_config={"format": {"type": "json_schema", "schema": THEME_TEXT_SCHEMA}},
+        output_config={"format": {"type": "json_schema", "schema": _theme_text_schema(photo_count)}},
         messages=[{"role": "user", "content": prompt}],
     )
     response_text = next((b.text for b in message.content if b.type == "text"), "")
     data = json.loads(response_text)
-    items = data.get("items", [])[:5]
-    while len(items) < 5:
+    items = data.get("items", [])[:photo_count]
+    while len(items) < photo_count:
         items.append({"caption_text": "", "search_keyword": theme["name"]})
     return items
 
@@ -287,6 +303,11 @@ def ensure_worker_started():
 # Rotas
 # ============================================================
 
+@content_batches_bp.route("/api/content-batches/preset-expeditions", methods=["GET"])
+def preset_expeditions():
+    return jsonify({"expeditions": EXPEDITION_PRESETS})
+
+
 @content_batches_bp.route("/api/content-batches", methods=["POST"])
 def create_batch():
     try:
@@ -328,7 +349,11 @@ def create_batch():
                 tid = f"{base_tid}-{n}"
                 n += 1
             used_theme_ids.add(tid)
-            themes.append({"id": tid, "name": th.get("name", "").strip() or f"Tema {i+1}"})
+            themes.append({
+                "id": tid,
+                "name": th.get("name", "").strip() or f"Tema {i+1}",
+                "photo_count": _clamp_photo_count(th.get("photo_count", 5)),
+            })
 
         batch = {
             "id": batch_id,
@@ -344,7 +369,7 @@ def create_batch():
         items = []
         for exp in expeditions:
             for th in themes:
-                for order in range(5):
+                for order in range(th.get("photo_count", 5)):
                     items.append({
                         "id": f"{batch_id}_{exp['id']}_{th['id']}_{order}",
                         "batch_id": batch_id,
@@ -499,9 +524,15 @@ def schedule_theme(batch_id):
         if not expedition_id or not theme_id:
             return jsonify({"error": "expedition_id e theme_id são obrigatórios"}), 400
 
+        batch = db.get_content_batch(batch_id)
+        if not batch:
+            return jsonify({"error": "Leva não encontrada"}), 404
+        theme_def = next((t for t in batch.get("themes", []) if t.get("id") == theme_id), None)
+        expected_count = _clamp_photo_count(theme_def.get("photo_count", 5)) if theme_def else 5
+
         items = db.list_content_items(batch_id=batch_id, expedition_id=expedition_id, theme_id=theme_id)
         items.sort(key=lambda i: i["item_order"])
-        if len(items) != 5 or any(it["photo_status"] != "done" for it in items):
+        if len(items) != expected_count or any(it["photo_status"] != "done" for it in items):
             return jsonify({"error": "Tema ainda não está pronto (faltam fotos)"}), 400
         if any(it["scheduled_post_id"] for it in items):
             return jsonify({"error": "Este tema já foi agendado"}), 400

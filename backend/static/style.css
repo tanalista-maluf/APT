@@ -2192,6 +2192,16 @@ input, textarea, select {
     margin: 0;
 }
 
+.cg-theme-block select {
+    margin: 0;
+    width: auto;
+}
+
+.cg-exp-preset {
+    width: 100%;
+    margin-bottom: 8px;
+}
+
 .cg-estimate {
     margin: 14px 0 10px;
     font-style: italic;
