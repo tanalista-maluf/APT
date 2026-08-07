@@ -1769,8 +1769,9 @@ function renderCalendarGrid(container, monthDate, postsByDate, opts = {}) {
         el.appendChild(num);
 
         if (dayPosts.length > 0) {
-            const feedPosts = dayPosts.filter((p) => p.post_type !== "story");
+            const feedPosts = dayPosts.filter((p) => p.post_type !== "story" && p.post_type !== "carousel");
             const storyPosts = dayPosts.filter((p) => p.post_type === "story");
+            const carouselPosts = dayPosts.filter((p) => p.post_type === "carousel");
             const errorPosts = dayPosts.filter((p) => p.publish_error);
 
             const dots = document.createElement("div");
@@ -1788,17 +1789,24 @@ function renderCalendarGrid(container, monthDate, postsByDate, opts = {}) {
                 d.className = "cal-dot " + (allPosted ? "story-posted" : "story-pending");
                 dots.appendChild(d);
             }
+            if (carouselPosts.length > 0) {
+                const d = document.createElement("span");
+                const allPosted = carouselPosts.every((p) => p.status === "posted");
+                d.className = "cal-dot " + (allPosted ? "carousel-posted" : "carousel-pending");
+                dots.appendChild(d);
+            }
             el.appendChild(dots);
 
             if (errorPosts.length > 0) {
+                const postTypeLabel = (p) => p.post_type === "story" ? "Story" : p.post_type === "carousel" ? "Carrossel" : "Feed";
                 const warn = document.createElement("span");
                 warn.className = "cal-error-badge";
                 warn.textContent = "⚠";
-                warn.title = errorPosts.map((p) => `${p.post_type === "story" ? "Story" : "Feed"}: ${p.publish_error}`).join("\n");
+                warn.title = errorPosts.map((p) => `${postTypeLabel(p)}: ${p.publish_error}`).join("\n");
                 warn.addEventListener("click", (e) => {
                     e.stopPropagation();
                     const msg = errorPosts.map((p) =>
-                        `• ${p.post_type === "story" ? "Story" : "Feed"} (${formatDateBR(p.schedule_date)}):\n  ${p.publish_error}`
+                        `• ${postTypeLabel(p)} (${formatDateBR(p.schedule_date)}):\n  ${p.publish_error}`
                     ).join("\n\n");
                     showToast(msg, "error", 8000);
                 });

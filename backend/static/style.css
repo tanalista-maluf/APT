@@ -1340,6 +1340,14 @@ input, textarea, select {
     background: #166534;
 }
 
+.cal-dot.carousel-pending {
+    background: #f59e0b;
+}
+
+.cal-dot.carousel-posted {
+    background: #22c55e;
+}
+
 .cal-legend {
     display: flex;
     flex-wrap: wrap;
