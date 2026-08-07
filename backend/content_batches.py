@@ -97,8 +97,6 @@ def _theme_text_schema(photo_count):
             "items": {
                 "type": "array",
                 "description": f"Exatamente {photo_count} paragrafos sobre o tema, um por foto do carrossel",
-                "minItems": photo_count,
-                "maxItems": photo_count,
                 "items": {
                     "type": "object",
                     "properties": {
