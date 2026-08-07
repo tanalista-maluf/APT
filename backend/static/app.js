@@ -3413,6 +3413,7 @@ async function loadCgPresetExpeditions() {
 
 function setupContentGenPage() {
     loadCgPresetExpeditions().then(() => renderCgExpeditionsList());
+    restoreCgBatchFromStorage();
 
     document.getElementById("cgAddExpeditionBtn").addEventListener("click", () => {
         cgExpeditions.push({ name: "", roteiro_text: "" });
@@ -3429,6 +3430,7 @@ function setupContentGenPage() {
     document.getElementById("cgBackToFormBtn").addEventListener("click", () => {
         _stopContentGenPoll();
         cgCurrentBatchId = null;
+        localStorage.removeItem("cgCurrentBatchId");
         document.getElementById("cgProgress").classList.add("hidden");
         document.getElementById("cgForm").classList.remove("hidden");
     });
@@ -3436,6 +3438,23 @@ function setupContentGenPage() {
     document.getElementById("cgScheduleCloseBtn").addEventListener("click", closeCgScheduleModal);
     document.getElementById("cgScheduleCancelBtn").addEventListener("click", closeCgScheduleModal);
     document.getElementById("cgScheduleConfirmBtn").addEventListener("click", confirmCgSchedule);
+}
+
+async function restoreCgBatchFromStorage() {
+    const saved = localStorage.getItem("cgCurrentBatchId");
+    if (!saved || cgCurrentBatchId) return;
+    try {
+        const res = await apiFetch(`/content-batches/${saved}`);
+        if (!res.ok) throw new Error("not found");
+        cgCurrentBatchId = saved;
+    } catch (e) {
+        localStorage.removeItem("cgCurrentBatchId");
+        return;
+    }
+    const activePage = document.querySelector(".page.active");
+    if (activePage && activePage.id === "page-content-gen") {
+        renderContentGenPage();
+    }
 }
 
 function renderContentGenPage() {
@@ -3604,6 +3623,7 @@ async function submitContentBatch() {
         }
 
         cgCurrentBatchId = createData.batch_id;
+        localStorage.setItem("cgCurrentBatchId", cgCurrentBatchId);
 
         const genRes = await apiFetch(`/content-batches/${cgCurrentBatchId}/generate-text`, { method: "POST" });
         const genData = await genRes.json();
