@@ -51,25 +51,18 @@
             <button class="side-nav-item active" data-page="dashboard">
                 <span class="side-nav-icon">🏠</span> Dashboard
             </button>
-            <button class="side-nav-item" id="navNewPost">
-                <span class="side-nav-icon">➕</span> Nova Postagem
-            </button>
-            <button class="side-nav-item" data-page="content">
-                <span class="side-nav-icon">🖼️</span> Conteúdo
-            </button>
             <button class="side-nav-item" data-page="calendar">
                 <span class="side-nav-icon">📅</span> Calendário
             </button>
             <button class="side-nav-item" data-page="history">
                 <span class="side-nav-icon">🕓</span> Histórico
             </button>
+            <button class="side-nav-item" data-page="content-gen">
+                <span class="side-nav-icon">🧭</span> Gerar Conteúdo
+            </button>
             <button class="side-nav-item" data-page="settings">
                 <span class="side-nav-icon">⚙️</span> Configurações
             </button>
-
-            <a class="side-nav-item club-back-link" id="clubBackLink" href="https://www.30s.world">
-                <span class="side-nav-icon">↩️</span> Voltar ao 30ºS
-            </a>
         </nav>
 
         <div class="sticky-note">
@@ -194,23 +187,6 @@
             </div>
         </section>
 
-        <!-- PÁGINA: CONTEÚDO (galeria) -->
-        <section id="page-content" class="page">
-            <div class="card">
-                <div class="card-header-row">
-                    <h3>Conteúdo enviado</h3>
-                    <div class="dashboard-filters" id="contentFilters">
-                        <button class="filter-btn active" data-filter="all">Todos</button>
-                        <button class="filter-btn" data-filter="pending">Pendentes</button>
-                        <button class="filter-btn" data-filter="posted">Postados</button>
-                    </div>
-                </div>
-                <div id="contentGrid" class="content-grid">
-                    <p class="empty-state">Nenhuma foto enviada ainda.</p>
-                </div>
-            </div>
-        </section>
-
         <!-- PÁGINA: CALENDÁRIO -->
         <section id="page-calendar" class="page">
             <div class="card">
@@ -242,9 +218,60 @@
                         <button class="filter-btn" data-filter="posted">Postados</button>
                     </div>
                 </div>
-                <div id="historyList" class="queue-list">
+                <div id="historyList" class="content-grid">
                     <p class="empty-state">Carregando...</p>
                 </div>
+            </div>
+        </section>
+
+        <!-- PÁGINA: GERAR CONTEÚDO -->
+        <section id="page-content-gen" class="page">
+
+            <!-- Formulário: roteiro de expedições + temas -->
+            <div class="card" id="cgForm">
+                <h3>Gerar Conteúdo</h3>
+                <p class="muted-text" style="margin-bottom:14px">
+                    Cole o roteiro de cada expedição e defina os temas dos carrosséis. O sistema gera os textos com IA
+                    e busca as fotos no Unsplash sozinho em segundo plano.
+                </p>
+
+                <label class="field-label" for="cgBatchName">Nome da leva (opcional)</label>
+                <input type="text" id="cgBatchName" placeholder="Ex: Europa Verão 2026">
+
+                <h4 class="cg-subheading">Expedições</h4>
+                <div id="cgExpeditionsList"></div>
+                <button class="btn btn-small" id="cgAddExpeditionBtn" type="button">+ Adicionar expedição</button>
+
+                <h4 class="cg-subheading">Temas dos carrosséis</h4>
+                <p class="muted-text" style="margin-bottom:10px">Cada tema vira 1 carrossel de 5 fotos por expedição.</p>
+                <div id="cgThemesList"></div>
+                <button class="btn btn-small" id="cgAddThemeBtn" type="button">+ Adicionar tema</button>
+
+                <p class="muted-text cg-estimate" id="cgEstimate"></p>
+
+                <button class="btn btn-primary btn-block" id="cgSubmitBtn" type="button">Gerar conteúdo →</button>
+            </div>
+
+            <!-- Progresso / revisão -->
+            <div class="card hidden" id="cgProgress">
+                <div class="card-header-row">
+                    <h3 id="cgProgressTitle">Gerando conteúdo…</h3>
+                    <button class="btn btn-small" id="cgBackToFormBtn" type="button">← Nova leva</button>
+                </div>
+
+                <div class="cg-progress-bars">
+                    <div class="cg-progress-item">
+                        <span class="cg-progress-label">Textos: <b id="cgTextProgressLabel">0/0</b></span>
+                        <div class="cg-progress-track"><div class="cg-progress-fill" id="cgTextProgressFill"></div></div>
+                    </div>
+                    <div class="cg-progress-item">
+                        <span class="cg-progress-label">Fotos: <b id="cgPhotoProgressLabel">0/0</b></span>
+                        <div class="cg-progress-track"><div class="cg-progress-fill" id="cgPhotoProgressFill"></div></div>
+                    </div>
+                </div>
+                <p class="muted-text" id="cgEtaLabel"></p>
+
+                <div id="cgGrid" class="cg-grid"></div>
             </div>
         </section>
 
@@ -500,6 +527,26 @@
 </div>
 
 <!-- ============================================================ -->
+<!-- MODAL: AÇÕES DO POST (clique num item da grade do histórico) -->
+<!-- ============================================================ -->
+<div id="postActionsModal" class="modal-overlay hidden">
+    <div class="modal-panel modal-panel-sm">
+        <div class="modal-header">
+            <h2>Postagem</h2>
+            <button class="modal-close" id="closePostActionsBtn">✕</button>
+        </div>
+        <div class="modal-body post-actions-body">
+            <img id="postActionsImage" class="new-post-image" src="" alt="">
+            <div class="post-actions-buttons">
+                <button class="btn btn-primary btn-block" id="postActionsPublishBtn">📤 Publicar agora</button>
+                <button class="btn btn-secondary btn-block" id="postActionsEditBtn">✏️ Editar legenda</button>
+                <button class="btn btn-danger btn-block" id="postActionsDeleteBtn">🗑️ Apagar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
 <!-- MODAL: EDITAR POSTAGEM (dashboard / histórico) -->
 <!-- ============================================================ -->
 <div id="editModal" class="modal-overlay hidden">
@@ -544,6 +591,29 @@
         <div class="modal-footer">
             <button class="btn btn-secondary" id="cancelDeleteBtn">Voltar</button>
             <button class="btn btn-danger" id="confirmDeleteBtn">Sim, remover</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: AGENDAR CARROSSEL DE UM TEMA (Gerar Conteúdo) -->
+<!-- ============================================================ -->
+<div id="cgScheduleModal" class="modal-overlay hidden">
+    <div class="modal-panel modal-panel-sm">
+        <div class="modal-header">
+            <h2>Agendar carrossel</h2>
+            <button class="modal-close" id="cgScheduleCloseBtn">✕</button>
+        </div>
+        <div class="modal-body">
+            <p id="cgScheduleThemeLabel" class="muted-text"></p>
+            <div class="field-block">
+                <label class="field-label">📅 Data e hora</label>
+                <input type="datetime-local" id="cgScheduleDateInput" class="date-input">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cgScheduleCancelBtn">Voltar</button>
+            <button class="btn btn-primary" id="cgScheduleConfirmBtn">Agendar</button>
         </div>
     </div>
 </div>

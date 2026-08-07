@@ -49,6 +49,45 @@ CREATE TABLE IF NOT EXISTS ig_accounts (
 );
 """
 
+_CONTENT_SCHEMA = """
+CREATE TABLE IF NOT EXISTS content_batches (
+    id            TEXT PRIMARY KEY,
+    name          TEXT NOT NULL DEFAULT '',
+    expeditions   TEXT NOT NULL DEFAULT '[]',
+    themes        TEXT NOT NULL DEFAULT '[]',
+    status        TEXT NOT NULL DEFAULT 'draft',
+    created_at    TEXT,
+    updated_at    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS content_items (
+    id                 TEXT PRIMARY KEY,
+    batch_id           TEXT NOT NULL,
+    expedition_id      TEXT NOT NULL,
+    expedition_name    TEXT NOT NULL DEFAULT '',
+    theme_id           TEXT NOT NULL,
+    theme_name         TEXT NOT NULL DEFAULT '',
+    item_order         INTEGER NOT NULL,
+    caption_text       TEXT NOT NULL DEFAULT '',
+    search_keyword     TEXT NOT NULL DEFAULT '',
+    text_status        TEXT NOT NULL DEFAULT 'pending',
+    text_error         TEXT NOT NULL DEFAULT '',
+    photo_status       TEXT NOT NULL DEFAULT 'pending',
+    photo_error        TEXT NOT NULL DEFAULT '',
+    photo_path         TEXT NOT NULL DEFAULT '',
+    unsplash_photo_id  TEXT NOT NULL DEFAULT '',
+    photographer_name  TEXT NOT NULL DEFAULT '',
+    photographer_url   TEXT NOT NULL DEFAULT '',
+    theme_summary      TEXT NOT NULL DEFAULT '',
+    scheduled_post_id  TEXT NOT NULL DEFAULT '',
+    created_at         TEXT,
+    updated_at         TEXT,
+    UNIQUE(batch_id, expedition_id, theme_id, item_order)
+);
+CREATE INDEX IF NOT EXISTS idx_content_items_batch ON content_items(batch_id);
+CREATE INDEX IF NOT EXISTS idx_content_items_status ON content_items(text_status, photo_status);
+"""
+
 
 @contextmanager
 def _connect():
@@ -117,6 +156,9 @@ def init_db():
         ig_cols = {r["name"] for r in conn.execute("PRAGMA table_info(ig_accounts)")}
         if "profile_picture_url" not in ig_cols:
             conn.execute("ALTER TABLE ig_accounts ADD COLUMN profile_picture_url TEXT NOT NULL DEFAULT ''")
+
+    with _connect() as conn:
+        conn.executescript(_CONTENT_SCHEMA)
 
     _migrate_legacy_queue()
     migrate_single_ig_to_multi()
@@ -420,3 +462,221 @@ def migrate_single_ig_to_multi():
         token_expires_at=s.get("ig_token_expires_at"),
     )
     delete_settings(["ig_user_id", "ig_access_token", "ig_username", "ig_token_expires_at"])
+
+
+# ============================================================
+# Levas de conteudo (content_batches / content_items)
+# ============================================================
+
+def _row_to_batch(row):
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "expeditions": json.loads(row["expeditions"] or "[]"),
+        "themes": json.loads(row["themes"] or "[]"),
+        "status": row["status"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+def add_content_batch(batch):
+    with _connect() as conn:
+        conn.execute(
+            """INSERT INTO content_batches
+               (id, name, expeditions, themes, status, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                batch["id"],
+                batch.get("name", ""),
+                json.dumps(batch.get("expeditions", []), ensure_ascii=False),
+                json.dumps(batch.get("themes", []), ensure_ascii=False),
+                batch.get("status", "draft"),
+                batch.get("created_at"),
+                batch.get("updated_at"),
+            ),
+        )
+
+
+def get_content_batch(batch_id):
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM content_batches WHERE id = ?", (batch_id,)).fetchone()
+    return _row_to_batch(row) if row else None
+
+
+def list_content_batches():
+    with _connect() as conn:
+        rows = conn.execute("SELECT * FROM content_batches ORDER BY created_at DESC").fetchall()
+    return [_row_to_batch(r) for r in rows]
+
+
+def update_content_batch(batch_id, fields):
+    allowed = {
+        "name": lambda v: v,
+        "expeditions": lambda v: json.dumps(v, ensure_ascii=False),
+        "themes": lambda v: json.dumps(v, ensure_ascii=False),
+        "status": lambda v: v,
+        "updated_at": lambda v: v,
+    }
+    sets, values = [], []
+    for key, transform in allowed.items():
+        if key in fields:
+            sets.append(f"{key} = ?")
+            values.append(transform(fields[key]))
+    if not sets:
+        return get_content_batch(batch_id)
+    values.append(batch_id)
+    with _connect() as conn:
+        conn.execute(f"UPDATE content_batches SET {', '.join(sets)} WHERE id = ?", values)
+    return get_content_batch(batch_id)
+
+
+def _row_to_item(row):
+    return {
+        "id": row["id"],
+        "batch_id": row["batch_id"],
+        "expedition_id": row["expedition_id"],
+        "expedition_name": row["expedition_name"],
+        "theme_id": row["theme_id"],
+        "theme_name": row["theme_name"],
+        "item_order": row["item_order"],
+        "caption_text": row["caption_text"],
+        "search_keyword": row["search_keyword"],
+        "text_status": row["text_status"],
+        "text_error": row["text_error"],
+        "photo_status": row["photo_status"],
+        "photo_error": row["photo_error"],
+        "photo_path": row["photo_path"],
+        "unsplash_photo_id": row["unsplash_photo_id"],
+        "photographer_name": row["photographer_name"],
+        "photographer_url": row["photographer_url"],
+        "theme_summary": row["theme_summary"],
+        "scheduled_post_id": row["scheduled_post_id"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+def add_content_items(items):
+    """Insere uma lista de content_items de uma vez."""
+    with _connect() as conn:
+        for item in items:
+            conn.execute(
+                """INSERT INTO content_items
+                   (id, batch_id, expedition_id, expedition_name, theme_id, theme_name,
+                    item_order, caption_text, search_keyword, text_status, text_error,
+                    photo_status, photo_error, photo_path, unsplash_photo_id,
+                    photographer_name, photographer_url, theme_summary, scheduled_post_id,
+                    created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    item["id"],
+                    item["batch_id"],
+                    item["expedition_id"],
+                    item.get("expedition_name", ""),
+                    item["theme_id"],
+                    item.get("theme_name", ""),
+                    item["item_order"],
+                    item.get("caption_text", ""),
+                    item.get("search_keyword", ""),
+                    item.get("text_status", "pending"),
+                    item.get("text_error", ""),
+                    item.get("photo_status", "pending"),
+                    item.get("photo_error", ""),
+                    item.get("photo_path", ""),
+                    item.get("unsplash_photo_id", ""),
+                    item.get("photographer_name", ""),
+                    item.get("photographer_url", ""),
+                    item.get("theme_summary", ""),
+                    item.get("scheduled_post_id", ""),
+                    item.get("created_at"),
+                    item.get("updated_at"),
+                ),
+            )
+
+
+def list_content_items(batch_id=None, expedition_id=None, theme_id=None):
+    query = "SELECT * FROM content_items WHERE 1=1"
+    params = []
+    if batch_id:
+        query += " AND batch_id = ?"
+        params.append(batch_id)
+    if expedition_id:
+        query += " AND expedition_id = ?"
+        params.append(expedition_id)
+    if theme_id:
+        query += " AND theme_id = ?"
+        params.append(theme_id)
+    query += " ORDER BY expedition_id, theme_id, item_order"
+    with _connect() as conn:
+        rows = conn.execute(query, params).fetchall()
+    return [_row_to_item(r) for r in rows]
+
+
+def get_content_item(item_id):
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM content_items WHERE id = ?", (item_id,)).fetchone()
+    return _row_to_item(row) if row else None
+
+
+def update_content_item(item_id, fields):
+    allowed = {
+        "caption_text": lambda v: v,
+        "search_keyword": lambda v: v,
+        "text_status": lambda v: v,
+        "text_error": lambda v: v,
+        "photo_status": lambda v: v,
+        "photo_error": lambda v: v,
+        "photo_path": lambda v: v,
+        "unsplash_photo_id": lambda v: v,
+        "photographer_name": lambda v: v,
+        "photographer_url": lambda v: v,
+        "theme_summary": lambda v: v,
+        "scheduled_post_id": lambda v: v,
+        "updated_at": lambda v: v,
+    }
+    sets, values = [], []
+    for key, transform in allowed.items():
+        if key in fields:
+            sets.append(f"{key} = ?")
+            values.append(transform(fields[key]))
+    if not sets:
+        return get_content_item(item_id)
+    values.append(item_id)
+    with _connect() as conn:
+        conn.execute(f"UPDATE content_items SET {', '.join(sets)} WHERE id = ?", values)
+    return get_content_item(item_id)
+
+
+def get_pending_photo_items(limit=None):
+    query = "SELECT * FROM content_items WHERE photo_status = 'pending' AND text_status = 'done' ORDER BY created_at"
+    if limit:
+        query += f" LIMIT {int(limit)}"
+    with _connect() as conn:
+        rows = conn.execute(query).fetchall()
+    return [_row_to_item(r) for r in rows]
+
+
+def count_items_by_status(batch_id):
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT text_status, photo_status, COUNT(*) as c FROM content_items "
+            "WHERE batch_id = ? GROUP BY text_status, photo_status",
+            (batch_id,),
+        ).fetchall()
+
+    totals = {
+        "text_pending": 0, "text_done": 0, "text_error": 0,
+        "photo_pending": 0, "photo_done": 0, "photo_error": 0, "photo_skipped": 0,
+        "total": 0,
+    }
+    for r in rows:
+        c = r["c"]
+        totals["total"] += c
+        ts_key = f"text_{r['text_status']}"
+        if ts_key in totals:
+            totals[ts_key] += c
+        ps_key = f"photo_{r['photo_status']}"
+        if ps_key in totals:
+            totals[ps_key] += c
+    return totals

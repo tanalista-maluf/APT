@@ -31,6 +31,7 @@ from datetime import datetime, timedelta
 import db
 import instagram
 import scheduler
+import content_batches
 
 # Suporte a HEIC/HEIF (formato padrao de fotos do iPhone).
 # Sem isso, o Pillow nao consegue abrir nem ler EXIF de fotos .heic.
@@ -56,6 +57,8 @@ AUTH_ENABLED = bool(APP_PASSWORD)
 
 META_APP_ID = os.getenv("META_APP_ID", "").strip()
 META_APP_SECRET = os.getenv("META_APP_SECRET", "").strip()
+
+UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY", "").strip()
 
 # URL publica HTTPS do app (ex: https://apt.30s.world).
 # O Instagram precisa dela para BUSCAR a foto na hora de publicar - por isso
@@ -1260,6 +1263,7 @@ def _ensure_scheduler_started():
             publish_fn=publish_post,
             interval=int(os.getenv("SCHEDULER_INTERVAL", "60")),
         )
+    content_batches.ensure_worker_started()
 
 
 # ============================================================
@@ -1350,6 +1354,61 @@ def process_photo():
 # ENDPOINT: Criar post na fila
 # ============================================================
 
+def _persist_carousel_post(photo_paths, caption, hashtags=None, location="", schedule_date=None,
+                            ig_account_id=None, post_type="carousel"):
+    """Grava um post (feed ou carrossel) ja com os caminhos de foto prontos
+    (relativos a DATA_FOLDER, ex: "data/photos/foo.jpg") - sem decodificar
+    base64, porque as fotos ja estao em disco (usado tanto por create_post()
+    quanto pelo agendamento de tema em content_batches.py).
+
+    Retorna o post_id criado.
+    """
+    if not ig_account_id:
+        default = db.get_default_ig_account()
+        if default:
+            ig_account_id = default["id"]
+
+    post_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+
+    if post_type == "carousel":
+        cover_path = photo_paths[0]
+        carousel_photos = photo_paths
+    else:
+        cover_path = photo_paths[0]
+        carousel_photos = []
+
+    post = {
+        "id": post_id,
+        "photo_path": cover_path,
+        "caption": caption,
+        "hashtags": hashtags or [],
+        "location": location,
+        "tagged_people": [],
+        "schedule_date": schedule_date or datetime.now().isoformat(),
+        "status": "pending",
+        "created_at": datetime.now().isoformat(),
+        "posted_at": None,
+        "post_type": post_type,
+        "carousel_photos": carousel_photos,
+    }
+
+    db.add_post(post)
+    if ig_account_id:
+        db.update_post(post_id, {"ig_account_id": ig_account_id})
+
+    return post_id
+
+
+content_batches.init_app(
+    client=client,
+    claude_model=CLAUDE_MODEL,
+    photos_folder=PHOTOS_FOLDER,
+    unsplash_access_key=UNSPLASH_ACCESS_KEY,
+    persist_carousel_post=_persist_carousel_post,
+)
+app.register_blueprint(content_batches.content_batches_bp)
+
+
 @app.route("/api/create-post", methods=["POST"])
 def create_post():
     try:
@@ -1370,11 +1429,6 @@ def create_post():
         elif not photo_base64:
             return jsonify({"error": "Foto e obrigatoria"}), 400
 
-        if not ig_account_id:
-            default = db.get_default_ig_account()
-            if default:
-                ig_account_id = default["id"]
-
         post_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
 
         if post_type == "carousel":
@@ -1386,19 +1440,26 @@ def create_post():
                 with open(photo_path, "wb") as f:
                     f.write(image_bytes)
                 carousel_photos.append(f"data/photos/{photo_filename}")
-            cover_path = carousel_photos[0]
+            photo_paths = carousel_photos
         else:
             image_bytes = decode_base64_image(photo_base64)
             photo_filename = f"photo_{post_id}.jpg"
             photo_path = os.path.join(PHOTOS_FOLDER, photo_filename)
             with open(photo_path, "wb") as f:
                 f.write(image_bytes)
-            cover_path = f"data/photos/{photo_filename}"
-            carousel_photos = []
+            photo_paths = [f"data/photos/{photo_filename}"]
+
+        # Reaproveita o post_id ja gerado (evita 2 timestamps diferentes pro
+        # mesmo post) - por isso monta o dict aqui em vez de chamar
+        # _persist_carousel_post(), que gera seu proprio id.
+        if not ig_account_id:
+            default = db.get_default_ig_account()
+            if default:
+                ig_account_id = default["id"]
 
         post = {
             "id": post_id,
-            "photo_path": cover_path,
+            "photo_path": photo_paths[0],
             "caption": caption,
             "hashtags": hashtags,
             "location": location,
@@ -1408,7 +1469,7 @@ def create_post():
             "created_at": datetime.now().isoformat(),
             "posted_at": None,
             "post_type": post_type,
-            "carousel_photos": carousel_photos,
+            "carousel_photos": photo_paths if post_type == "carousel" else [],
         }
 
         db.add_post(post)

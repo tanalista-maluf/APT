@@ -1335,71 +1335,41 @@ input, textarea, select {
     left: 6px;
 }
 
-/* ============================================================
-   QUEUE LIST (histórico)
-   ============================================================ */
+.content-grid-item .cal-legend-warn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
-.queue-list {
+.post-actions-body {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    align-items: center;
+    gap: 16px;
 }
 
-.queue-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px;
+.post-actions-body .new-post-image {
+    max-height: 240px;
     border-radius: 10px;
-    background: var(--cream);
 }
 
-.queue-item img {
-    width: 52px;
-    height: 52px;
-    border-radius: 8px;
-    object-fit: cover;
-    flex-shrink: 0;
-}
-
-.queue-item-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.queue-item-caption {
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.queue-item-meta {
+.post-actions-buttons {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
-    margin-top: 4px;
-    font-size: 12px;
-    color: var(--gray-text);
+    width: 100%;
 }
 
-.queue-item-actions {
-    display: flex;
-    gap: 4px;
-}
-
-.queue-item-actions button {
-    background: none;
-    border: none;
-    font-size: 16px;
-    padding: 6px;
-    border-radius: 8px;
-}
-
-.queue-item-actions button:hover {
-    background: var(--cream-2);
-}
+/* ============================================================
+   QUEUE ITEM ERROR (usado no mini-post-item do dashboard)
+   ============================================================ */
 
 .queue-item-error {
     color: var(--red-dark);
@@ -2160,4 +2130,192 @@ input, textarea, select {
 
 .ig-token-alert.hidden {
     display: none;
+}
+
+/* ============================================================ */
+/* GERAR CONTEÚDO (roteiros -> carrosseis via Claude + Unsplash) */
+/* ============================================================ */
+
+.cg-subheading {
+    margin: 20px 0 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.cg-expedition-block,
+.cg-theme-block {
+    background: var(--cream, #FBF6EC);
+    border: 1px solid var(--border, #E7DFD0);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+}
+
+.cg-expedition-block .field-label,
+.cg-theme-block .field-label {
+    margin-top: 0;
+}
+
+.cg-expedition-block textarea {
+    width: 100%;
+    min-height: 90px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.cg-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.cg-remove-btn {
+    background: none;
+    border: none;
+    color: var(--red, #C0392B);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 2px 6px;
+}
+
+.cg-theme-block {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cg-theme-block input {
+    flex: 1;
+    margin: 0;
+}
+
+.cg-estimate {
+    margin: 14px 0 10px;
+    font-style: italic;
+}
+
+.cg-progress-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.cg-progress-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.cg-progress-label {
+    font-size: 0.85rem;
+}
+
+.cg-progress-track {
+    width: 100%;
+    height: 8px;
+    background: #EFE6D5;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.cg-progress-fill {
+    height: 100%;
+    background: var(--red, #C0392B);
+    border-radius: 999px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.cg-grid {
+    display: grid;
+    gap: 14px;
+    margin-top: 16px;
+}
+
+.cg-theme-card {
+    border: 1px solid var(--border, #E7DFD0);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    background: #fff;
+}
+
+.cg-theme-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.cg-theme-card-header h4 {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.cg-theme-card-sub {
+    font-size: 0.78rem;
+    color: var(--muted, #8A8072);
+}
+
+.cg-thumbs-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.cg-thumb {
+    flex: 0 0 auto;
+    width: 68px;
+    text-align: center;
+}
+
+.cg-thumb img {
+    width: 68px;
+    height: 68px;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+    background: #EFE6D5;
+}
+
+.cg-thumb-placeholder {
+    width: 68px;
+    height: 68px;
+    border-radius: 8px;
+    background: #EFE6D5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.cg-thumb-placeholder.error {
+    background: #FCE4E4;
+}
+
+.cg-thumb .status-badge {
+    margin-top: 4px;
+    font-size: 8px;
+    padding: 1px 5px;
+}
+
+.status-badge.done {
+    background: #E3F6E8;
+    color: #1E7B37;
+}
+
+.status-badge.error {
+    background: #FCE4E4;
+    color: #B0281C;
+}
+
+@media (min-width: 720px) {
+    .cg-grid {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
 }

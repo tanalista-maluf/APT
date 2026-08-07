@@ -71,9 +71,9 @@ const PHOTO_FILTERS = {
 
 const PAGE_TITLES = {
     dashboard: "Dashboard",
-    content: "Conteúdo",
     calendar: "Calendário",
     history: "Histórico",
+    "content-gen": "Gerar Conteúdo",
     settings: "Configurações",
 };
 
@@ -91,7 +91,6 @@ let selectedFrequency = 1;
 
 let queueData = [];             // todos os posts vindos do backend
 let currentHistoryFilter = "all";
-let currentContentFilter = "all";
 let _dashboardPollTimer = null;
 
 let calendarViewDate = new Date();
@@ -121,7 +120,8 @@ document.addEventListener("DOMContentLoaded", () => {
     setupPublishModal();
     setupFilters();
     setupAccountSwitcher();
-    loadClubLink();
+    setupContentGenPage();
+    setupPostActionsModal();
     loadIgAccounts();
 
     const params = new URLSearchParams(window.location.search);
@@ -133,20 +133,6 @@ document.addEventListener("DOMContentLoaded", () => {
         loadInstagramStatus();
     }
 });
-
-// Ajusta o link "voltar ao 30ºS" conforme a config do servidor (CLUB_URL).
-// O HTML já tem um endereço padrão, então funciona mesmo antes desta chamada.
-async function loadClubLink() {
-    try {
-        const res = await fetch(`${API_BASE}/app-info`, { credentials: "same-origin" });
-        const data = await res.json();
-        if (data.club_url) {
-            document.getElementById("clubBackLink").href = data.club_url;
-        }
-    } catch (e) {
-        // mantém o href padrão do HTML
-    }
-}
 
 // ============================================================
 // HELPERS GERAIS
@@ -317,11 +303,6 @@ function setupSidebar() {
         btn.addEventListener("click", () => switchPage(btn.dataset.page));
     });
 
-    document.getElementById("navNewPost").addEventListener("click", () => {
-        closeMobileMenu();
-        document.getElementById("photoInput").click();
-    });
-
     document.getElementById("userAvatarBtn").addEventListener("click", () => switchPage("settings"));
 }
 
@@ -338,8 +319,8 @@ function switchPage(pageName) {
         renderFullCalendarPage();
     } else if (pageName === "history") {
         renderHistoryList();
-    } else if (pageName === "content") {
-        renderContentGrid();
+    } else if (pageName === "content-gen") {
+        renderContentGenPage();
     } else if (pageName === "settings") {
         loadSettingsPage();
     }
@@ -349,6 +330,10 @@ function switchPage(pageName) {
         _startDashboardPoll();
     } else {
         _stopDashboardPoll();
+    }
+
+    if (pageName !== "content-gen") {
+        _stopContentGenPoll();
     }
 }
 
@@ -1456,7 +1441,6 @@ async function loadQueue() {
     const activeId = activePage ? activePage.id.replace("page-", "") : "dashboard";
     if (activeId === "calendar") renderFullCalendarPage();
     else if (activeId === "history") renderHistoryList();
-    else if (activeId === "content") renderContentGrid();
 }
 
 function groupPostsByDate(posts) {
@@ -1876,20 +1860,7 @@ function renderCalendarDayPosts(key, posts) {
         .forEach((p) => container.appendChild(buildMiniPostItem(p)));
 }
 
-// ------------------------------------------------------------
-// Conteúdo (galeria)
-// ------------------------------------------------------------
-
 function setupFilters() {
-    document.querySelectorAll("#contentFilters .filter-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll("#contentFilters .filter-btn").forEach((b) => b.classList.remove("active"));
-            btn.classList.add("active");
-            currentContentFilter = btn.dataset.filter;
-            renderContentGrid();
-        });
-    });
-
     document.querySelectorAll("#historyFilters .filter-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
             document.querySelectorAll("#historyFilters .filter-btn").forEach((b) => b.classList.remove("active"));
@@ -1906,70 +1877,20 @@ function filterPosts(filter) {
     return queueData;
 }
 
-function renderContentGrid() {
-    const grid = document.getElementById("contentGrid");
-    const filtered = filterPosts(currentContentFilter);
-
-    grid.innerHTML = "";
-    if (filtered.length === 0) {
-        grid.innerHTML = '<p class="empty-state">Nenhuma foto encontrada.</p>';
-        return;
-    }
-
-    filtered.forEach((post) => {
-        const div = document.createElement("div");
-        div.className = "content-grid-item";
-        div.innerHTML = `
-            <img src="/${post.photo_path}" alt="">
-            <span class="status-badge ${post.status}">${post.status === "posted" ? "Postado" : "Pendente"}</span>
-        `;
-        div.addEventListener("click", () => openEditModal(post));
-        grid.appendChild(div);
-    });
-}
-
 // ------------------------------------------------------------
-// Histórico
+// Histórico (grade)
 // ------------------------------------------------------------
 
 function buildQueueItem(post) {
     const div = document.createElement("div");
-    div.className = "queue-item";
-    const dateStr = formatDateBR(post.schedule_date);
-    const isPending = post.status !== "posted";
-
-    const errorLine = post.publish_error
-        ? `<span class="queue-item-error" data-error="${escapeHtml(post.publish_error)}">⚠️ falhou</span>`
-        : "";
-
+    div.className = "content-grid-item";
+    const errorBadge = post.publish_error ? '<span class="cal-legend-warn" title="Falha ao publicar">⚠️</span>' : "";
     div.innerHTML = `
         <img src="/${post.photo_path}" alt="">
-        <div class="queue-item-info">
-            <p class="queue-item-caption">${escapeHtml(post.caption || "(sem legenda)")}</p>
-            <div class="queue-item-meta">
-                <span class="status-badge ${post.status}">${post.status === "posted" ? "Postado" : "Pendente"}</span>
-                <span>${dateStr}</span>
-                ${errorLine}
-            </div>
-        </div>
-        <div class="queue-item-actions">
-            ${isPending ? '<button class="publish-btn" title="Publicar agora">📤</button>' : ""}
-            <button class="edit-btn" title="Editar">✏️</button>
-            <button class="delete-btn" title="Cancelar">🗑️</button>
-        </div>
+        <span class="status-badge ${post.status}">${post.status === "posted" ? "Postado" : "Pendente"}</span>
+        ${errorBadge}
     `;
-
-    if (isPending) {
-        div.querySelector(".publish-btn").addEventListener("click", () => openPublishModal(post.id));
-    }
-    div.querySelector(".edit-btn").addEventListener("click", () => openEditModal(post));
-    div.querySelector(".delete-btn").addEventListener("click", () => openDeleteModal(post.id));
-
-    const errorEl = div.querySelector(".queue-item-error");
-    if (errorEl) {
-        errorEl.addEventListener("click", () => showToast(errorEl.dataset.error, "error", 8000));
-    }
-
+    div.addEventListener("click", () => openPostActionsModal(post));
     return div;
 }
 
@@ -1983,6 +1904,37 @@ function renderHistoryList() {
         return;
     }
     filtered.forEach((post) => list.appendChild(buildQueueItem(post)));
+}
+
+// ============================================================
+// MODAL: AÇÕES DO POST (abre ao clicar num item da grade do histórico)
+// ============================================================
+
+let postActionsPost = null;
+
+function setupPostActionsModal() {
+    document.getElementById("closePostActionsBtn").addEventListener("click", () => {
+        document.getElementById("postActionsModal").classList.add("hidden");
+    });
+    document.getElementById("postActionsEditBtn").addEventListener("click", () => {
+        document.getElementById("postActionsModal").classList.add("hidden");
+        openEditModal(postActionsPost);
+    });
+    document.getElementById("postActionsPublishBtn").addEventListener("click", () => {
+        document.getElementById("postActionsModal").classList.add("hidden");
+        openPublishModal(postActionsPost.id);
+    });
+    document.getElementById("postActionsDeleteBtn").addEventListener("click", () => {
+        document.getElementById("postActionsModal").classList.add("hidden");
+        openDeleteModal(postActionsPost.id);
+    });
+}
+
+function openPostActionsModal(post) {
+    postActionsPost = post;
+    document.getElementById("postActionsImage").src = `/${post.photo_path}`;
+    document.getElementById("postActionsPublishBtn").classList.toggle("hidden", post.status === "posted");
+    document.getElementById("postActionsModal").classList.remove("hidden");
 }
 
 // ============================================================
@@ -3426,4 +3378,371 @@ async function submitCarousel() {
 
     btn.disabled = false;
     btn.textContent = "Agendar Carrossel";
+}
+
+// ============================================================
+// GERAR CONTEÚDO (roteiros -> carrosseis via Claude + Unsplash)
+// ============================================================
+
+const CG_DEFAULT_THEMES = [
+    "Chegada e primeiras impressões",
+    "Cultura e história local",
+    "Natureza e paisagens",
+    "Gastronomia",
+    "Momentos e despedida",
+];
+
+let cgExpeditions = [];   // [{name, roteiro_text}]
+let cgThemes = [];        // [string]
+let cgCurrentBatchId = null;
+let _cgPollTimer = null;
+let cgScheduleTarget = null; // {expedition_id, theme_id}
+
+function setupContentGenPage() {
+    document.getElementById("cgAddExpeditionBtn").addEventListener("click", () => {
+        cgExpeditions.push({ name: "", roteiro_text: "" });
+        renderCgExpeditionsList();
+    });
+
+    document.getElementById("cgAddThemeBtn").addEventListener("click", () => {
+        cgThemes.push("");
+        renderCgThemesList();
+    });
+
+    document.getElementById("cgSubmitBtn").addEventListener("click", submitContentBatch);
+    document.getElementById("cgBackToFormBtn").addEventListener("click", () => {
+        _stopContentGenPoll();
+        cgCurrentBatchId = null;
+        document.getElementById("cgProgress").classList.add("hidden");
+        document.getElementById("cgForm").classList.remove("hidden");
+    });
+
+    document.getElementById("cgScheduleCloseBtn").addEventListener("click", closeCgScheduleModal);
+    document.getElementById("cgScheduleCancelBtn").addEventListener("click", closeCgScheduleModal);
+    document.getElementById("cgScheduleConfirmBtn").addEventListener("click", confirmCgSchedule);
+}
+
+function renderContentGenPage() {
+    if (cgExpeditions.length === 0) {
+        cgExpeditions.push({ name: "", roteiro_text: "" });
+    }
+    if (cgThemes.length === 0) {
+        cgThemes = [...CG_DEFAULT_THEMES];
+    }
+    renderCgExpeditionsList();
+    renderCgThemesList();
+
+    if (cgCurrentBatchId) {
+        document.getElementById("cgForm").classList.add("hidden");
+        document.getElementById("cgProgress").classList.remove("hidden");
+        pollContentBatchProgress(cgCurrentBatchId);
+    } else {
+        document.getElementById("cgForm").classList.remove("hidden");
+        document.getElementById("cgProgress").classList.add("hidden");
+    }
+}
+
+function renderCgExpeditionsList() {
+    const container = document.getElementById("cgExpeditionsList");
+    container.innerHTML = cgExpeditions.map((exp, i) => `
+        <div class="cg-expedition-block" data-index="${i}">
+            <div class="cg-block-header">
+                <label class="field-label" style="margin:0">Expedição ${i + 1}</label>
+                ${cgExpeditions.length > 1 ? `<button type="button" class="cg-remove-btn" data-remove-exp="${i}">Remover</button>` : ""}
+            </div>
+            <input type="text" class="cg-exp-name" data-exp-name="${i}" placeholder="Nome da expedição" value="${escapeHtml(exp.name)}">
+            <textarea class="cg-exp-roteiro" data-exp-roteiro="${i}" placeholder="Cole aqui o roteiro completo da expedição...">${escapeHtml(exp.roteiro_text)}</textarea>
+        </div>
+    `).join("");
+
+    container.querySelectorAll("[data-exp-name]").forEach((input) => {
+        input.addEventListener("input", (e) => {
+            cgExpeditions[Number(e.target.dataset.expName)].name = e.target.value;
+            updateCgEstimate();
+        });
+    });
+    container.querySelectorAll("[data-exp-roteiro]").forEach((ta) => {
+        ta.addEventListener("input", (e) => {
+            cgExpeditions[Number(e.target.dataset.expRoteiro)].roteiro_text = e.target.value;
+        });
+    });
+    container.querySelectorAll("[data-remove-exp]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+            cgExpeditions.splice(Number(e.target.dataset.removeExp), 1);
+            renderCgExpeditionsList();
+            updateCgEstimate();
+        });
+    });
+
+    updateCgEstimate();
+}
+
+function renderCgThemesList() {
+    const container = document.getElementById("cgThemesList");
+    container.innerHTML = cgThemes.map((theme, i) => `
+        <div class="cg-theme-block" data-index="${i}">
+            <input type="text" data-theme-name="${i}" placeholder="Nome do tema" value="${escapeHtml(theme)}">
+            ${cgThemes.length > 1 ? `<button type="button" class="cg-remove-btn" data-remove-theme="${i}">Remover</button>` : ""}
+        </div>
+    `).join("");
+
+    container.querySelectorAll("[data-theme-name]").forEach((input) => {
+        input.addEventListener("input", (e) => {
+            cgThemes[Number(e.target.dataset.themeName)] = e.target.value;
+            updateCgEstimate();
+        });
+    });
+    container.querySelectorAll("[data-remove-theme]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+            cgThemes.splice(Number(e.target.dataset.removeTheme), 1);
+            renderCgThemesList();
+            updateCgEstimate();
+        });
+    });
+
+    updateCgEstimate();
+}
+
+function updateCgEstimate() {
+    const totalItems = cgExpeditions.length * cgThemes.length * 5;
+    const hours = totalItems ? Math.round((totalItems / 25) * 10) / 10 : 0;
+    const el = document.getElementById("cgEstimate");
+    if (el) {
+        el.textContent = totalItems
+            ? `${totalItems} fotos no total — estimativa de ~${hours}h para baixar todas (cota do Unsplash é limitada).`
+            : "";
+    }
+}
+
+async function submitContentBatch() {
+    const name = document.getElementById("cgBatchName").value.trim();
+    const expeditions = cgExpeditions
+        .map((e) => ({ name: e.name.trim(), roteiro_text: e.roteiro_text.trim() }))
+        .filter((e) => e.name && e.roteiro_text);
+    const themes = cgThemes.map((t) => t.trim()).filter(Boolean).map((t) => ({ name: t }));
+
+    if (expeditions.length === 0) {
+        showToast("Adicione ao menos 1 expedição com nome e roteiro.", "error");
+        return;
+    }
+    if (themes.length === 0) {
+        showToast("Adicione ao menos 1 tema.", "error");
+        return;
+    }
+
+    const btn = document.getElementById("cgSubmitBtn");
+    btn.disabled = true;
+    btn.textContent = "Criando leva...";
+
+    try {
+        const createRes = await apiFetch("/content-batches", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, expeditions, themes }),
+        });
+        const createData = await createRes.json();
+        if (!createData.success) {
+            showToast(createData.error || "Erro ao criar leva.", "error");
+            btn.disabled = false;
+            btn.textContent = "Gerar conteúdo →";
+            return;
+        }
+
+        cgCurrentBatchId = createData.batch_id;
+
+        const genRes = await apiFetch(`/content-batches/${cgCurrentBatchId}/generate-text`, { method: "POST" });
+        const genData = await genRes.json();
+        if (!genData.success) {
+            showToast(genData.error || "Erro ao iniciar geração de texto.", "error");
+        } else {
+            showToast("Gerando textos com IA em segundo plano...", "success");
+        }
+
+        document.getElementById("cgForm").classList.add("hidden");
+        document.getElementById("cgProgress").classList.remove("hidden");
+        pollContentBatchProgress(cgCurrentBatchId);
+    } catch (e) {
+        showToast("Erro de conexão ao criar a leva.", "error");
+    }
+
+    btn.disabled = false;
+    btn.textContent = "Gerar conteúdo →";
+}
+
+function _stopContentGenPoll() {
+    if (_cgPollTimer) {
+        clearInterval(_cgPollTimer);
+        _cgPollTimer = null;
+    }
+}
+
+function pollContentBatchProgress(batchId) {
+    _stopContentGenPoll();
+    const tick = () => fetchAndRenderCgProgress(batchId);
+    tick();
+    _cgPollTimer = setInterval(tick, 5000);
+}
+
+let _cgPhotoDownloadStarted = false;
+
+async function fetchAndRenderCgProgress(batchId) {
+    try {
+        const res = await apiFetch(`/content-batches/${batchId}/progress`);
+        const data = await res.json();
+        if (data.error) {
+            showToast(data.error, "error");
+            _stopContentGenPoll();
+            return;
+        }
+        renderContentGenGrid(data);
+
+        // Assim que os textos terminam, dispara o download das fotos (idempotente).
+        const totals = data.totals;
+        if (!_cgPhotoDownloadStarted && totals.text_pending === 0 && (totals.photo_pending > 0)) {
+            _cgPhotoDownloadStarted = true;
+            apiFetch(`/content-batches/${batchId}/start-photo-download`, { method: "POST" }).catch(() => {});
+        }
+    } catch (e) {
+        // silencioso - tenta de novo no proximo tick
+    }
+}
+
+function renderContentGenGrid(data) {
+    const { batch, totals, themes, estimated_hours_remaining } = data;
+
+    document.getElementById("cgProgressTitle").textContent = batch.name || "Gerando conteúdo…";
+
+    const textTotal = totals.total || 0;
+    const textDone = totals.text_done || 0;
+    const photoTotal = totals.total || 0;
+    const photoDone = totals.photo_done || 0;
+
+    document.getElementById("cgTextProgressLabel").textContent = `${textDone}/${textTotal}`;
+    document.getElementById("cgTextProgressFill").style.width = textTotal ? `${(textDone / textTotal) * 100}%` : "0%";
+    document.getElementById("cgPhotoProgressLabel").textContent = `${photoDone}/${photoTotal}`;
+    document.getElementById("cgPhotoProgressFill").style.width = photoTotal ? `${(photoDone / photoTotal) * 100}%` : "0%";
+
+    const etaEl = document.getElementById("cgEtaLabel");
+    if (totals.photo_pending > 0) {
+        etaEl.textContent = `Estimativa: ~${estimated_hours_remaining}h restantes para as fotos (cota do Unsplash).`;
+    } else {
+        etaEl.textContent = "";
+    }
+
+    const grid = document.getElementById("cgGrid");
+    grid.innerHTML = themes.map((theme) => {
+        const thumbs = theme.items.map((item) => {
+            let thumbHtml;
+            if (item.photo_status === "done" && item.photo_path) {
+                thumbHtml = `<img src="/${item.photo_path}" alt="${escapeHtml(item.theme_name)}">`;
+            } else if (item.photo_status === "error") {
+                thumbHtml = `<div class="cg-thumb-placeholder error" title="${escapeHtml(item.photo_error || "erro")}">⚠️</div>`;
+            } else {
+                thumbHtml = `<div class="cg-thumb-placeholder">${item.text_status === "done" ? "⏳" : "✍️"}</div>`;
+            }
+            const badgeClass = item.photo_status === "done" ? "done" : (item.photo_status === "error" || item.text_status === "error") ? "error" : "pending";
+            const badgeLabel = item.photo_status === "done" ? "OK" : (item.text_status === "error" ? "erro texto" : item.photo_status === "error" ? "erro foto" : "…");
+            return `
+                <div class="cg-thumb">
+                    ${thumbHtml}
+                    <span class="status-badge ${badgeClass}">${badgeLabel}</span>
+                </div>
+            `;
+        }).join("");
+
+        const hasError = theme.items.some((it) => it.text_status === "error" || it.photo_status === "error");
+        const firstErrorItem = theme.items.find((it) => it.text_status === "error" || it.photo_status === "error");
+
+        let actionHtml;
+        if (theme.scheduled) {
+            actionHtml = `<span class="status-badge done">Agendado</span>`;
+        } else if (theme.ready) {
+            actionHtml = `<button class="btn btn-small btn-primary" data-schedule-exp="${theme.expedition_id}" data-schedule-theme="${theme.theme_id}">Agendar carrossel</button>`;
+        } else if (hasError) {
+            actionHtml = `<button class="btn btn-small" data-retry-item="${firstErrorItem.id}">Tentar de novo</button>`;
+        } else {
+            actionHtml = `<span class="muted-text">Em andamento…</span>`;
+        }
+
+        return `
+            <div class="cg-theme-card">
+                <div class="cg-theme-card-header">
+                    <div>
+                        <h4>${escapeHtml(theme.theme_name)}</h4>
+                        <div class="cg-theme-card-sub">${escapeHtml(theme.expedition_name)}</div>
+                    </div>
+                    ${actionHtml}
+                </div>
+                <div class="cg-thumbs-row">${thumbs}</div>
+            </div>
+        `;
+    }).join("") || `<p class="empty-state">Nenhum item ainda.</p>`;
+
+    grid.querySelectorAll("[data-schedule-exp]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            openCgScheduleModal(btn.dataset.scheduleExp, btn.dataset.scheduleTheme);
+        });
+    });
+    grid.querySelectorAll("[data-retry-item]").forEach((btn) => {
+        btn.addEventListener("click", () => retryContentItem(btn.dataset.retryItem));
+    });
+}
+
+async function retryContentItem(itemId) {
+    if (!cgCurrentBatchId) return;
+    try {
+        const res = await apiFetch(`/content-batches/${cgCurrentBatchId}/items/${itemId}/retry`, { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+            showToast("Reprocessando item...", "success");
+            fetchAndRenderCgProgress(cgCurrentBatchId);
+        } else {
+            showToast(data.error || "Erro ao reprocessar item.", "error");
+        }
+    } catch (e) {
+        showToast("Erro de conexão ao reprocessar item.", "error");
+    }
+}
+
+function openCgScheduleModal(expeditionId, themeId) {
+    cgScheduleTarget = { expedition_id: expeditionId, theme_id: themeId };
+    document.getElementById("cgScheduleThemeLabel").textContent = "Escolha a data e hora para publicar este carrossel.";
+    document.getElementById("cgScheduleDateInput").value = "";
+    document.getElementById("cgScheduleModal").classList.remove("hidden");
+}
+
+function closeCgScheduleModal() {
+    document.getElementById("cgScheduleModal").classList.add("hidden");
+    cgScheduleTarget = null;
+}
+
+async function confirmCgSchedule() {
+    if (!cgScheduleTarget || !cgCurrentBatchId) return;
+    const dateVal = document.getElementById("cgScheduleDateInput").value;
+    const scheduleDate = dateVal ? new Date(dateVal).toISOString() : new Date().toISOString();
+
+    const btn = document.getElementById("cgScheduleConfirmBtn");
+    btn.disabled = true;
+    try {
+        const res = await apiFetch(`/content-batches/${cgCurrentBatchId}/schedule-theme`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                expedition_id: cgScheduleTarget.expedition_id,
+                theme_id: cgScheduleTarget.theme_id,
+                schedule_date: scheduleDate,
+            }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast("Carrossel agendado com sucesso!", "success");
+            closeCgScheduleModal();
+            fetchAndRenderCgProgress(cgCurrentBatchId);
+        } else {
+            showToast(data.error || "Erro ao agendar carrossel.", "error");
+        }
+    } catch (e) {
+        showToast("Erro de conexão ao agendar carrossel.", "error");
+    }
+    btn.disabled = false;
 }
