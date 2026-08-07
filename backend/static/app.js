@@ -122,6 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupFilters();
     setupAccountSwitcher();
     setupContentGenPage();
+    setupCgItemTextModal();
     setupPostActionsModal();
     loadIgAccounts();
 
@@ -3398,6 +3399,7 @@ const CG_DEFAULT_THEMES = [
 let cgExpeditions = [];   // [{name, roteiro_text}]
 let cgThemes = [];        // [{name, photo_count}]
 let cgCurrentBatchId = null;
+let cgItemsById = {};
 let _cgPollTimer = null;
 let cgScheduleTarget = null; // {expedition_id, theme_id}
 let cgPresetExpeditions = []; // [{name, roteiro_text}] carregado do backend
@@ -3495,12 +3497,15 @@ async function renderContentDraftsPage() {
                         <p class="cg-draft-name">${escapeHtml(b.name || "(sem nome)")}</p>
                         <p class="muted-text">${escapeHtml(expNames)}</p>
                         <div class="cg-draft-meta">
-                            <span class="status-badge ${b.status === "done" ? "posted" : "pending"}">${escapeHtml(statusLabel)}</span>
+                            <span class="status-badge ${b.status === "done" ? "posted" : b.status === "cancelled" ? "error" : "pending"}">${escapeHtml(statusLabel)}</span>
                             <span>Textos ${textDone}/${total} · Fotos ${photoDone}/${total}</span>
                             <span>${dateStr}</span>
                         </div>
                     </div>
-                    <button class="btn btn-secondary btn-small" data-resume-batch="${b.id}">Retomar</button>
+                    <div class="cg-draft-actions">
+                        <button class="btn btn-secondary btn-small" data-resume-batch="${b.id}">Retomar</button>
+                        <button class="btn btn-danger btn-small" data-delete-batch="${b.id}">Apagar</button>
+                    </div>
                 </div>
             `;
         }).join("");
@@ -3512,8 +3517,31 @@ async function renderContentDraftsPage() {
                 switchPage("content-gen");
             });
         });
+        list.querySelectorAll("[data-delete-batch]").forEach((btn) => {
+            btn.addEventListener("click", () => deleteContentBatch(btn.dataset.deleteBatch));
+        });
     } catch (e) {
         list.innerHTML = '<p class="empty-state">Erro ao carregar rascunhos.</p>';
+    }
+}
+
+async function deleteContentBatch(batchId) {
+    if (!confirm("Apagar este rascunho? Textos e fotos ainda não agendados serão perdidos. Isso não afeta posts já agendados.")) return;
+    try {
+        const res = await apiFetch(`/content-batches/${batchId}`, { method: "DELETE" });
+        const data = await res.json();
+        if (data.success) {
+            showToast("Rascunho apagado.", "success");
+            if (cgCurrentBatchId === batchId) {
+                cgCurrentBatchId = null;
+                localStorage.removeItem("cgCurrentBatchId");
+            }
+            renderContentDraftsPage();
+        } else {
+            showToast(data.error || "Erro ao apagar rascunho.", "error");
+        }
+    } catch (e) {
+        showToast("Erro ao apagar rascunho.", "error");
     }
 }
 
@@ -3787,9 +3815,11 @@ function renderContentGenGrid(data) {
         etaEl.textContent = "";
     }
 
+    cgItemsById = {};
     const grid = document.getElementById("cgGrid");
     grid.innerHTML = themes.map((theme) => {
         const thumbs = theme.items.map((item) => {
+            cgItemsById[item.id] = item;
             let thumbHtml;
             if (item.photo_status === "done" && item.photo_path) {
                 thumbHtml = `<img src="/${item.photo_path}" alt="${escapeHtml(item.theme_name)}">`;
@@ -3800,8 +3830,9 @@ function renderContentGenGrid(data) {
             }
             const badgeClass = item.photo_status === "done" ? "done" : (item.photo_status === "error" || item.text_status === "error") ? "error" : "pending";
             const badgeLabel = item.photo_status === "done" ? "OK" : (item.text_status === "error" ? "erro texto" : item.photo_status === "error" ? "erro foto" : "…");
+            const clickable = item.text_status === "done" ? ` data-item-id="${item.id}"` : "";
             return `
-                <div class="cg-thumb">
+                <div class="cg-thumb${item.text_status === "done" ? " cg-thumb-clickable" : ""}"${clickable} title="${item.text_status === "done" ? "Ver texto gerado" : ""}">
                     ${thumbHtml}
                     <span class="status-badge ${badgeClass}">${badgeLabel}</span>
                 </div>
@@ -3844,6 +3875,30 @@ function renderContentGenGrid(data) {
     grid.querySelectorAll("[data-retry-item]").forEach((btn) => {
         btn.addEventListener("click", () => retryContentItem(btn.dataset.retryItem));
     });
+    grid.querySelectorAll("[data-item-id]").forEach((el) => {
+        el.addEventListener("click", () => openCgItemTextModal(cgItemsById[el.dataset.itemId]));
+    });
+}
+
+function openCgItemTextModal(item) {
+    if (!item) return;
+    document.getElementById("cgItemTextTitle").textContent = `${item.theme_name} — ${item.expedition_name}`;
+    document.getElementById("cgItemTextCaption").textContent = item.caption_text || "(sem texto)";
+    document.getElementById("cgItemTextKeyword").textContent = item.search_keyword || "—";
+    const img = document.getElementById("cgItemTextImage");
+    if (item.photo_status === "done" && item.photo_path) {
+        img.src = `/${item.photo_path}`;
+        img.classList.remove("hidden");
+    } else {
+        img.classList.add("hidden");
+    }
+    document.getElementById("cgItemTextModal").classList.remove("hidden");
+}
+
+function setupCgItemTextModal() {
+    const close = () => document.getElementById("cgItemTextModal").classList.add("hidden");
+    document.getElementById("closeCgItemTextBtn").addEventListener("click", close);
+    document.getElementById("closeCgItemTextBtn2").addEventListener("click", close);
 }
 
 async function retryContentItem(itemId) {

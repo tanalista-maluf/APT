@@ -90,6 +90,22 @@ def _theme_ready(items):
     return all(it["text_status"] == "done" and it["photo_status"] == "done" for it in items)
 
 
+def _derive_batch_status(stored_status, totals):
+    """Deriva o status "de verdade" da leva a partir das contagens de itens,
+    em vez de confiar cegamente no status gravado — texto pronto não quer
+    dizer leva concluída, as fotos ainda podem estar pendentes/baixando."""
+    if stored_status == "cancelled":
+        return "cancelled"
+    total = totals.get("total", 0)
+    if total and totals.get("text_done") == total and totals.get("photo_done") == total:
+        return "done"
+    if totals.get("text_pending", 0) > 0 or totals.get("text_error", 0) > 0 and totals.get("text_done", 0) < total:
+        return "generating_text"
+    if totals.get("photo_pending", 0) > 0:
+        return "downloading_photos"
+    return stored_status
+
+
 def _theme_text_schema(photo_count):
     return {
         "type": "object",
@@ -224,7 +240,8 @@ def _run_generate_text(batch_id):
                 })
 
     counts = db.count_items_by_status(batch_id)
-    new_status = "done" if counts["text_pending"] == 0 and counts["text_error"] == 0 else "generating_text"
+    current = db.get_content_batch(batch_id)
+    new_status = _derive_batch_status(current["status"] if current else "draft", counts)
     db.update_content_batch(batch_id, {"status": new_status, "updated_at": _now_iso()})
 
 
@@ -441,6 +458,10 @@ def batch_progress(batch_id):
         return jsonify({"error": "Leva não encontrada"}), 404
 
     totals = db.count_items_by_status(batch_id)
+    real_status = _derive_batch_status(batch["status"], totals)
+    if real_status != batch["status"]:
+        db.update_content_batch(batch_id, {"status": real_status, "updated_at": _now_iso()})
+        batch["status"] = real_status
     items = db.list_content_items(batch_id=batch_id)
 
     grouped = {}
@@ -478,7 +499,12 @@ def batch_progress(batch_id):
 def list_batches():
     batches = db.list_content_batches()
     for batch in batches:
-        batch["totals"] = db.count_items_by_status(batch["id"])
+        totals = db.count_items_by_status(batch["id"])
+        batch["totals"] = totals
+        real_status = _derive_batch_status(batch["status"], totals)
+        if real_status != batch["status"]:
+            db.update_content_batch(batch["id"], {"status": real_status, "updated_at": _now_iso()})
+            batch["status"] = real_status
     return jsonify({"batches": batches})
 
 
@@ -489,6 +515,29 @@ def get_batch(batch_id):
         return jsonify({"error": "Leva não encontrada"}), 404
     items = db.list_content_items(batch_id=batch_id)
     return jsonify({"batch": batch, "items": items})
+
+
+@content_batches_bp.route("/api/content-batches/<batch_id>", methods=["DELETE"])
+def delete_batch(batch_id):
+    batch = db.get_content_batch(batch_id)
+    if not batch:
+        return jsonify({"error": "Leva não encontrada"}), 404
+
+    # Apaga do disco as fotos baixadas que não viraram post agendado
+    # (as agendadas continuam usadas pelo post em backend/data/photos).
+    items = db.list_content_items(batch_id=batch_id)
+    photos_folder = _ctx.get("photos_folder")
+    if photos_folder:
+        for item in items:
+            if item["photo_path"] and not item["scheduled_post_id"]:
+                full_path = os.path.join(photos_folder, os.path.basename(item["photo_path"]))
+                try:
+                    os.remove(full_path)
+                except OSError:
+                    pass
+
+    db.delete_content_batch(batch_id)
+    return jsonify({"success": True})
 
 
 @content_batches_bp.route("/api/content-batches/<batch_id>/items/<item_id>/retry", methods=["POST"])

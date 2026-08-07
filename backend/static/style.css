@@ -601,6 +601,12 @@ input, textarea, select {
     color: var(--gray-text);
 }
 
+.cg-draft-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
 /* ============================================================
    DASHBOARD GRID
    ============================================================ */
@@ -2324,6 +2330,21 @@ input, textarea, select {
     flex: 0 0 auto;
     width: 68px;
     text-align: center;
+}
+
+.cg-thumb-clickable {
+    cursor: pointer;
+}
+
+.cg-thumb-clickable:hover img,
+.cg-thumb-clickable:hover .cg-thumb-placeholder {
+    opacity: 0.75;
+}
+
+.cg-item-text-body {
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
 }
 
 .cg-thumb img {

@@ -531,6 +531,15 @@ def update_content_batch(batch_id, fields):
     return get_content_batch(batch_id)
 
 
+def delete_content_batch(batch_id):
+    """Apaga a leva e todos os seus itens (não apaga fotos já agendadas
+    como post - só a linha do batch/items; os posts agendados continuam)."""
+    with _connect() as conn:
+        conn.execute("DELETE FROM content_items WHERE batch_id = ?", (batch_id,))
+        cur = conn.execute("DELETE FROM content_batches WHERE id = ?", (batch_id,))
+        return cur.rowcount > 0
+
+
 def _row_to_item(row):
     return {
         "id": row["id"],
