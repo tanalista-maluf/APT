@@ -91,7 +91,6 @@ let currentModalIndex = 0;
 let selectedFrequency = 1;
 
 let queueData = [];             // todos os posts vindos do backend
-let currentHistoryFilter = "all";
 let _dashboardPollTimer = null;
 
 let calendarViewDate = new Date();
@@ -119,7 +118,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setupEditModal();
     setupDeleteModal();
     setupPublishModal();
-    setupFilters();
     setupAccountSwitcher();
     setupContentGenPage();
     setupCgItemTextModal();
@@ -1864,25 +1862,8 @@ function renderCalendarDayPosts(key, posts) {
         .forEach((p) => container.appendChild(buildMiniPostItem(p)));
 }
 
-function setupFilters() {
-    document.querySelectorAll("#historyFilters .filter-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll("#historyFilters .filter-btn").forEach((b) => b.classList.remove("active"));
-            btn.classList.add("active");
-            currentHistoryFilter = btn.dataset.filter;
-            renderHistoryList();
-        });
-    });
-}
-
-function filterPosts(filter) {
-    if (filter === "pending") return queueData.filter((p) => p.status === "pending");
-    if (filter === "posted") return queueData.filter((p) => p.status === "posted");
-    return queueData;
-}
-
 // ------------------------------------------------------------
-// Histórico (grade)
+// Histórico (2 grades: pendentes crescente, postados decrescente)
 // ------------------------------------------------------------
 
 function buildQueueItem(post) {
@@ -1899,15 +1880,29 @@ function buildQueueItem(post) {
 }
 
 function renderHistoryList() {
-    const list = document.getElementById("historyList");
-    const filtered = filterPosts(currentHistoryFilter);
+    const pendingList = document.getElementById("historyPendingList");
+    const postedList = document.getElementById("historyPostedList");
 
-    list.innerHTML = "";
-    if (filtered.length === 0) {
-        list.innerHTML = '<p class="empty-state">Nenhuma postagem encontrada.</p>';
-        return;
+    const pending = queueData
+        .filter((p) => p.status !== "posted")
+        .sort((a, b) => new Date(a.schedule_date) - new Date(b.schedule_date));
+    const posted = queueData
+        .filter((p) => p.status === "posted")
+        .sort((a, b) => new Date(b.posted_at || b.schedule_date) - new Date(a.posted_at || a.schedule_date));
+
+    pendingList.innerHTML = "";
+    if (pending.length === 0) {
+        pendingList.innerHTML = '<p class="empty-state">Nenhuma postagem pendente.</p>';
+    } else {
+        pending.forEach((post) => pendingList.appendChild(buildQueueItem(post)));
     }
-    filtered.forEach((post) => list.appendChild(buildQueueItem(post)));
+
+    postedList.innerHTML = "";
+    if (posted.length === 0) {
+        postedList.innerHTML = '<p class="empty-state">Nenhuma postagem publicada ainda.</p>';
+    } else {
+        posted.forEach((post) => postedList.appendChild(buildQueueItem(post)));
+    }
 }
 
 // ============================================================

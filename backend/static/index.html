@@ -214,14 +214,19 @@
         <section id="page-history" class="page">
             <div class="card">
                 <div class="card-header-row">
-                    <h3>Histórico de Postagens</h3>
-                    <div class="dashboard-filters" id="historyFilters">
-                        <button class="filter-btn active" data-filter="all">Todos</button>
-                        <button class="filter-btn" data-filter="pending">Pendentes</button>
-                        <button class="filter-btn" data-filter="posted">Postados</button>
-                    </div>
+                    <h3>Pendentes</h3>
                 </div>
-                <div id="historyList" class="content-grid">
+                <p class="muted-text" style="margin-bottom:10px">Ordenadas da mais próxima pra mais distante.</p>
+                <div id="historyPendingList" class="content-grid">
+                    <p class="empty-state">Carregando...</p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header-row">
+                    <h3>Postados</h3>
+                </div>
+                <p class="muted-text" style="margin-bottom:10px">Ordenadas da mais recente pra mais antiga.</p>
+                <div id="historyPostedList" class="content-grid">
                     <p class="empty-state">Carregando...</p>
                 </div>
             </div>
